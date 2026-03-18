@@ -1,0 +1,54 @@
+.react-select-container {
+
+    &.transaction-filter {
+        min-width: 180px;
+    }
+
+    .react-select__control {
+        border-color: transparent;
+        background-color: #163c57;
+        box-shadow: none !important;
+
+        &:hover {
+            border-color: #ccc;
+        }
+
+        .react-select__placeholder {
+            color: white;
+        }
+
+        .react-select__single-value {
+            color: white;
+        }
+
+        .react-select__dropdown-indicator,
+        .react-select__clear-indicator {
+            svg {
+                color: white !important;
+                cursor: pointer;
+            }
+        }
+    }
+
+    .react-select__menu {
+        z-index: 1000;
+        background-color: #163c57;
+
+        .react-select__menu-list {
+            max-height: 250px;
+
+            .react-select__option {
+                color: white;
+                outline: none;
+                text-wrap: nowrap;
+
+                &.react-select__option--is-focused,
+                &.react-select__option--is-selected {
+                    background-color: #061f34;
+                    color: white;
+                    cursor: pointer;
+                }
+            }
+        }
+    }
+}

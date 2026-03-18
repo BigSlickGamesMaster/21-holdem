@@ -1,0 +1,492 @@
+.profile {
+    margin: 100px 50px;
+    border: 2px solid #163C57;
+    border-radius: 15px;
+    overflow: hidden;
+
+    .profile-header {
+        text-align: center;
+        padding: 20px 10px;
+        font-size: 32px;
+        color: #AADDFF;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background-color: #0C263B;
+    }
+
+    .profile-content {
+        padding: 20px 50px;
+        background: linear-gradient(#0c263bcc, #0c263bcc), url("../../../images/ui/table_selection_bg.png") repeat-y top center / 100% auto;
+
+        .avatar {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            margin: 0 auto;
+            border: 2px solid #89D5FF;
+            overflow: hidden;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+        }
+
+        .avatar-name {
+            text-align: center;
+            font-size: 28px;
+            font-family: "TT Commons";
+            font-weight: 500;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .avatar-picker-copy {
+            margin-top: 28px;
+
+            .avatar-picker-title {
+                color: white;
+                font-size: 22px;
+                font-weight: 600;
+            }
+
+            .avatar-picker-text {
+                margin-top: 6px;
+                color: #c7d9ea;
+                font-size: 16px;
+                line-height: 1.35;
+            }
+        }
+
+        .form-label {
+            color: white;
+            font-family: "TT Commons";
+            font-weight: 300;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            background-color: #123A67;
+            border: 1px solid #89D5FF;
+            box-shadow: none !important;
+            color: white;
+            font-family: "TT Commons";
+            font-size: 18px;
+            padding: 10px 20px 8px;
+
+            &::placeholder {
+                color: #ffffffde;
+            }
+
+            &:disabled,
+            &.disabled {
+                background-color: #3D5466;
+                border-color: #3D5466;
+            }
+        }
+
+        .profile-stats {
+            background-color: #00000080;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            text-align: center;
+            padding: 25px 10px;
+            border-radius: 10px;
+
+            .stats-value {
+                font-size: 28px;
+                font-weight: 500;
+            }
+
+            .stats-title {
+                font-size: 20px;
+                font-weight: 300;
+            }
+        }
+
+        .avatar-list {
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+            gap: 26px 28px;
+            flex-wrap: wrap;
+            margin-top: 40px;
+
+            .avatar-option {
+                width: 130px;
+                cursor: pointer;
+                text-align: center;
+
+                &.selected {
+                    .avatar-select-image {
+                        outline: 3px solid #51FF89;
+                        border: 2px solid #51FF89;
+
+                        &::after {
+                            content: '';
+                            position: absolute;
+                            width: 100%;
+                            height: 100%;
+                            background-color: #00000080;
+                            z-index: 1;
+                            left: 0;
+                            top: 0;
+                        }
+                    }
+
+                    .avatar-option-label {
+                        color: #51FF89;
+                    }
+                }
+            }
+
+            .avatar-select-image {
+                width: 130px;
+                height: 130px;
+                border-radius: 50%;
+                overflow: hidden;
+                margin: 0 auto;
+                position: relative;
+                border: 2px solid #89D5FF;
+
+                .select-icon {
+                    position: absolute;
+                    z-index: 2;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    font-size: 35px;
+                    color: #51FF89;
+                }
+
+                img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+            }
+
+            .avatar-option-label {
+                margin-top: 10px;
+                color: white;
+                font-size: 16px;
+                font-weight: 500;
+                line-height: 1.15;
+            }
+        }
+
+        .profile-submit {
+            background-color: #51FF89;
+            color: black;
+            width: 100%;
+            max-width: 450px;
+            font-size: 20px;
+            font-weight: 600;
+            border: none;
+            padding: 10px 20px;
+            margin: 50px auto 0;
+            display: block;
+            transition: 0.3s ease-in-out;
+
+            &:hover {
+                transform: translateY(-2px);
+                background-color: #00cc78;
+            }
+
+            &.disable {
+                opacity: 0.5;
+                background-color: #51FF89 !important;
+                color: black !important;
+            }
+        }
+    }
+}
+
+@include media-max(xxl) {
+    .profile {
+        margin: 100px 10px;
+        border-radius: 10px;
+
+        .profile-content {
+            padding: 20px 20px;
+
+            .avatar {
+                width: 100px;
+                height: 100px;
+            }
+
+            .avatar-name {
+                font-size: 24px;
+            }
+
+            .avatar-picker-copy {
+                .avatar-picker-title {
+                    font-size: 20px;
+                }
+
+                .avatar-picker-text {
+                    font-size: 15px;
+                }
+            }
+
+            .form-label {
+                font-size: 18px;
+            }
+
+            .form-control {
+                font-size: 16px;
+                padding: 8px 15px;
+
+                &::placeholder {
+                    font-size: 16px;
+                }
+            }
+
+            .profile-stats {
+                padding: 15px 10px;
+                margin-top: 20px;
+
+                >div {
+                    width: 100%;
+                    max-width: calc(100% / 3 - 10px);
+                }
+
+                .stats-value {
+                    font-size: 24px;
+                }
+
+                .stats-title {
+                    font-size: 16px;
+                }
+            }
+
+            .avatar-list {
+                gap: 20px 22px;
+
+                .avatar-option {
+                    width: 100px;
+                }
+
+                .avatar-select-image {
+                    width: 100px;
+                    height: 100px;
+
+                    .select-icon {
+                        font-size: 30px;
+                    }
+                }
+
+                .avatar-option-label {
+                    font-size: 14px;
+                }
+            }
+
+            .profile-submit {
+                font-size: 18px;
+                padding: 8px 15px;
+            }
+        }
+    }
+}
+
+@include media-max(md) {
+    .profile {
+        margin: 90px 10px;
+        border-radius: 10px;
+
+        .profile-header{
+            font-size: 26px;
+            padding: 18px 10px;
+        }
+
+        .profile-content {
+            padding: 20px 20px;
+
+            .avatar {
+                width: 100px;
+                height: 100px;
+            }
+
+            .avatar-name {
+                font-size: 22px;
+            }
+
+            .avatar-picker-copy {
+                text-align: center;
+
+                .avatar-picker-title {
+                    font-size: 20px;
+                }
+
+                .avatar-picker-text {
+                    font-size: 15px;
+                }
+            }
+
+            .form-label {
+                font-size: 18px;
+            }
+
+            .form-control {
+                font-size: 16px;
+                padding: 8px 12px 7px;
+
+                &::placeholder {
+                    font-size: 16px;
+                }
+            }
+
+            .profile-stats {
+                padding: 15px 10px;
+                margin-top: 20px;
+                flex-wrap: wrap;
+                gap: 5px;
+
+                .stats-value {
+                    font-size: 22px;
+                }
+
+                .stats-title {
+                    font-size: 16px;
+                }
+            }
+
+            .avatar-list {
+                gap: 20px 18px;
+                max-width: 520px;
+                justify-content: center;
+                margin-inline: auto;
+
+                .avatar-option {
+                    width: 100px;
+
+                    &.selected {
+                        .avatar-select-image {
+                            outline: 2px solid #51FF89;
+                            border: 1px solid #51FF89;
+                        }
+                    }
+                }
+
+                .avatar-select-image {
+                    width: 100px;
+                    height: 100px;
+
+                    .select-icon {
+                        font-size: 25px;
+                    }
+                }
+
+                .avatar-option-label {
+                    font-size: 13px;
+                }
+            }
+
+            .profile-submit {
+                font-size: 16px;
+                padding: 10px 15px;
+                margin-top: 25px;
+                max-width: 350px;
+            }
+        }
+    }
+}
+
+@include media-max(sm) {
+    .profile {
+        margin: 80px 10px;
+
+        .profile-header{
+            font-size: 24px;
+            padding: 15px 10px;
+        }
+
+        .profile-content {
+            .avatar-name {
+                font-size: 20px;
+            }
+
+            .avatar-picker-copy {
+                .avatar-picker-title {
+                    font-size: 18px;
+                }
+
+                .avatar-picker-text {
+                    font-size: 14px;
+                }
+            }
+
+            .form-label {
+                font-size: 16px;
+            }
+
+            .form-control {
+                font-size: 14px;
+                padding: 8px 12px 7px;
+
+                &::placeholder {
+                    font-size: 14px;
+                }
+            }
+
+            .profile-stats {
+                padding: 15px 10px;
+                margin-top: 20px;
+                flex-wrap: wrap;
+                gap: 5px;
+
+                >div {
+                    width: 100%;
+                    max-width: 100%;
+                }
+
+                .stats-value {
+                    font-size: 20px;
+                }
+
+                .stats-title {
+                    font-size: 14px;
+                }
+            }
+
+            .avatar-list {
+                gap: 15px 12px;
+
+                .avatar-option {
+                    width: calc(50% - 10px);
+
+                    &.selected {
+                        .avatar-select-image {
+                            outline: 2px solid #51FF89;
+                            border: 1px solid #51FF89;
+                        }
+                    }
+                }
+
+                .avatar-select-image {
+                    width: 85px;
+                    height: 85px;
+
+                    .select-icon {
+                        font-size: 25px;
+                    }
+                }
+
+                .avatar-option-label {
+                    font-size: 12px;
+                }
+            }
+
+            .profile-submit {
+                font-size: 16px;
+                padding: 10px 15px;
+                margin-top: 25px;
+                max-width: 200px;
+            }
+        }
+    }
+}

@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 195e6f0277a09aa00e6659a9dd7c7917605c874f Bhavadip <bhavadip.nimavat@trilokaninfotech.com> 1750048332 +0530	clone: from https://bitbucket.org/bhavadip007/big-slick-fe.git
+195e6f0277a09aa00e6659a9dd7c7917605c874f 56fe80bf24561b730d76a0e20402a0ba5d72ebc0 Bhavadip <bhavadip.nimavat@trilokaninfotech.com> 1750048402 +0530	commit: initial commit
+56fe80bf24561b730d76a0e20402a0ba5d72ebc0 2863b2555e5130ec933ae49f353fdc20ae8a59aa Bhavadip Nimavat <bhavadip.nimavat@trilokaninfotech.com> 1750844304 +0530	commit: show check logs and update check button click emit
+2863b2555e5130ec933ae49f353fdc20ae8a59aa f736a9afb68ae3a9c48a32bfa8ed672cf54f72a3 Bhavadip Nimavat <bhavadip.nimavat@trilokaninfotech.com> 1752473468 +0530	commit: add rapid mode
+f736a9afb68ae3a9c48a32bfa8ed672cf54f72a3 f736a9afb68ae3a9c48a32bfa8ed672cf54f72a3 BigSlickGames <bigslickgames@gmail.com> 1771043992 +1000	checkout: moving from main to savepoint-local-2026-02-14
+f736a9afb68ae3a9c48a32bfa8ed672cf54f72a3 fc3a634a2a1b084eb840880f4ad9cc1731f3f413 BigSlickGames <bigslickgames@gmail.com> 1771044020 +1000	commit: Local savepoint before flagship edits (2026-02-14)
+fc3a634a2a1b084eb840880f4ad9cc1731f3f413 56ddc1beb6298100a5a8e2660414e8e295dab743 BigSlickGames <bigslickgames@gmail.com> 1771046481 +1000	commit: Gameplay Patch A/B: stabilize turn UI and keep deck visible
+56ddc1beb6298100a5a8e2660414e8e295dab743 56ddc1beb6298100a5a8e2660414e8e295dab743 BigSlickGames <bigslickgames@gmail.com> 1771057619 +1000	reset: moving to 56ddc1b
+56ddc1beb6298100a5a8e2660414e8e295dab743 99e539a9cd19047f1d5324c1e4bbe449cc4b1ce7 BigSlickGames <bigslickgames@gmail.com> 1771666519 +1000	commit: chore(snapshot): save local frontend state with gameplay fixes and docs

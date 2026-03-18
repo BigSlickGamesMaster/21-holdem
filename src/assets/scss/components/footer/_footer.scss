@@ -1,0 +1,90 @@
+.footer {
+    width: 100%;
+    background-color: var(--black-color);
+    position: fixed;
+    z-index: 10000;
+    bottom: 0px;
+    left: 0;
+    padding: 5px 0;
+    font-family: 'Neue Plak Condensed';
+
+    .footer-menu {
+        ul {
+            display: flex;
+            align-items: center;
+            justify-content: space-evenly;
+            margin: 0;
+            padding: 10px;
+
+            li {
+                list-style: none;
+
+                a {
+                    font-size: 18px;
+                    text-decoration: none;
+                    color: #FFFFCE;
+
+                    img{
+                        width: 20px;
+                        margin-bottom: 3px;
+                        margin-right: 2px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@include media-max(lg) {
+    .footer {
+        .footer-menu {
+            ul {
+                li {
+                    a {
+                        font-size: 16px;
+
+                        img{
+                            width: 16px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@include media-max(md) {
+    .footer {
+        .footer-menu {
+            ul {
+                li {
+                    a {
+                        font-size: 14px;
+
+                        img{
+                            width: 14px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@include media-max(sm) {
+    .footer {
+        .footer-menu {
+            ul {
+                li {
+                    a {
+                        font-size: 12px;
+
+                        img{
+                            width: 12px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

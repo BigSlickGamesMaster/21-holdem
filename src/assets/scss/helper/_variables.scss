@@ -1,0 +1,52 @@
+// Colors
+body {
+  --error-color: #ac1212;
+  --secondary-100: #f2f4f7;
+  --secondary-200: #e4e6eb;
+  --secondary-300: #d2d5d9;
+  --secondary-400: #a7acb4;
+  --secondary-500: #757982;
+  --secondary-600: #50545d;
+  --secondary-700: #324142;
+  --secondary-800: #232e2a;
+  --gray-100: #b2bfd2;
+  --gray-200: #8292ad;
+  --gray-medium: #8392ab;
+  --white-color: #ffffff;
+  --black-color: #000000;
+  --boxes-color: #ffffff;
+
+  &.light {
+    --theme-color: #3c5d7a;
+    --primary-color: #395874;
+    --primary-text-color: #006D80;
+    --form-label-color: #8e8e8e;
+    --neon-color: #CFFF04;
+    --hover-color: #fcfc3b;
+    --table-selection-color: #0C263B;
+    --table-header_bgcolor: #163C57;
+    --table-header_color: #ffffff;
+
+    --button-color: #d29b00;
+
+    --not-disable-color: #1a1a1a;
+    --not-disable-background: transparent;
+    --not-disable-border: 1px solid #a6c2ff;
+
+    --disable-color: #535353;
+    --disable-background: #e4e4e4;
+    --disable-border: 1px solid #d0d0d0;
+
+    --placeholder-color: #000000;
+
+  }
+}
+
+// Media query breakpoints
+$grid-breakpoints: (
+  xs: 0,
+  sm: 575px,
+  md: 767px,
+  lg: 991px,
+  xl: 1199px,
+  xxl: 1399px) !default;

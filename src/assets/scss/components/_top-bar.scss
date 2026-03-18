@@ -1,0 +1,36 @@
+.top-bar {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 30px;
+
+  .buttons {
+    margin-left: 10px;
+
+    .topbar-button {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      line-height: 1;
+      color: var(--primary-color);
+      background-color: var(--boxes-color);
+      padding: 12px 15px;
+      border-color: var(--primary-color);
+      border: 1px solid transparent;
+      border-radius: 5px;
+
+      &:hover {
+        background-color: var(--primary-color);
+        color: var(--white-color) !important;
+        border-color: var(--white-color) !important;
+      }
+    }
+
+    .btn+.btn {
+      margin-left: 15px;
+    }
+  }
+}

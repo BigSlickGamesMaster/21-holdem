@@ -1,0 +1,318 @@
+.header-private {
+    display: flex;
+    z-index: 1000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: linear-gradient(to bottom, var(--primary-color), #bac6d0);
+    font-family: 'TT Commons';
+    font-weight: 400;
+
+    .header-private__logo {
+
+        // h3 {
+        //     color: var(--black-color);
+        //     font-family: 'Neue Plak Condensed';
+        //     font-weight: bold;
+        //     text-transform: uppercase;
+        // }
+        margin-left: 10px;
+
+        img {
+            width: 150px;
+            object-fit: contain;
+            margin-top: 5px;
+        }
+    }
+
+    .header-private__menu {
+        display: flex;
+        gap: 40px;
+        padding-right: 55px;
+        justify-content: end;
+        align-items: center;
+        position: relative;
+
+        ul {
+            margin: 0;
+            padding: 0;
+            font-size: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: space-evenly;
+            list-style: none;
+
+            li {
+                a {
+                    color: var(--black-color);
+                    text-decoration: none;
+                    font-weight: 600;
+
+                    &.active,
+                    &:hover {
+                        color: #FBFA36;
+                    }
+                }
+            }
+        }
+
+        .header-private__menu-wallet {
+            display: flex;
+            // gap: 30px;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #154D73;
+            padding: 5px 5px;
+            border-radius: 10px;
+            width: 130px;
+            position: relative;
+
+            .full-wallet-amount {
+                position: absolute;
+                top: 45px;
+                right: 50%;
+                transform: translateX(50%);
+                background-color: #154D73;
+                color: var(--white-color);
+                padding: 2px 15px;
+                border-radius: 5px;
+                min-width: 70px;
+                text-align: center;
+                opacity: 0;
+                visibility: hidden;
+
+                &::before {
+                    content: '';
+                    position: absolute;
+                    top: -10px;
+                    right: 50%;
+                    transform: translateX(50%);
+                    border: 5px solid transparent;
+                    border-bottom-color: #154D73;
+                }
+            }
+
+            &:hover .full-wallet-amount {
+                opacity: 1;
+                visibility: visible;
+            }
+
+            span {
+                color: var(--white-color);
+            }
+
+            .header-private__menu-wallet-iconChip,
+            .header-private__menu-wallet-iconPlus {
+                img {
+                    width: 30px;
+                    height: 30px;
+                }
+            }
+
+            .header-private__menu-wallet-iconPlus {
+                cursor: pointer;
+            }
+        }
+
+        .header-private__menu-user {
+            position: relative;
+            display: flex;
+            // gap: 5px;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #051F34;
+            padding: 5px 5px;
+            border-radius: 10px;
+            width: 130px;
+            cursor: pointer;
+
+            .header-private__menu-user-avatar {
+                img {
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 7px;
+                }
+            }
+
+            span {
+                padding-left: 5px;
+                color: var(--white-color);
+            }
+
+            .header-private__menu-user-downArrow {
+                svg {
+                    width: 20px;
+                    height: 20px;
+                }
+            }
+        }
+
+        .header-private__menu-user-dropdown {
+            position: absolute;
+            top: 70px;
+            right: 50%;
+            transform: translateX(50%);
+            z-index: 1000;
+            background-color: #fff;
+            border-radius: 8px;
+            background: linear-gradient(to top, #4c7baa, #b8d1e6);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-width: 190px;
+
+            ul {
+                display: flex;
+                flex-direction: column;
+                gap: 0;
+                list-style: none;
+                padding: 10px;
+                margin: 0;
+
+                li {
+                    width: 100%;
+
+                    .link {
+                        width: 100%;
+                        font-size: 20px;
+                        text-align: center;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        padding: 0px 10px;
+                        display: block;
+                        color: var(--black-color);
+                        font-weight: 500;
+
+                        &:hover {
+                            background-color: rgba(5, 31, 52, 0.2);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    .navbar-toggler {
+        box-shadow: none;
+        outline: none;
+        border: none;
+        background-color: transparent;
+
+        &:focus {
+            outline: none;
+        }
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba%280, 0, 0, 0.5%29' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+        }
+    }
+
+    .navbar-collapse {
+        justify-content: flex-end;
+    }
+}
+
+@include media-max(lg) {
+    .header-private {
+        .header-private__menu {
+            ul {
+                li {
+                    a {
+                        font-size: 18px;
+                    }
+                }
+            }
+
+            .header-private__menu-wallet {
+                font-size: 16px;
+
+                .header-private__menu-wallet-iconChip,
+                .header-private__menu-wallet-iconPlus {
+                    img {
+                        width: 25px;
+                        height: 25px;
+                    }
+                }
+            }
+
+            ul {
+                flex-direction: row;
+            }
+
+            .header-private__menu-user {
+                .header-private__menu-user-dropdown {
+                    top: 60px;
+                    min-width: 170px;
+
+                    ul {
+                        li {
+                            .link {
+                                font-size: 18px;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@include media-max(md) {
+    .header-private {
+        .header-private__logo {
+            img {
+                width: 100px;
+                object-fit: contain;
+            }
+        }
+
+        .header-private__menu {
+            flex-direction: column;
+            padding: 0;
+            margin: auto;
+            gap: 10px;
+
+            ul {
+                flex-direction: column;
+                gap: 10px;
+                margin-top: 15px;
+                li {
+                    a {
+                        font-size: 16px;
+                        padding: 0;
+                    }
+                }
+            }
+
+            .header-private__menu-wallet {
+                font-size: 14px;
+
+                .header-private__menu-wallet-iconChip,
+                .header-private__menu-wallet-iconPlus {
+                    img {
+                        width: 20px;
+                        height: 20px;
+                    }
+                }
+            }
+
+            .header-private__menu-user {
+                .header-private__menu-user-dropdown {
+                    top: 60px;
+                    min-width: 150px;
+
+                    ul {
+                        li {
+                            .link {
+                                font-size: 16px;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,878 @@
+import Phaser from 'phaser';
+import config from '../scripts/config';
+import assets from '../scripts/assets';
+import _ from '../scripts/helper';
+import SocketManager from '../scripts/SocketManager';
+import GameManager from '../scripts/GameManager';
+import emitter from '../scripts/emitter';
+import Card from '../prefabs/Card';
+import Prompt from '../prefabs/Prompt';
+import PlayerProfile from '../prefabs/PlayerProfile';
+import Button from '../prefabs/Button';
+import Popup from '../prefabs/Popup';
+import Settings from '../prefabs/Settings';
+import SoundManager from '../scripts/SoundManager';
+import Services from '../scripts/Services';
+import Animations from '../scripts/Animations';
+import GameInfo from 'prefabs/GameInfo';
+
+export default class Level extends Phaser.Scene {
+    constructor() {
+        super("Level");
+    }
+    setHeader() {
+        const header = this.add.image(config.centerX, 15, assets.header).setScale(2);
+        this.container_header.add(header);
+
+        const ping_bg = this.add.image(config.centerX, 20, assets.ping_bg).setScale(1.5);
+        this.container_header.add(ping_bg);
+
+        const wifi_icon = this.add.image(ping_bg.x - 24, ping_bg.y, assets.wifi_icon).setScale(1.5);
+        this.container_header.add(wifi_icon);
+
+        const txt_ping = this.add.text(wifi_icon.x + wifi_icon.displayWidth + 15, wifi_icon.y, '', {
+            fontSize: 32, fontFamily: config.CommonFont, color: '#ffffff'
+        }).setOrigin(0.5, 0.5);
+        this.container_header.add(txt_ping);
+
+        const btn_setting = new Button(this, 80, 80, { texture: assets.btn_setting, scaleX: 0.8, scaleY: 0.8 }, () => {
+            btn_setting.setVisible(false);
+            this.settings.open();
+        });
+        this.container_header.add(btn_setting);
+
+        const btn_exit = new Button(this, config.width - 80, btn_setting.y, { texture: assets.btn_exit, scaleX: 0.8, scaleY: 0.8 }, () => {
+            this.popup.open({
+                confirm: true, title: 'EXIT', message: this.oGameManager.exitMessage, callback: () => {
+                    this.reqLeaveGame();
+                }
+            });
+        });
+        this.container_header.add(btn_exit);
+
+        this.oHeader = { btn_setting: btn_setting, btn_exit: btn_exit, txt_ping: txt_ping };
+    }
+    setTable() {
+        const container_private_table = this.add.container(0, 0).setVisible(false);
+        this.container_table.add(container_private_table);
+        const txt_privateTableMessage = this.add.text(config.centerX, config.centerY - 200, 'Share this code with your friends to join this table!', { fontSize: '38px', fontFamily: config.CommonFont, color: '#000000' }).setAlpha(0.9).setOrigin(0.5);
+        container_private_table.add(txt_privateTableMessage);
+        const code_base = this.add.image(config.centerX, txt_privateTableMessage.y + txt_privateTableMessage.displayHeight + 25, assets.black_base).setScale(0.5);
+        container_private_table.add(code_base);
+        const txt_privateTableCode = this.add.text(code_base.x, code_base.y, '123456', { fontSize: '38px', fontFamily: config.CommonFont, color: '#ffffff' }).setOrigin(0.5);
+        container_private_table.add(txt_privateTableCode);
+
+        const tostMessage = this.add.text(code_base.x, code_base.y + code_base.displayHeight, 'Code copied!', { fontSize: '38px', fontFamily: config.CommonFont, color: '#000000' }).setAlpha(0.9).setOrigin(0.5).setVisible(false);
+        container_private_table.add(tostMessage);
+
+        const btn_copy = new Button(this, txt_privateTableCode.x + code_base.displayWidth / 2 - 35, txt_privateTableCode.y, { texture: assets.copy_icon }, () => {
+            _.copyToClipboard(txt_privateTableCode.text);
+            btn_copy.btn_image.setInteractive();
+            this.tostTimeOut && clearTimeout(this.tostTimeOut);
+            tostMessage.setVisible(true);
+            this.tostTimeOut = setTimeout(() => {
+                tostMessage.setVisible(false);
+            }, 2000);
+        });
+        container_private_table.add(btn_copy);
+        const close_deck_card = this.add.image(config.centerX - 280, config.centerY - 60, assets.card_deck);
+        this.container_table.add(close_deck_card);
+        if (this.sPrivateCode) {
+            txt_privateTableCode.setText(this.sPrivateCode);
+            container_private_table.setVisible(true);
+            this.table.setTexture(assets.private_table);
+        }
+        this.oTable = {
+            close_deck_card: close_deck_card,
+            container_private_table: container_private_table,
+        }
+    }
+    setFooter() {
+        const footer = this.add.image(config.centerX, config.height, assets.footer).setVisible(false);
+        footer.setY(config.height - footer.displayHeight / 2);
+        this.container_footer.add(footer);
+
+        const player_price_base = this.add.image(footer.x, footer.y, assets.player_name_bar);
+        this.container_footer.add(player_price_base);
+        const chip_icon = this.add.image(player_price_base.x - player_price_base.displayWidth / 2.5, player_price_base.y, assets.chip_icon);
+        this.container_footer.add(chip_icon);
+        const txt_player_price = this.add.text(chip_icon.x + chip_icon.displayWidth, chip_icon.y, '0', { fontSize: '42px', fontFamily: config.CommonFont }).setOrigin(0.5);
+        chip_icon.setX(txt_player_price.x - chip_icon.displayWidth / 2);
+        txt_player_price.setX(chip_icon.x + chip_icon.displayWidth / 2 + txt_player_price.displayWidth / 1.5);
+        this.container_footer.add(txt_player_price);
+        this.oFooter = { footer: footer, player_price_base: player_price_base, txt_player_price: txt_player_price, chip_icon: chip_icon }
+    }
+    reqLeaveGame() {
+        this.oSocketManager.emit(emitter.reqLeave);
+    }
+    reqDiscardCard(iCardId) {
+        this.oSocketManager.emit(emitter.reqDiscardCard, { iCardId: iCardId });
+        this.selectedCards = [];
+        this.updateGroupButtons();
+    }
+    reqFinish(iCardId) {
+        this.oSocketManager.emit(emitter.reqFinish, { iCardId: iCardId });
+        this.selectedCards = [];
+        this.updateGroupButtons();
+        this.oButtons.btn_declare.setVisible(true);
+        this.isFinishGame = true;
+    }
+    setButtons() {
+        const btn_fold = new Button(this, config.centerX - 655, config.height - 70, { texture: assets.btn_blue, scaleX: 0.8, scaleY: 0.8, iconTexture: assets.fold_icon, text: 'Fold', fontSize: '62px', sound: this.oSoundManager.fold_sound }, () => {
+            this.oSocketManager.emit(emitter.reqFold);
+        }).setVisible(false);
+        this.container_buttons.add(btn_fold);
+
+        const btn_call = new Button(this, config.centerX - 300, btn_fold.y, { texture: assets.btn_yellow, scaleX: 0.8, scaleY: 0.8, text: 'Call', fontSize: '62px', sound: this.oSoundManager.check_sound }, () => {
+            this.oSocketManager.emit(emitter.reqCall);
+        }).setVisible(false);
+        this.container_buttons.add(btn_call);
+
+        const btn_check = new Button(this, btn_call.x, btn_call.y, { texture: assets.btn_yellow, scaleX: 0.8, scaleY: 0.8, iconTexture: assets.check_icon, text: 'Check', fontSize: '62px', sound: this.oSoundManager.check_sound }, () => {
+            this.oSocketManager.emit(emitter.reqCheck);
+        }).setVisible(false);
+        this.container_buttons.add(btn_check);
+
+        const btn_raise = new Button(this, config.centerX + 300, btn_fold.y, { texture: assets.btn_red, scaleX: 0.8, scaleY: 0.8, iconTexture: assets.raise_icon, text: 'Raise', fontSize: '62px' }, () => {
+            this.container_buttons.setVisible(false);
+            this.container_raise_buttons.setVisible(true);
+            this.container_raise_buttons.list.forEach(btn => btn.btn_image.setInteractive());
+        }).setVisible(false);
+        this.container_buttons.add(btn_raise);
+
+        const btn_doubleDown = new Button(this, config.centerX + 655, btn_fold.y, { texture: assets.btn_pink, scaleX: 0.8, scaleY: 0.8, iconTexture: assets.doubleDown_icon, text: 'Double Down', fontSize: '62px' }, () => {
+            this.oSocketManager.emit(emitter.reqDoubleDown);
+        }).setVisible(false);
+        this.container_buttons.add(btn_doubleDown);
+
+        const btn_stand = new Button(this, btn_doubleDown.x, btn_doubleDown.y, { texture: assets.btn_pink, scaleX: 0.8, scaleY: 0.8, iconTexture: assets.stand_icon, text: 'Stand', fontSize: '62px' }, () => {
+            this.oSocketManager.emit(emitter.reqStand);
+        }).setVisible(false);
+        this.container_buttons.add(btn_stand);
+
+        const btn_min = new Button(this, btn_call.x - 10 - btn_call.btn_image.displayWidth / 4, btn_call.y, { texture: assets.btn_green, scaleX: 0.8, scaleY: 0.8, text: 'MIN', fontSize: '62px', sound: this.oSoundManager.check_sound }, () => {
+            this.oGameManager.tempRaiseAmount = this.oGameManager.nMinRaiseAmount;
+            this.container_raise_buttons.setVisible(false);
+            this.container_confirm_raise.setVisible(true);
+        });
+        this.container_raise_buttons.add(btn_min);
+
+        const btn_halfPot = new Button(this, btn_call.x - 10 - btn_call.btn_image.displayWidth / 4, btn_call.y, { texture: assets.btn_smallYellow, scaleX: 0.8, scaleY: 0.8, text: '1/2 Pot', fontSize: '62px', sound: this.oSoundManager.raise_sound }, () => {
+            this.oGameManager.tempRaiseAmount = this.oGameManager.nPotAmount / 2;
+            this.container_raise_buttons.setVisible(false);
+            this.container_confirm_raise.setVisible(true);
+        });
+        this.container_raise_buttons.add(btn_halfPot);
+
+        const btn_fullPot = new Button(this, btn_call.x - 10 + btn_call.btn_image.displayWidth / 4, btn_call.y, { texture: assets.btn_smallOrange, scaleX: 0.8, scaleY: 0.8, text: 'Pot', fontSize: '62px', sound: this.oSoundManager.raise_sound }, () => {
+            this.oGameManager.tempRaiseAmount = this.oGameManager.nPotAmount;
+            this.container_raise_buttons.setVisible(false);
+            this.container_confirm_raise.setVisible(true);
+        });
+        this.container_raise_buttons.add(btn_fullPot);
+
+        const btn_allIn = new Button(this, btn_raise.x, btn_raise.y, { texture: assets.btn_blue, scaleX: 0.8, scaleY: 0.8, iconTexture: assets.allIn_icon, text: 'All In', fontSize: '62px', sound: this.oSoundManager.raise_sound }, () => {
+            this.oSocketManager.emit(emitter.reqRaise, { nRaiseAmount: this.oGameManager.nMyPlayerChips });
+        }).setVisible(false);
+        this.container_raise_buttons.add(btn_allIn);
+        this.container_raise_buttons.add(btn_allIn);
+
+        const btn_allInCommon = new Button(this, btn_raise.x, btn_raise.y, { texture: assets.btn_blue, scaleX: 0.8, scaleY: 0.8, iconTexture: assets.allIn_icon, text: 'All In', fontSize: '62px', sound: this.oSoundManager.raise_sound }, () => {
+            this.oSocketManager.emit(emitter.reqRaise, { nRaiseAmount: this.oGameManager.nMyPlayerChips });
+        }).setVisible(false);
+        this.container_buttons.add(btn_allInCommon);
+
+        const btn_cancel = new Button(this, btn_doubleDown.x, btn_doubleDown.y, { texture: assets.btn_red, scaleX: 0.8, scaleY: 0.8, text: 'Cancel', fontSize: '62px' }, () => {
+            this.container_raise_buttons.setVisible(false);
+            this.container_buttons.setVisible(true);
+            this.container_buttons.list.forEach(btn => btn.btn_image.setInteractive());
+        });
+        this.container_raise_buttons.add(btn_cancel);
+
+        // ====== Confirm / Stand / Cancel buttons after Raise amount ======
+        const btn_confirmRaise = new Button(this, btn_fold.x, btn_fold.y, { texture: assets.btn_green, scaleX: 0.8, scaleY: 0.8, text: 'Confirm', fontSize: '62px' }, () => {
+            this.oSocketManager.emit(emitter.reqRaise, {
+                nRaiseAmount: this.oGameManager.tempRaiseAmount,
+                bTakeCard: true,
+            });
+            this.container_confirm_raise.setVisible(false);
+        });
+        this.container_confirm_raise.add(btn_confirmRaise);
+
+        const btn_standRaise = new Button(this, config.centerX + 320, config.height - 70, { texture: assets.btn_pink, scaleX: 0.8, scaleY: 0.8, text: 'Stand', fontSize: '62px' }, () => {
+            this.oSocketManager.emit(emitter.reqRaise, {
+                nRaiseAmount: this.oGameManager.tempRaiseAmount,
+                bTakeCard: false,
+            });
+            this.container_confirm_raise.setVisible(false);
+        });
+        this.container_confirm_raise.add(btn_standRaise);
+
+        const btn_cancelRaise = new Button(this, btn_doubleDown.x, btn_doubleDown.y, { texture: assets.btn_red, scaleX: 0.8, scaleY: 0.8, text: 'Cancel', fontSize: '62px' }, () => {
+            this.container_confirm_raise.setVisible(false);
+            this.container_raise_buttons.setVisible(true);
+            this.container_raise_buttons.list.forEach(btn => btn.btn_image.setInteractive());
+        });
+        this.container_confirm_raise.add(btn_cancelRaise);
+
+        this.oButtons = { btn_fold, btn_call, btn_check, btn_raise, btn_doubleDown, btn_stand, btn_min, btn_halfPot, btn_fullPot, btn_allIn, btn_allInCommon, btn_cancel }
+    }
+    setPotAmount() {
+        const pot_amount_base = this.add.image(config.centerX, config.centerY - 295, assets.pot_amount_base);
+        this.container_pot_amount.add(pot_amount_base);
+        const chip_icon = this.add.image(pot_amount_base.x - pot_amount_base.displayWidth / 3.6, pot_amount_base.y, assets.chip_icon);
+        this.container_pot_amount.add(chip_icon);
+        const pot_amount_text = this.add.text(chip_icon.x + chip_icon.displayWidth, chip_icon.y, '0', { fontSize: '48px', fontFamily: config.CommonFont, color: '#ffffff' }).setOrigin(0.5);
+        chip_icon.setX(pot_amount_text.x - chip_icon.displayWidth / 2);
+        pot_amount_text.setX(chip_icon.x + chip_icon.displayWidth / 2 + pot_amount_text.displayWidth / 1.5);
+        this.container_pot_amount.add(pot_amount_text);
+        this.oPotAmount = { pot_amount_base: pot_amount_base, chip_icon: chip_icon, pot_amount_text: pot_amount_text };
+    }
+    createPlayerProfiles() {
+        for (let i = 0; i < 9; i++) {
+            const { x, y } = this.oGameManager.getPlayerProfileSpecs(i);
+            const playerProfile = new PlayerProfile(this, x, y, i)
+            this.aAllPlayerProfiles.push(playerProfile);
+            this.container_player_profiles.add(playerProfile);
+        }
+    }
+    arrangeSeats(mySeat = 0) {
+        const aSeats = _.getSeats(mySeat);
+        for (let i = 0; i < aSeats.length; i++) {
+            this.aPlayerProfiles[aSeats[i]] = this.aAllPlayerProfiles[i];
+        }
+    }
+    editorCreate() {
+        this.container_body = this.add.container(0, 0);
+        const bg = this.add.image(config.centerX, config.centerY, assets.game_bg);
+        this.container_body.add(bg);
+        this.table = this.add.image(config.centerX, config.centerY, assets.table);
+        this.container_body.add(this.table);
+        this.container_header = this.add.container(0, 0);
+        this.container_pot_amount = this.add.container(0, 0);
+        this.container_community_cards = this.add.container(0, 0);
+        this.container_table = this.add.container(0, 0);
+        this.container_closed_cards = this.add.container(0, 0);
+        this.container_player_cards = this.add.container(0, 0);
+        this.container_player_profiles = this.add.container(0, 0);
+        this.container_footer = this.add.container(0, 0);
+        this.container_buttons = this.add.container(0, 0).setVisible(false);
+        this.container_raise_buttons = this.add.container(0, 0).setVisible(false);
+        this.container_confirm_raise = this.add.container(0, 0).setVisible(false);
+        this.prompt = new Prompt(this, config.centerX, config.centerY, 'Please wait for other players to join');
+        this.prompt.hide();
+        this.settings = new Settings(this, -200, 250);
+        this.setHeader();
+        this.gameInfo = new GameInfo(this, config.centerX, config.centerY, this.oGameManager.oGameInfo);
+        this.gameInfo.close();
+        this.popup = new Popup(this, config.centerX, config.centerY, { title: 'EXIT', message: 'Are you sure you want to leave this table?' }).setScale(0.8);
+        this.popup.close();
+        this.setPotAmount();
+        this.setTable();
+        this.setFooter();
+        this.setButtons();
+        this.createPlayerProfiles();
+
+    }
+    makeSocketConnection() {
+        this.oSocketManager = new SocketManager(this, {
+            sAuthToken: this.sAuthToken,
+            iBoardId: this.iBoardId,
+        });
+    }
+    init({ sAuthToken, iBoardId, sPrivateCode }) {
+        this.sAuthToken = sAuthToken;
+        this.iBoardId = iBoardId;
+        this.sPrivateCode = sPrivateCode;
+    }
+    async create() {
+        this.nOpponentIndex = 1;
+        this.nPingCounter = 0;
+        this.aAllPlayerProfiles = [];
+        this.aPlayerProfiles = [null, null, null, null, null, null, null, null, null];
+        this.players = new Map();
+        this.iUserId = '';
+        this.iDealerId = '';
+        this.iBigBlindId = '';
+        this.iSmallBlindId = '';
+        this.iLastTurnId = '';
+        this.oBoard = {};
+        this.iGameId = '';
+        this.isMyTurn = false;
+        this.isFinishGame = false;
+        this.iSelecetdCardId = '';
+
+        this.cards = [];
+        this.selectedCards = [];
+        this.cameras.main.fadeIn(400);
+        this.oGameManager = new GameManager(this);
+        this.oSoundManager = new SoundManager(this);
+        this.oAnimations = new Animations(this);
+        this.makeSocketConnection();
+        this.oServices = new Services({ sRoot: process.env.REACT_APP_API_ENDPOINT, authorization: this.sAuthToken });
+
+        this.editorCreate();
+        this.oServices.profile().then(res => {
+            const data = res.data.data;
+            this.oSoundManager.isSoundOn = data.bSoundEnabled;
+            this.oSoundManager.isMusicOn = data.bMusicEnabled;
+            this.settings.updateSoundSwitcher(this.oSoundManager.isSoundOn);
+            this.settings.updateMusicSwitcher(this.oSoundManager.isMusicOn);
+        }).catch(err => console.error('err', err));
+        this.oSoundManager.playMusic(this.oSoundManager.bg_music, true);
+        this.visibilityChangeHandler = () => this.exitGame();
+        window.addEventListener('visibilitychange', this.visibilityChangeHandler);
+        window.addEventListener('popstate', (event) => {
+            this.exitGame();
+        });
+    }
+    setCardHand({ aCardHand, nCardScore }) {
+        this.oGameManager.exitMessage = 'Are you sure you want to quit?\nIf you quit now, your hand will be folded automatically, and you’ll lose your chance to win this round.';
+        this.oTable.container_private_table.setVisible(false);
+        const playersArray = Array.from(this.players.values());
+        const dealerIndex = playersArray.findIndex(player => player?.iUserId === this.iDealerId);
+        const reorderedPlayers = [...playersArray.slice(dealerIndex), ...playersArray.slice(0, dealerIndex)];
+        aCardHand.forEach((cardData, cardIndex) => {
+            reorderedPlayers?.forEach((player, playerIndex) => {
+                player?.iUserId == this.iUserId && player?.playerProfile?.setScore(nCardScore);
+                player.playerProfile.container_cards.removeAll(true);
+                this.animateCard(cardData, cardIndex, player, playerIndex);
+            });
+        });
+    }
+    animateCard(cardData, cardIndex, player, playerIndex) {
+        const animatedCard = this.add.image(config.centerX, 200, assets.card_back).setScale(0.7);
+        this.container_closed_cards.add(animatedCard);
+
+        const { x, y } = player?.playerProfile;
+        const targetY = x === 960 ? y - 120 : y - 50;
+
+        this.oSoundManager.playSound(this.oSoundManager.card_sound, false);
+        this.oAnimations.move({
+            aGameObjects: [animatedCard],
+            targetX: x,
+            targetY: targetY,
+            duration: this.oGameManager.nCardDuration,
+            delay: 100 * cardIndex + 100 * playerIndex,
+            onComplete: () => {
+                this.createCard(cardData, player, animatedCard);
+                animatedCard.destroy();
+            }
+        });
+    }
+    async createCard(cardData, player, animatedCard) {
+        if (!player?.playerProfile?.container_cards.list.includes(cardData._id)) {
+            await player?.playerProfile?.createCard(cardData);
+            const cardsList = player?.playerProfile?.container_cards.list;
+            for (let index = 0; index < cardsList.length; index++) {
+                const card = cardsList[index];
+                if (player?.iUserId === this.iUserId) {
+                    cardData._id === card._id && animatedCard ? card.animateCard() : card.openCard();
+                } else {
+                    card.closeCard();
+                }
+            }
+        }
+    }
+    waitingForGameStart({ nInitializeTimer, nRoundStartsIn }) {
+        this.prompt.hide();
+        if (nRoundStartsIn) {
+            this.waitingForNextRoundStart(Math.round(nRoundStartsIn / 1000));
+            return;
+        }
+        const seconds = Math.max(0, Math.round(nInitializeTimer / 1000));
+        this.prompt.show(`Game will starts in ${seconds} second(s)`);
+        this.declreResultInterval && clearInterval(this.declreResultInterval);
+        this.timer && clearInterval(this.timer);
+        this.timer = setInterval(() => {
+            if (nInitializeTimer <= 0) {
+                clearInterval(this.timer);
+                this.prompt.hide();
+            } else {
+                nInitializeTimer -= 1000;
+                const remainingSeconds = Math.max(0, Math.round(nInitializeTimer / 1000));
+                this.prompt.txt_message.setText(`Game will starts in ${remainingSeconds} second(s)`);
+            }
+        }, 1000);
+    }
+    waitingForNextRoundStart(remainingTime) {
+        this.timer && clearInterval(this.timer);
+        this.declreResultInterval && clearInterval(this.declreResultInterval);
+        this.declreResultInterval = setInterval(() => {
+            remainingTime--;
+            if (remainingTime <= 0) {
+                clearInterval(this.declreResultInterval);
+                this.prompt.hide();
+            } else {
+                remainingTime < 3 && this.prompt.show(`The next round will starts in ${remainingTime} second(s)`);
+            }
+        }, 1000);
+    }
+    waitingForNextRound() {
+        this.container_community_cards.setVisible(false);
+        this.container_community_cards.removeAll(true);
+        this.oTable.close_deck_card.setVisible(true);
+        this.aPlayerProfiles.forEach(player => {
+            player.container_cards.removeAll(true).setVisible(false);
+        });
+    }
+    startGame() {
+        this.prompt.hide();
+        this.oTable.container_private_table.setVisible(false);
+        this.container_table.setVisible(true);
+        this.container_community_cards.setVisible(true);
+    }
+    async findMyPlayer(aParticipant) {
+        for (let i = 0; i < aParticipant.length; i++) {
+            if (aParticipant[i].sRootSocket === this.oSocketManager.sRootSocket) {
+                this.iUserId = aParticipant[i].iUserId;
+                return aParticipant[i];
+            }
+        }
+    }
+    async setGameData({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant, oGameInfo }) {
+        try {
+            this.oGameManager.oGameInfo = oGameInfo;
+            this.oGameManager.nMaxPlayer = nMaxPlayer;
+            this.oGameManager.oSetting = oSetting;
+            this.iDealerId = iDealerId;
+            this.iBigBlindId = iBigBlindId;
+            this.iSmallBlindId = iSmallBlindId;
+            const myPlayer = await this.findMyPlayer(aParticipant);
+            this.arrangeSeats(myPlayer.nSeat);
+            this.updatePotAmount(nTableChips);
+            this.checkGameEState(eState);
+            this.setPlayersData(aParticipant);
+            this.setCommunityCards(aCommunityCard);
+            this.setDealerAndBlind();
+            // eState === 'finished' && 
+        } catch (error) {
+            console.error("Error while setting game data:", error);
+        }
+    }
+    updatePotAmount(nTableChips) {
+        this.oGameManager.nPotAmount = nTableChips;
+        this.oPotAmount.pot_amount_text.setText(`${_.formatCurrencyWithComa(nTableChips)}`);
+        const totalWidth = this.oPotAmount.chip_icon.displayWidth + this.oPotAmount.pot_amount_text.displayWidth;
+        const startX = this.oPotAmount.pot_amount_base.x - totalWidth / 2;
+        this.oPotAmount.chip_icon.setX(startX);
+        this.oPotAmount.pot_amount_text.setX(startX + this.oPotAmount.chip_icon.displayWidth + this.oPotAmount.pot_amount_text.displayWidth / 2);
+    }
+    handleDoubleDown(oData, sEventName) {
+        const player = this.players.get(oData.iUserId);
+
+        const playerNewCards = [];
+        player?.playerProfile?.setAmountIn(oData.nChips);
+        if (oData.iUserId !== this.iUserId && sEventName === 'resDoubledown') {
+            player?.playerProfile?.setBettingLabel('DD');
+        }
+        player.iUserId == this.iUserId && this.setAmountIn(oData.nChips);
+        player.iUserId == this.iUserId && player?.playerProfile?.setScore(oData.nCardScore);
+        this.updatePotAmount(oData.nTableChips);
+        // const existingCardIds = player?.playerProfile?.container_cards.list.map(card => card._id);
+        playerNewCards.push(oData.oCard);
+        // oData.aCardHand.forEach((cardData, index) => {
+        //     if (!existingCardIds.includes(cardData._id)) {
+        // if (player.iUserId == this.iUserId) {
+        // }
+        // else {
+        //     playerNewCards.push(oData.oCard);
+        // }
+        //     }
+        // });
+        playerNewCards.forEach((cardData, index) => {
+            this.animateCard(cardData, index, player, index);
+        });
+    }
+    handlePlayerBet(oData, sEventName) {
+        const player = this.players.get(oData.iUserId);
+
+        player?.playerProfile.setAmountIn(oData.nChips);
+        player?.iUserId == this.iUserId && this.setMyPlayerData(oData);
+        this.updatePotAmount(oData.nTableChips);
+        if (oData.iUserId == this.iUserId) return;
+        if (sEventName === 'resCall') {
+            player?.playerProfile.setBettingLabel('Call');
+        } else if (sEventName === 'resRaise') {
+            player?.playerProfile.setBettingLabel('Raised');
+        } else if (sEventName === 'resStand') {
+            player?.playerProfile.setBettingLabel('Stand');
+        } else if (sEventName === 'resCheck') {
+            player?.playerProfile.setBettingLabel('Check');
+        }
+    }
+    setFoldPlayer(iUserId, eState, sReason, bShowMessage) {
+        const player = this.players.get(iUserId);
+        if (eState === 'fold') {
+            player?.playerProfile.setAlpha(0.7);
+            player?.playerProfile.setVisible(true);
+            iUserId !== this.iUserId && player?.playerProfile.setBettingLabel('Fold');
+            iUserId == this.iUserId && player?.playerProfile?.container_cards.list.forEach(card => {
+                card.animateCard(false);
+            });
+        } else if (eState === 'leave') {
+            player?.playerProfile.setLeave();
+            if (iUserId == this.iUserId) {
+                if (bShowMessage == true) {
+                    this.popup.open({
+                        confirm: false, title: 'LEAVE TABLE', message: sReason, callback: () => {
+                            this.exitGame();
+                        }
+                    });
+                } else {
+                    this.exitGame();
+                }
+            }
+            this.players.delete(iUserId);
+        } else if (eState === 'bust') {
+            player?.playerProfile.showBustPrompt();
+            // player?.playerProfile.setAlpha(0.7);
+            player?.playerProfile.setVisible(true);
+            iUserId !== this.iUserId && player?.playerProfile.setBettingLabel('Bust');
+        }
+    }
+    handleCommunityCard(oData) {
+        const { aCommunityCard, aParticipant } = oData;
+        const myPlayerData = aParticipant.find(participant => participant.iUserId === this.iUserId);
+        this.setCommunityCards(aCommunityCard, 'communityCard');
+        this.setMyPlayerData(myPlayerData);
+    }
+    setCommunityCards(aCommunityCards, sType) {
+        if (sType === 'communityCard') {
+            aCommunityCards.forEach(card => {
+                if (!this.oGameManager.aCommunityCards.some(existingCard => existingCard._id === card._id)) {
+                    this.oGameManager.aCommunityCards.push(card);
+                    const card_open = new Card(this, this.oTable.close_deck_card.x, this.oTable.close_deck_card.y, card.eSuit, card.nLabel, card.nValue, card._id, card.isJoker);
+                    card_open.openCard();
+                    this.oAnimations.move({
+                        aGameObjects: [card_open],
+                        targetX: this.oTable.close_deck_card.x + 160 + 160 * this.container_community_cards.list.length,
+                        targetY: this.oTable.close_deck_card.y,
+                        duration: 500,
+                        ease: 'Quint.easeInOut',
+                        yoyo: false,
+                        repeat: 0,
+                        onComplete: () => {
+                            this.container_community_cards.add(card_open);
+                            this.oSoundManager.playSound(this.oSoundManager.card_sound, false);
+                        }
+                    });
+                }
+            });
+        }
+        else {
+            this.oGameManager.aCommunityCards = aCommunityCards;
+            this.container_community_cards.removeAll(true);
+            aCommunityCards.forEach(card => {
+                const card_open = new Card(this, this.oTable.close_deck_card.x + 160 + 160 * this.container_community_cards.list.length, this.oTable.close_deck_card.y, card.eSuit, card.nLabel, card.nValue, card._id, card.isJoker);
+                card_open.openCard();
+                this.container_community_cards.add(card_open);
+            });
+        }
+    }
+    setMyPlayerData(myPlayerData) {
+        const myPlayer = this.players.get(this.iUserId);
+        myPlayerData?.nChips && (this.oGameManager.nMyPlayerChips = myPlayerData?.nChips);
+        myPlayerData?.nChips && this.setAmountIn(myPlayerData?.nChips);
+        myPlayerData?.nCardScore && myPlayer?.playerProfile?.setScore(myPlayerData?.nCardScore);
+    }
+    async setPlayersData(aParticipant) {
+        for (let i = 0; i < aParticipant.length; i++) {
+            const { iUserId, nSeat } = aParticipant[i];
+            if (!this.players.has(iUserId)) {
+                const playerProfile = this.aPlayerProfiles[nSeat];
+                await this.mapPlayerData(iUserId, { ...aParticipant[i], playerProfile });
+            } else {
+                this.players.get(iUserId).eState = aParticipant[i].eState;
+                // this.players.set(iUserId, { ...aParticipant[i], playerProfile: this.aPlayerProfiles[nSeat] });
+                await this.setProfiles(iUserId);
+            }
+        }
+    }
+    async mapPlayerData(iUserId, participant) {
+        this.players.set(iUserId, participant);
+        await this.setProfiles(iUserId);
+    };
+    async setUserJoined(oData) {
+        if (!this.players.has(oData.iUserId)) {
+            await this.mapPlayerData(oData.iUserId, { ...oData, playerProfile: this.aPlayerProfiles[oData.nSeat] });
+        }
+    }
+    async setProfiles(iUserId) {
+        const player = await this.players.get(iUserId);
+        const { sUserName, sAvatar, eState, nLastBidChips, aCardHand, nChips, nCardScore } = player;
+        if (eState === "leave") {
+            player?.playerProfile?.setVisible(false);
+            iUserId == this.iUserId && this.exitGame();
+            return;
+        }
+        await player?.playerProfile?.setProfile({ sUserName, sAvatar });
+        await player?.playerProfile?.setBlind(iUserId);
+        await player?.playerProfile?.setAmountIn(nChips);
+
+        aCardHand?.forEach(cardData => {
+            this.createCard(cardData, player);
+        });
+        this.setFoldPlayer(iUserId, eState);
+        if (iUserId === this.iUserId) {
+            this.setAmountIn(nChips);
+            this.oGameManager.nMyPlayerChips = nChips;
+            player?.playerProfile?.setScore(nCardScore);
+        }
+        if (eState === "spectator") {
+            player?.playerProfile?.setWaiting();
+            if (iUserId == this.iUserId) this.prompt.show('Please wait for the new game to start!');
+        } else {
+            player?.playerProfile?.hideWaiting();
+        }
+    }
+    async setBoardState({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableFee, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant }) {
+        try {
+            this.iDealerId = iDealerId;
+            this.iBigBlindId = iBigBlindId;
+            this.iSmallBlindId = iSmallBlindId;
+            this.updatePotAmount(nTableChips);
+            this.setCommunityCards(aCommunityCard);
+            this.checkGameEState(eState);
+            const myPlayer = await this.findMyPlayer(aParticipant);
+            this.arrangeSeats(myPlayer.nSeat);
+            await this.setPlayersData(aParticipant);
+            this.isFinishGame = false;
+            this.setDealerAndBlind();
+        } catch (error) {
+            console.error("Error while setting board state:", error);
+        }
+    }
+    setDealerAndBlind() {
+        this.players.forEach(player => {
+            player?.playerProfile?.setBlind(player.iUserId);
+        });
+    }
+    setCollectBootAmount({ nTableChips, aParticipant }) {
+        aParticipant.forEach(participant => {
+            const player = this.players.get(participant.iUserId);
+            player?.playerProfile?.setAmountIn(participant.nChips);
+            player?.iUserId == this.iUserId && this.setMyPlayerData(participant);
+        });
+        // this.oSoundManager.playSound(this.oSoundManager.coin_sound, false);
+        this.updatePotAmount(nTableChips);
+    }
+    setAmountIn(nAmountIn) {
+        this.oFooter.chip_icon.setX(this.oFooter.player_price_base.x - 50);
+        this.oFooter.txt_player_price.setX(this.oFooter.chip_icon.x + this.oFooter.chip_icon.displayWidth);
+        this.oFooter.txt_player_price.setText(nAmountIn < 9999 ? _.formatCurrencyWithComa(nAmountIn) : _.formatCurrency(nAmountIn));
+        this.oFooter.chip_icon.setX(this.oFooter.txt_player_price.x - this.oFooter.txt_player_price.displayWidth / 2);
+        this.oFooter.txt_player_price.setX(this.oFooter.chip_icon.x + this.oFooter.chip_icon.displayWidth / 2 + this.oFooter.txt_player_price.displayWidth / 1.5);
+    }
+    async resetTurnTimer() {
+        this.hideAllButtons();
+        if (!this.iLastTurnId) return;
+        const player = await this.players.get(this.iLastTurnId);
+        player?.playerProfile?.resetTurnTimer();
+        return player;
+    }
+    async setPlayerTurn({ iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount }) {
+        if (nRemainingInitializeTime > 0 || nRemainingRoundStartsIn > 0) {
+            this.aPlayerProfiles.forEach(player => {
+                player.setAlpha(1);
+                player.container_cards.removeAll(true);
+                player.hideBettingLabel();
+                player.setScore(0);
+                // player.setAmountIn(0);
+            });
+            this.updatePotAmount(nTableChips);
+            nRemainingInitializeTime > 0 && this.waitingForGameStart({ nInitializeTimer: Math.round(nRemainingInitializeTime) });
+            nRemainingRoundStartsIn > 0 && this.waitingForNextRoundStart(Math.round(nRemainingRoundStartsIn / 1000));
+            return;
+        }
+        await this.resetTurnTimer();
+        const player = await this.players.get(iUserId);
+        this.iLastTurnId = iUserId;
+        player?.playerProfile?.resTurnTimer({ ttl, nTotalTurnTime, nGraceTime, eTurnType, initialValue, iUserId });
+        if (player?.iUserId === this.iUserId) this.showAllButtons(aUserAction, nMinBet, toCallAmount);
+    }
+    showAllButtons(aUserAction, nMinBet, toCallAmount) {
+        this.oFooter.footer.setVisible(true);
+        this.container_buttons.setVisible(true);
+        aUserAction.forEach(action => {
+            switch (action) {
+                case 'f':
+                    this.oButtons.btn_fold.setVisible(true);
+                    this.oButtons.btn_fold.btn_image.setInteractive();
+                    break;
+                case 'c':
+                    this.oButtons.btn_call.setVisible(true);
+                    this.oButtons.btn_call.btn_image.setInteractive();
+                    this.oButtons.btn_call.btn_text.setText(`${_.appendMoneySymbolFront(toCallAmount)} Call`);
+                    break;
+                case 'r':
+                    this.oButtons.btn_raise.setVisible(true);
+                    this.oButtons.btn_raise.btn_image.setInteractive();
+                    break;
+                case 'd':
+                    this.oButtons.btn_doubleDown.setVisible(true);
+                    this.oButtons.btn_doubleDown.btn_image.setInteractive();
+                    break;
+                case 's':
+                    this.oButtons.btn_stand.setVisible(true);
+                    this.oButtons.btn_stand.btn_image.setInteractive();
+                    break;
+                case 'a':
+                    this.oButtons.btn_allInCommon.setVisible(true);
+                    this.oButtons.btn_allInCommon.btn_image.setInteractive();
+                    break;
+                case 'ck':
+                    this.oButtons.btn_check.setVisible(true);
+                    this.oButtons.btn_check.btn_image.setInteractive();
+                    break;
+            }
+        });
+
+    }
+    hideAllButtons() {
+        this.container_buttons.setVisible(false);
+        this.container_raise_buttons.setVisible(false);
+        this.oButtons.btn_fold.setVisible(false);
+        this.oButtons.btn_call.setVisible(false);
+        this.oButtons.btn_raise.setVisible(false);
+        this.oButtons.btn_doubleDown.setVisible(false);
+        this.oButtons.btn_allInCommon.setVisible(false);
+        this.oButtons.btn_stand.setVisible(false);
+        this.oButtons.btn_check.setVisible(false);
+        this.oFooter.footer.setVisible(false);
+    }
+    setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, sReason }) {
+        let remainingTime = Math.round(nRoundStartsIn / 1000);
+        clearInterval(this.declreInterval);
+        if (this.declreResultInterval) {
+            clearInterval(this.declreResultInterval);
+        }
+        if (nRoundStartsIn != 4000) {
+            this.waitingForNextRoundStart(remainingTime);
+        }
+
+        setTimeout(() => {
+            if (this.sPrivateCode) this.oTable.container_private_table.setVisible(true);
+            this.oTable.close_deck_card.setVisible(true).setX(config.centerX - 280);
+            this.setCommunityCards([]);
+            this.oGameManager.aWinnerPlayers.forEach(winner => {
+                const player = this.players.get(winner);
+                player?.playerProfile?.hideWinnerPrompt();
+            });
+            this.updatePotAmount(0);
+            // this.setAmountIn(0);
+            this.aPlayerProfiles.forEach(player => {
+                player.setAlpha(1);
+                player.container_cards.removeAll(true);
+                player.hideBettingLabel();
+                player.setScore(0);
+                // player.setAmountIn(0);
+            });
+            this.prompt.hide();
+        }, 7000);
+
+        if (bAllPlayerBust) {
+            this.aPlayerProfiles.forEach(player => {
+                player.setAlpha(1);
+            });
+            this.prompt.show(sReason);
+            return;
+        }
+        aParticipant?.forEach(participant => {
+            if (!this.players.has(participant.iUserId)) return;
+            const player = this.players.get(participant.iUserId);
+            this.resetTurnTimer();
+            player?.playerProfile?.setAlpha(1);
+            // player?.playerProfile?.setAmountIn(_.formatCurrencyWithComa(participant?.nWinningAmount) || 0);
+            player?.playerProfile?.setAmountIn(participant?.nChips);
+            participant.iUserId == this.iUserId && this.setAmountIn(participant?.nChips);
+            setTimeout(() => {
+                player?.playerProfile?.container_cards.removeAll(true);
+                participant.aCardHand.forEach(cardData => {
+                    if (!player?.playerProfile?.container_cards.list.includes(cardData._id)) {
+                        player?.playerProfile?.createCard(cardData);
+                    }
+                });
+                player?.playerProfile?.container_cards.list.forEach(card => {
+                    player.iUserId !== this.iUserId ? card.animateCard() : card.openCard();
+                });
+            }, 700);
+            if (participant.eState == "winner") {
+                // this.oTable.close_deck_card.setVisible(false).setX(config.centerX - (130 * (this.oGameManager.aCommunityCards.length)));
+                setTimeout(() => {
+                    this.setCommunityCards(this.oGameManager.aCommunityCards);
+                }, 700);
+                setTimeout(() => {
+                    player?.playerProfile?.showWinnerPrompt();
+                    participant.iUserId == this.iUserId && this.oSoundManager.playSound(this.oSoundManager.winAnimation_sound, false);
+                }, 3000);
+                this.oGameManager.aWinnerPlayers.push(participant.iUserId);
+                setTimeout(() => {
+                    player?.playerProfile?.hideWinnerPrompt();
+                    participant.iUserId == this.iUserId && this.oSoundManager.playSound(this.oSoundManager.winCoin_sound, false);
+                    for (let i = 0; i < 5; i++) {
+                        const chip = this.add.image(this.oPotAmount.chip_icon.x, this.oPotAmount.chip_icon.y, assets.chip_icon);
+                        this.oAnimations.move({
+                            aGameObjects: [chip], targetX: player?.playerProfile?.x, targetY: player?.playerProfile?.y, duration: 1000, delay: i * 100, ease: 'Quint.easeInOut', yoyo: false, repeat: 0, onComplete: () => {
+                                chip.destroy();
+                            }
+                        });
+                    }
+                }, 5000);
+            }
+        });
+    }
+    setRefundOnLongWait({ message, nMaxWaitingTime }) {
+        this.oGameManager.exitMessage = 'Are you sure you want to quit?';
+        this.declreResultInterval && clearInterval(this.declreResultInterval);
+        this.timer && clearTimeout(this.timer);
+        this.prompt.showForSeconds(message, nMaxWaitingTime);
+    }
+    checkGameEState(eState) {
+        switch (eState) {
+            case "waiting":
+                this.prompt.show('Please wait for other players to join');
+                break;
+            case "initializing":
+                this.prompt.show('Please wait for other players to join');
+                break;
+            case "playing":
+                this.startGame();
+                break;
+            case "initialized":
+                this.waitingForNextRound();
+                this.prompt.show('Please wait for other players to join');
+                break;
+            case "finishing":
+                this.startGame();
+                break;
+            case "finished":
+                this.waitingForNextRound();
+                break;
+            default:
+                console.log('%cDEFAULT CASE IN checkGameState', 'color: #CE375C', eState);
+                break;
+        }
+    }
+    setPlayerLeft({ iUserId, eBehaviour, sReason }) {
+        if (iUserId == this.iUserId) {
+            this.exitGame();
+        } else {
+            this.setFoldPlayer(iUserId, eBehaviour, sReason);
+        }
+    }
+    kickOut({ title = 'LEAVE TABLE', message = 'Oops! Not enough players joined.' }) {
+        this.popup.open({
+            confirm: false, title, message, callback: () => {
+                this.exitGame();
+            }
+        })
+    }
+    exitGame() {
+        console.log('%cEXIT GAME CALLED, GAME IS FINISHED', 'color: #CE375C');
+        window.location.href = '/lobby';
+    }
+    setPing(pingTime) {
+        this.oHeader?.txt_ping?.setText(`${pingTime}ms`);
+    }
+} 

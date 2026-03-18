@@ -1,0 +1,52 @@
+// Helper
+@import './helper/variables';
+@import './helper/scrollbar';
+@import './helper/media-queries';
+
+// Components
+@import './components/fonts';
+@import './components/data-table';
+@import './components/not-found';
+@import './components/pagination';
+@import './components/react-datepicker';
+@import './components/react-select';
+@import './components/tooltips';
+@import './components/top-bar';
+@import './components/network-status';
+@import './components/header/header-public';
+@import './components/header/header-private';
+@import './components/footer/footer';
+@import './components/table/table';
+
+// Views
+@import './views/auth/login';
+@import './views/game/game';
+@import './views/dashboard/dashboard';
+@import './views/profile/profile';
+@import './views/transactions/transactions';
+@import './views/cms/cms';
+@import './views/dailyRewards/dailyRewards';
+@import './views/shop/shop';
+
+// Layouts
+@import './layouts/auth-layout/auth-layout';
+
+
+body {
+    background: rgb(0, 0, 0);
+    background: linear-gradient(90deg, rgba(0, 0, 0, 1) 0%, var(--theme-color) 50%, rgba(0, 0, 0, 1) 100%);
+    font-family: 'TT Commons';
+    font-weight: 400;
+    width: 100vw;
+    overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin: 0;
+    padding: 0;
+}

@@ -1,0 +1,276 @@
+.shop-chip-page {
+    margin: 100px 50px;
+    border: 2px solid #163c57;
+    border-radius: 15px;
+    overflow: hidden;
+
+    .shop-chip-header {
+        text-align: center;
+        padding: 20px 10px;
+        font-size: 32px;
+        color: #aaddff;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background-color: #0c263b;
+    }
+
+    .shop-chip-content {
+        padding: 20px 50px;
+        color: white;
+        font-size: 22px;
+        background: linear-gradient(#0c263bcc, #0c263bcc),
+            url("../../../images/ui/table_selection_bg.png") repeat-y top center / 100% auto;
+        min-height: calc(100vh - 300px);
+
+        .shop-chip-list {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 25px 30px;
+
+            .shop-chip-items {
+                position: relative;
+                width: 100%;
+                min-width: 350px;
+                height: 100%;
+                max-width: calc((100% / 4) - 40px);
+                border-radius: 20px;
+                padding: 20px;
+                background: url(../../../images/shop/card-bg.png) no-repeat center center / cover;
+                border: 1px solid #89D5FF80;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+                overflow: hidden;
+
+                .tag {
+                    position: absolute;
+                    top: 15px;
+                    left: -35px;
+                    transform: rotate(-30deg);
+                    transform-origin: center center;
+                    background: linear-gradient(0deg, rgba(57, 121, 188, 1) 0%, rgba(170, 221, 255, 1) 100%);
+                    font-size: 16px;
+                    padding: 5px 40px;
+                    min-width: 180px;
+                    text-align: center;
+                    color: black;
+                    font-weight: 600;
+                    z-index: 100;
+                }
+
+                .icon {
+                    width: 100%;
+                    background-color: #00000080;
+                    border-radius: 10px;
+                    padding: 15px;
+
+                    img {
+                        width: auto;
+                        height: 110px;
+                        margin: auto;
+                        display: block;
+                    }
+                }
+
+                .chip-amount-text {
+                    font-size: 24px;
+                    color: white;
+                    font-weight: 500;
+                }
+
+                .buy-chips {
+                    width: 100%;
+                    padding: 12px 15px;
+                    background: #51FF89;
+                    border: none;
+                    border-radius: 10px;
+                    color: #03162A;
+                    font-size: 20px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+
+                    &:hover {
+                        background: #00cc78;
+                        transform: translateY(-2px);
+                    }
+                }
+            }
+        }
+    }
+}
+
+@include media-max(xxl) {
+    .shop-chip-page {
+        .shop-chip-content {
+            .shop-chip-list {
+                gap: 20px 20px;
+
+                .shop-chip-items {
+                    width: 100%;
+                    min-width: 300px;
+                    max-width: calc((100% / 3) - 40px);
+
+                    .icon {
+                        img {
+                            height: 80px;
+                        }
+                    }
+
+                    .chip-amount-text {
+                        font-size: 20px;
+                    }
+
+                    .buy-chips {
+                        font-size: 18px;
+                        padding: 10px 15px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@include media-max(lg) {
+    .shop-chip-page {
+        .shop-chip-content {
+            padding: 20px 20px;
+
+            .shop-chip-list {
+                gap: 15px;
+
+                .shop-chip-items {
+                    gap: 15px;
+                    min-width: 220px;
+                    max-width: calc((100% / 2) - 30px);
+
+                    .tag {
+                        font-size: 14px;
+                        padding: 5px 30px;
+                        top: 8px;
+                        left: -30px;
+                        min-width: 150px;
+                    }
+
+                    .icon {
+
+                        img {
+                            height: 70px;
+                        }
+                    }
+
+                    .chip-amount-text {
+                        font-size: 18px;
+                    }
+
+                    .buy-chips {
+                        font-size: 16px;
+                        padding: 10px 15px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@include media-max(md) {
+    .shop-chip-page {
+
+        .shop-chip-header{
+            font-size: 26px;
+            padding: 18px 10px;
+        }
+
+        .shop-chip-content {
+            padding: 20px 20px;
+
+            .shop-chip-list {
+                gap: 15px;
+
+                .shop-chip-items {
+                    gap: 10px;
+                    min-width: 190px;
+                    max-width: calc((100% / 2) - 30px);
+                    padding: 15px;
+
+                    .tag {
+                        font-size: 14px;
+                        padding: 5px 30px;
+                        top: 8px;
+                        left: -30px;
+                        min-width: 150px;
+                    }
+
+                    .icon {
+
+                        img {
+                            height: 50px;
+                        }
+                    }
+
+                    .chip-amount-text {
+                        font-size: 18px;
+                    }
+
+                    .buy-chips {
+                        font-size: 16px;
+                        padding: 8px 10px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+@include media-max(sm) {
+    .shop-chip-page {
+        margin: 80px 20px;
+
+        .shop-chip-header{
+            font-size: 24px;
+            padding: 15px 10px;
+        }
+
+        .shop-chip-content {
+            padding: 20px 10px;
+
+            .shop-chip-list {
+                gap: 10px;
+
+                .shop-chip-items {
+                    gap: 10px;
+                    min-width: 150px;
+                    max-width: calc(100% - 20px);
+                    padding: 10px;
+
+                    .tag {
+                        font-size: 12px;
+                        padding: 5px 20px;
+                        top: 5px;
+                        left: -20px;
+                        min-width: 120px;
+                    }
+
+                    .icon {
+
+                        img {
+                            height: 40px;
+                        }
+                    }
+
+                    .chip-amount-text {
+                        font-size: 16px;
+                    }
+
+                    .buy-chips {
+                        font-size: 14px;
+                        padding: 8px 10px;
+                    }
+                }
+            }
+        }
+    }
+}

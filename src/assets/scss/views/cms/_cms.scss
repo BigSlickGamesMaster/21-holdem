@@ -1,0 +1,350 @@
+.cms-page {
+    margin: 100px 50px;
+    border: 2px solid #163C57;
+    border-radius: 15px;
+    overflow: hidden;
+
+    .cms-header {
+        text-align: center;
+        padding: 20px 10px;
+        font-size: 32px;
+        color: #AADDFF;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background-color: #0C263B;
+    }
+
+    .cms-content {
+        padding: 20px 50px;
+        background: linear-gradient(#0c263bcc, #0c263bcc), url("../../../images/ui/table_selection_bg.png") repeat-y top center / 100% auto;
+
+        p {
+            font-size: 18px;
+            color: #d6d6d6;
+            margin-bottom: 5px;
+
+            &.content-title {
+                font-size: 24px;
+                color: white;
+                font-weight: 700;
+                margin-top: 15px;
+            }
+
+            &.content-sub-title {
+                font-size: 22px;
+                font-weight: 500;
+                color: white;
+            }
+        }
+
+        ul {
+            li {
+                font-size: 18px;
+                color: #d6d6d6;
+            }
+        }
+    }
+}
+
+.cms-page.about-page {
+    .cms-content {
+        .about-hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
+            gap: 24px;
+            align-items: stretch;
+            margin-bottom: 28px;
+        }
+
+        .about-cta-card,
+        .about-highlight-card {
+            border: 1px solid rgba(137, 213, 255, 0.2);
+            border-radius: 18px;
+            background: rgba(0, 0, 0, 0.26);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+        }
+
+        .about-cta-card {
+            padding: 22px;
+
+            .about-cta-label {
+                margin-bottom: 10px;
+                color: #89d5ff;
+                font-size: 13px;
+                font-weight: 600;
+                letter-spacing: 0.18em;
+                text-transform: uppercase;
+            }
+
+            h3 {
+                margin-bottom: 10px;
+                color: #ffffff;
+                font-size: 30px;
+                font-family: "Neue Plak Condensed";
+                text-transform: uppercase;
+            }
+
+            p {
+                margin-bottom: 0;
+            }
+        }
+
+        .about-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+
+            .about-action {
+                border-radius: 999px;
+                padding: 11px 18px 9px;
+                text-decoration: none;
+                font-size: 18px;
+                font-family: "Neue Plak Condensed";
+                font-weight: 700;
+                text-transform: uppercase;
+                transition: transform 0.2s ease, opacity 0.2s ease;
+
+                &:hover {
+                    transform: translateY(-2px);
+                    opacity: 0.92;
+                }
+
+                &.primary {
+                    background: linear-gradient(180deg, #8dfcb3 0%, #42d985 100%);
+                    color: #052132;
+                }
+
+                &.secondary {
+                    border: 1px solid rgba(137, 213, 255, 0.35);
+                    background: rgba(255, 255, 255, 0.05);
+                    color: #ffffff;
+                }
+            }
+        }
+
+        .about-highlight-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+            margin: 30px 0;
+        }
+
+        .about-highlight-card {
+            padding: 20px;
+
+            h3 {
+                margin-bottom: 10px;
+                color: #ffffff;
+                font-size: 24px;
+                font-family: "Neue Plak Condensed";
+                text-transform: uppercase;
+            }
+
+            p {
+                margin-bottom: 0;
+            }
+        }
+    }
+}
+
+.cms-page.contact-page {
+    .cms-content {
+        a {
+            color: #89d5ff;
+            text-decoration: underline;
+        }
+    }
+}
+
+@include media-max(xxl) {
+    .cms-page {
+        .cms-header {
+            padding: 15px 10px;
+            font-size: 28px;
+        }
+
+        .cms-content {
+            padding: 20px 40px;
+        }
+    }
+
+    .cms-page.about-page {
+        .cms-content {
+            .about-highlight-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+        }
+    }
+}
+
+@include media-max(xl) {
+    .cms-page {
+        border-radius: 10px;
+        margin: 100px 30px;
+
+        .cms-header {
+            font-size: 24px;
+        }
+
+        .cms-content {}
+    }
+
+    .cms-page.about-page {
+        .cms-content {
+            .about-hero {
+                grid-template-columns: 1fr;
+            }
+
+            .about-highlight-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    }
+}
+
+@include media-max(lg) {
+    .cms-page {
+        .cms-header {
+            font-size: 22px;
+        }
+
+        .cms-content {
+            padding: 20px 30px;
+
+            p {
+                font-size: 16px;
+
+                &.content-title {
+                    font-size: 22px;
+                }
+
+                &.content-sub-title {
+                    font-size: 20px;
+                }
+            }
+
+            ul {
+                li {
+                    font-size: 16px;
+                }
+            }
+        }
+    }
+
+    .cms-page.about-page {
+        .cms-content {
+            .about-cta-card {
+                h3 {
+                    font-size: 26px;
+                }
+            }
+
+            .about-highlight-card {
+                h3 {
+                    font-size: 22px;
+                }
+            }
+        }
+    }
+
+}
+
+@include media-max(md) {
+    .cms-page {
+        .cms-header {
+            font-size: 20px;
+        }
+
+        .cms-content {
+            padding: 20px 20px;
+
+            p {
+                font-size: 14px;
+
+                &.content-title {
+                    font-size: 20px;
+                }
+
+                &.content-sub-title {
+                    font-size: 18px;
+                }
+            }
+
+            ul {
+                li {
+                    font-size: 14px;
+                }
+            }
+        }
+    }
+
+    .cms-page.about-page {
+        .cms-content {
+            .about-actions {
+                .about-action {
+                    width: 100%;
+                    text-align: center;
+                    font-size: 16px;
+                }
+            }
+        }
+    }
+
+}
+
+@include media-max(sm) {
+    .cms-page {
+        margin: 80px 10px;
+        border-radius: 10px;
+
+        .cms-header {
+            font-size: 18px;
+        }
+
+        .cms-content {
+            padding: 15px 15px;
+
+            p {
+                font-size: 12px;
+
+                &.content-title {
+                    font-size: 18px;
+                }
+
+                &.content-sub-title {
+                    font-size: 16px;
+                }
+            }
+
+            ul {
+                li {
+                    font-size: 12px;
+                }
+            }
+        }
+    }
+
+    .cms-page.about-page {
+        .cms-content {
+            .about-cta-card,
+            .about-highlight-card {
+                padding: 16px;
+                border-radius: 14px;
+            }
+
+            .about-cta-card {
+                h3 {
+                    font-size: 22px;
+                }
+            }
+
+            .about-highlight-card {
+                h3 {
+                    font-size: 18px;
+                }
+            }
+        }
+    }
+
+}

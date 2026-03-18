@@ -1,0 +1,27 @@
+.tooltip {
+    --bs-tooltip-opacity: 1;
+    padding-left: 0;
+}
+
+.tooltip-arrow::before {
+    border-top-color: #282828 !important;
+}
+
+.tooltip-inner {
+    background-color: #282828 !important;
+    max-width: unset;
+    font-size: 12px;
+    border-radius: 3px;
+    // box-shadow: 0 0px 15px rgba(0, 0, 0, 0.662);
+}
+
+#button-tooltip {
+    opacity: 1;
+    z-index: 10;
+    font-size: 14px;
+}
+
+.user:hover {
+    cursor: pointer;
+    color: var(--primary-color);
+}

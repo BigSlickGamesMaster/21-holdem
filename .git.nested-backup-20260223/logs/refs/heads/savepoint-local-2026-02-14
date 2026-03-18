@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 f736a9afb68ae3a9c48a32bfa8ed672cf54f72a3 BigSlickGames <bigslickgames@gmail.com> 1771043055 +1000	branch: Created from HEAD
+0000000000000000000000000000000000000000 f736a9afb68ae3a9c48a32bfa8ed672cf54f72a3 BigSlickGames <bigslickgames@gmail.com> 1771043992 +1000	branch: Created from HEAD
+f736a9afb68ae3a9c48a32bfa8ed672cf54f72a3 fc3a634a2a1b084eb840880f4ad9cc1731f3f413 BigSlickGames <bigslickgames@gmail.com> 1771044020 +1000	commit: Local savepoint before flagship edits (2026-02-14)
+fc3a634a2a1b084eb840880f4ad9cc1731f3f413 56ddc1beb6298100a5a8e2660414e8e295dab743 BigSlickGames <bigslickgames@gmail.com> 1771046481 +1000	commit: Gameplay Patch A/B: stabilize turn UI and keep deck visible
+56ddc1beb6298100a5a8e2660414e8e295dab743 99e539a9cd19047f1d5324c1e4bbe449cc4b1ce7 BigSlickGames <bigslickgames@gmail.com> 1771666519 +1000	commit: chore(snapshot): save local frontend state with gameplay fixes and docs

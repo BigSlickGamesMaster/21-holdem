@@ -1,0 +1,128 @@
+.no-internet-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9991;
+    backdrop-filter: blur(8px);
+}
+
+.no-internet-popup {
+    color: white;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: url(../../images/daily-rewards/daily-rewards-base.png) no-repeat center center;
+    background-color: #9fafbd7d;
+    background-size: cover;
+    padding: 32px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 340px;
+    animation: slideAndScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+
+    .icon {
+        background-color: #ffffff1f;
+        padding: 15px;
+        border-radius: 50%;
+        margin-bottom: 20px;
+        animation: pulse 2s ease-in-out infinite;
+    }
+
+    .content-popup {
+        animation: sideup 0.4s ease-out 0.2s both;
+        text-align: center;
+
+        p {
+            margin-bottom: 5px;
+            font-size: 24px;
+            font-weight: 500;
+            margin: 0;
+        }
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideAndScale {
+    from {
+        transform: translate(-50%, -40%) scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes wiggle {
+
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+
+    25% {
+        transform: rotate(-3deg);
+    }
+
+    75% {
+        transform: rotate(3deg);
+    }
+}
+
+@keyframes expandWidth {
+    from {
+        width: 0;
+        opacity: 0;
+    }
+
+    to {
+        width: 48px;
+        opacity: 0.3;
+    }
+}
