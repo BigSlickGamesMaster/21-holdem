@@ -1,0 +1,50 @@
+.approved {
+  background-color: #37b37e;
+  color: black;
+  font-size: 18px;
+  border-radius: 100%;
+  cursor: pointer;
+}
+
+.decline {
+  background-color: #e64342;
+  color: black;
+  font-size: 18px;
+  margin-left: 5px;
+  border-radius: 100%;
+  cursor: pointer;
+}
+
+.delete {
+  font-size: 22px;
+  margin-left: 3px;
+  cursor: pointer;
+}
+.create {
+  font-size: 18px;
+  margin-left: 5px;
+  cursor: pointer;
+}
+.actionButton {
+    color: #d8d8d8;
+    &:hover {
+      background: transparent;
+    }
+    &::after {
+      display: none;
+    }
+  }
+
+.count-circle{
+  background-color: #E64343;
+  color: #23272E;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 0;
+  margin-left: 2px;
+  border-radius: 50%;
+  height:25px;
+  width:25px;
+  display: inline-block;
+  text-align: center;
+}

@@ -1,0 +1,72 @@
+.list-comment {
+  tbody td {
+    vertical-align: top;
+    &:nth-child(2) {
+      min-width: 500px;
+    }
+    &:nth-child(3) {
+      width: 300px;
+    }
+    &:nth-child(4) {
+      width: 180px;
+    }
+    &:nth-child(5) {
+      width: 150px;
+    }
+    &:last-child {
+      &:not([colspan]) {
+        text-align: left;
+      }
+    }
+  }
+
+  .icons {
+    i {
+      background-color: $primary-200;
+      border-radius: 4px;
+      color: $primary-400;
+      vertical-align: middle;
+      padding: 2px;
+      font-size: $fs-14;
+      margin-right: 8px;
+    }
+  }
+  .title {
+    font-size: $fs-16;
+    color: var(--secondary-200);
+    line-height: 1.35;
+    margin: 5px 0 0 0;
+  }
+  .date {
+    font-size: $fs-12;
+    color: var(--secondary-400);
+    margin: 6px 0 0 0;
+    span {
+      color: $primary-200;
+      text-transform: uppercase;
+      border-radius: 4px;
+      background-color: var(--secondary-700);
+      display: inline-block;
+      padding: 0px 5px;
+      margin-right: 4px;
+      & ~ span {
+        margin-left: 12px;
+      }
+    }
+  }
+  .cat {
+    font-size: $fs-16;
+    color: var(--secondary-200);
+    font-weight: normal;
+    margin: 0;
+  }
+  .actionButton {
+    color: #d8d8d8;
+    &:hover {
+      background: transparent;
+    }
+    &::after {
+      display: none;
+    }
+  }
+}

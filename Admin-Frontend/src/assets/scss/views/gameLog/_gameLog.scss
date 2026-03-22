@@ -1,0 +1,140 @@
+.view-logs {
+  .table-config {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+
+    .data-content {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      font-size: 13px;
+
+      .data-value {
+        font-weight: 700;
+        text-transform: capitalize;
+        color: var(--text-color);
+      }
+
+      .data-title {
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: var(--secondary-400);
+      }
+    }
+  }
+
+  h3 {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--secondary-400);
+  }
+
+  .line {
+    width: 100%;
+    height: 1px;
+    background-color: var(--secondary-100);
+    display: block;
+  }
+
+  tr {
+    text-align: center;
+  }
+
+  thead {
+    th {
+      font-size: 14px;
+      line-height: 1.14;
+      color: var(--text-color);
+      font-weight: 400;
+      padding: 10px 16px;
+      vertical-align: middle;
+      height: 48px;
+      text-transform: capitalize;
+      text-wrap: nowrap;
+    }
+  }
+
+  thead,
+  tbody {
+    border-bottom: 1px solid var(--secondary-100);
+  }
+
+  tbody {
+    tr {
+      & ~ tr {
+        border-top: 1px solid var(--secondary-100);
+      }
+
+      td {
+        text-transform: capitalize;
+        font-size: 16px;
+        color: var(--secondary-600);
+        line-height: 1.63;
+        font-weight: 500;
+        padding: 16px;
+        vertical-align: middle;
+        text-wrap: nowrap;
+      }
+    }
+  }
+
+  .table-responsive::-webkit-scrollbar {
+    width: 0;
+    height: 8px;
+  }
+
+  .table-responsive::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color-light);
+  }
+}
+
+.data-table {
+  .normal-type {
+    font-size: 12px;
+    text-transform: capitalize;
+    letter-spacing: 0.8px;
+    padding: 4px 10px;
+    font-weight: 700;
+    border-radius: 5px;
+    border: transparent;
+    background: rgba(194, 194, 194, 0.81);
+    color: rgb(146, 146, 146);
+  }
+
+  .private-type {
+    @extend .normal-type;
+    background: rgba(255, 87, 87, 0.15);
+    color: #ff5757;
+  }
+
+  .public-type {
+    @extend .normal-type;
+    background: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+  }
+
+  .leaderboard-type {
+    @extend .normal-type;
+    background: var(--primary-color-light);
+    color: var(--text-color);
+  }
+
+  #gameStatus {
+    span {
+      font-size: 12px;
+      text-transform: capitalize;
+      letter-spacing: 0.8px;
+      padding: 4px 10px;
+      font-weight: 700;
+      border-radius: 5px;
+      border: transparent;
+
+      &.finished {
+        background: rgba(253, 187, 187, 0.81);
+        color: #ff4848;
+      }
+    }
+  }
+}

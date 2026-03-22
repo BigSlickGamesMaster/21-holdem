@@ -1,0 +1,36 @@
+.badge {
+  font-size: $fs-12;
+  line-height: 10px;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-weight: 600;
+  &.bg-success {
+    background-color: #68c69e !important;
+    color: #1b593f;
+  }
+  &.bg-danger {
+    background-color: #e68a8a !important;
+    color: #993a3a;
+  }
+  &.bg-warning {
+    background-color: #ffd580 !important;
+    color: #7f5500;
+  }
+  &.bg-secondary {
+    background-color: #757982 !important;
+    color: #23272e;
+  }
+  &.bg-info {
+    background-color: #978ae6 !important;
+    color: #483a99;
+  }
+  &.bg-warning-light {
+    background-color: #ffad80 !important;
+    color: #734e3a;
+  }
+  &.bg-danger-light {
+    // TODO:
+    background-color: #ffb5b5 !important;
+    color: #9b0000;
+  }
+}

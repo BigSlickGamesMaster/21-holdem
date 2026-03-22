@@ -1,0 +1,61 @@
+.breadcrumb {
+  align-items: center;
+  margin-bottom: 27px;
+  position: relative;
+  z-index: 1;
+
+  i,
+  svg {
+    font-weight: bold;
+    font-size: $fs-30;
+    color: var(--secondary-text-color);
+  }
+
+  li {
+    font-size: $fs-24;
+    font-weight: $fw-700;
+    font-family: "Helvetica-Bold";
+    color: $white;
+    text-transform: capitalize;
+    line-height: 1.4;
+    letter-spacing: 1px;
+
+    &.active {
+      color: var(--text-color);
+    }
+
+    a {
+      color: var(--primary-color);
+      display: block;
+
+      // &:hover {
+      //   color: var(--primary-color);
+      // }
+    }
+  }
+
+  @include media-max(xl) {
+    margin-bottom: 20px;
+  }
+
+  @include media-max(md) {
+    display: none;
+  }
+}
+
+.breadcrumb-slash {
+  font-size: 16px;
+  transform: translate(0px, -4px);
+}
+
+body.dark {
+  li {
+    &.active {
+      color: var(--secondary-text-color);
+    }
+
+    a {
+      color: var(--text-color);
+    }
+  }
+}

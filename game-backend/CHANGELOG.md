@@ -1,0 +1,21 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on Keep a Changelog, and this project follows Semantic Versioning.
+
+## [Unreleased]
+### Added
+- Repository governance baseline:
+  - `README.md` rewritten with local runbook and troubleshooting
+  - `CONTRIBUTING.md` added
+  - `.env.example` added
+  - `docs/RELEASE.md` added
+
+### Changed
+- `package.json` scripts now include lint commands.
+
+## [1.0.0] - 2025-03-26
+### Added
+- Initial backend baseline.
+

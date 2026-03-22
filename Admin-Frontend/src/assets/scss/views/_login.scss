@@ -1,0 +1,11 @@
+.login-detail {
+    table {
+        thead {
+            th {
+                &:not(:nth-child(1), :nth-child(2)) {
+                    text-align: center !important;
+                }
+            }
+        }
+    }
+}

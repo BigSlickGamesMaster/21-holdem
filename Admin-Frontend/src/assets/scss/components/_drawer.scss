@@ -1,0 +1,23 @@
+.offcanvas {
+  width: 460px;
+  background-color: var(--secondary-800);
+  .offcanvas-header {
+    padding: 15px;
+    button {
+      margin-right: 5px;
+    }
+  }
+  .offcanvas-title {
+    font-size: $fs-20;
+    font-weight: $fw-700;
+  }
+  .offcanvas-body {
+    padding: 15px;
+  }
+  .top-d-button {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 14px 15px;
+  }
+}

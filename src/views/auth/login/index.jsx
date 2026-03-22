@@ -10,9 +10,11 @@ import eye_slash_icon from '../../../assets/images/icons/eye_slash_icon.svg';
 
 const Login = () => {
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const forgotPasswordToken = searchParams.get('forgotPasswordToken');
     const handoffCode = searchParams.get('handoffCode');
+    const verificationStatus = searchParams.get('verificationStatus');
+    const verifiedUserName = searchParams.get('sUserName');
 
     const [showForgotPassword, setShowForgotPassword] = useState(false);
     const [showResetFields, setShowResetFields] = useState(false);
@@ -39,6 +41,11 @@ const Login = () => {
         },
         onError: (error) => {
             console.log(error);
+            const devVerificationLink = error?.response?.data?.data?.oDevMailPreview?.sLink;
+            if (devVerificationLink) {
+                window.location.assign(devVerificationLink);
+                return;
+            }
             ReactToastify(error.response.data.message, 'error', 'login');
         },
     });
@@ -114,6 +121,23 @@ const Login = () => {
             exchangeHandoffMutate({ handoffCode });
         }
     }, [exchangeHandoffMutate, handoffCode]);
+
+    useEffect(() => {
+        if (!verificationStatus) return;
+
+        if (verificationStatus === 'success') {
+            ReactToastify(verifiedUserName ? `Email verified for ${verifiedUserName}. You can sign in now.` : 'Email verified. You can sign in now.', 'success', 'verification');
+        } else if (verificationStatus === 'already') {
+            ReactToastify('Email is already verified. Please sign in.', 'success', 'verification');
+        } else if (verificationStatus === 'expired') {
+            ReactToastify('Verification link expired. Sign in to request a new one.', 'error', 'verification');
+        }
+
+        const nextSearchParams = new URLSearchParams(searchParams);
+        nextSearchParams.delete('verificationStatus');
+        nextSearchParams.delete('sUserName');
+        setSearchParams(nextSearchParams, { replace: true });
+    }, [searchParams, setSearchParams, verificationStatus, verifiedUserName]);
 
     function onLogin(data) {
         mutate({

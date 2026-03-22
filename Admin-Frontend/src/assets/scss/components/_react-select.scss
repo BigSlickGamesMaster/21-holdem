@@ -1,0 +1,196 @@
+.react-select {
+  font-size: $fs-14;
+  color: var(--heading-color);
+
+  &.custom-select {
+    .select__control {
+      max-height: 55px;
+      overflow-y: auto;
+    }
+  }
+
+  // width: 100px;
+  height: 38px;
+  border: 1px solid #dfe4ec;
+  border-radius: 5px;
+
+  &.select--is-disabled {
+    opacity: 0.5;
+  }
+
+  &.on-hover {
+    .select__menu {
+      display: none;
+      margin: 0;
+    }
+
+    &:hover .select__menu {
+      display: block;
+    }
+  }
+
+  .select__control {
+    // min-height: 38px;
+    background-color: rgb(245 247 248);
+    border-radius: 4px;
+    box-shadow: none;
+    border: 1px solid transparent;
+    text-align: left;
+
+    // var(--secondary-500)
+    &:hover {
+      border-color: transparent;
+    }
+
+    &.select__control--is-focused {
+      border-color: var(--primary-color);
+    }
+  }
+
+  &.error .select__control {
+    border-color: #e64343;
+  }
+
+  .select__placeholder {
+    font-size: $fs-14;
+    color: var(--secondary-400);
+  }
+
+  .select__input {
+    color: var(--heading-color) !important;
+    // font-size: 14px !important;
+  }
+
+  .select__multi-value {
+    background-color: var(--primary-color);
+
+    &__remove {
+      background-color: transparent;
+
+      &:hover {
+        background-color: transparent;
+        color: var(--white-color);
+      }
+    }
+
+    &__remove,
+    &__label {
+      color: var(--white-color);
+    }
+  }
+
+  .select__single-value {
+    font-size: $fs-14 !important;
+    color: var(--heading-color);
+  }
+
+  .select__menu {
+    z-index: 2;
+    border-bottom-left-radius: 5px;
+    overflow: hidden;
+    border-bottom-right-radius: 5px;
+    position: static;
+  }
+
+  .select__menu-list {
+    background-color: var(--white-color);
+    padding: 0;
+    z-index: 1;
+    text-align: left;
+
+    &::-webkit-scrollbar {
+      width: 0;
+    }
+
+    .select__option {
+      color: var(--text-color);
+      font-size: $fs-14;
+      background-color: transparent;
+      cursor: pointer;
+
+      &:not(.select__option--is-disabled):hover,
+      &.select__option--is-selected {
+        background-color: var(--primary-color);
+        color: var(--white-color);
+      }
+
+      &:not(.select__option--is-selected).select__option--is-disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      &.select__option--is-focused {
+        background-color: var(--primary-color);
+        color: var(--white-color);
+      }
+    }
+  }
+
+  &.only-border {
+    .select__control {
+      // border-color: var(--secondary-500);
+      background-color: transparent;
+    }
+
+    .select__control--menu-is-open {
+      // border-color: red;
+      border-color: var(--primary-color);
+    }
+  }
+
+  &.sm {
+    width: 110px;
+
+    .select__control {
+      min-height: 100%;
+      border-radius: 4px;
+
+      .select__single-value {
+        font-size: $fs-13;
+      }
+
+      .select__dropdown-indicator {
+        padding: 2px 6px;
+      }
+    }
+  }
+
+  &.ex-sm .select__control {
+    min-height: 20px;
+    min-width: 67px;
+
+    .select__single-value {
+      font-size: $fs-12 - 1;
+      text-align: center;
+    }
+
+    .select__value-container {
+      padding: 0px 7px;
+    }
+
+    .select__input-container {
+      margin: 0;
+    }
+
+    .select__dropdown-indicator {
+      padding: 0 3px;
+    }
+  }
+}
+
+.modal-content {
+  .react-select.custom-select .select__control {
+    max-height: unset !important;
+  }
+
+  .react-select {
+    height: auto !important;
+  }
+}
+
+.react-select {
+  .select__menu {
+    z-index: 99;
+    position: absolute;
+  }
+}

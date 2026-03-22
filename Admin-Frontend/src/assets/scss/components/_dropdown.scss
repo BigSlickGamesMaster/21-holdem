@@ -1,0 +1,228 @@
+.dropdown-menu {
+  background-color: var(--boxes-color);
+  border-radius: 8px;
+  min-width: 205px;
+  padding: 10px 0;
+  box-shadow: 0px 0px 10px rgba(178, 191, 210, 0.25);
+
+  &:before {
+    content: '';
+    position: absolute;
+  }
+
+  &.up-arrow {
+    margin-top: 19px;
+    padding: 0;
+    overflow: hidden;
+    border: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    box-shadow: 0px 0px 20px 2px rgb(135 151 172 / 35%);
+
+    &:before {
+      display: none;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 10px solid var(--secondary-700);
+      bottom: 100%;
+      right: 15px;
+    }
+  }
+
+  &.left-arrow {
+    margin-top: 5px;
+
+    &:before {
+      border-top: 10px solid transparent;
+      border-bottom: 10px solid transparent;
+      border-right: 10px solid var(--secondary-700);
+      right: 100%;
+      top: 15px;
+    }
+  }
+
+  .dropdown-item {
+    color: var(--text-color);
+    background-color: transparent;
+    font-size: $fs-14;
+    padding: 13px 20px;
+    font-weight: 500;
+
+    i {
+      font-size: $fs-20;
+      vertical-align: -2px;
+      margin-right: 9px;
+    }
+
+    &:hover {
+      color: var(--text-color);
+      background-color: var(--primary-color-light);
+    }
+  }
+
+  &.big {
+    .dropdown-item {
+      font-size: $fs-16;
+    }
+  }
+}
+
+.dropdown-datatable {
+  .dropdown-datatable-toggle-button {
+    background: transparent !important;
+    color: var(--secondary-text-color);
+    border: none;
+
+    &:hover {
+      border: none;
+      box-shadow: none;
+      transform: unset;
+    }
+
+    &::after {
+      content: unset !important;
+    }
+  }
+
+  .dropdown-datatable-menu {
+    transform: none !important;
+    padding: 5px !important;
+    background-color: var(--boxes-color);
+    min-width: 122px;
+    padding: 10px 0;
+    box-shadow: 0px 0px 10px rgba(178, 191, 210, 0.25);
+    border-radius: 10px 0px 10px 10px !important;
+    top: 28px !important;
+    right: 60% !important;
+    left: unset !important;
+    min-height: fit-content;
+
+    .dropdown-datatable-items {
+      display: flex;
+      justify-content: center;
+      padding: 5px;
+
+      &:hover {
+        background-color: unset;
+
+        &:nth-child(1) {
+          color: #2a9e2a;
+        }
+
+        &:nth-child(2) {
+          color: rgb(241, 153, 0);
+        }
+
+        &:nth-child(3) {
+          color: var(--error-color);
+        }
+      }
+
+      .dropdown-datatable-items-icon {
+        width: 25px;
+        display: flex;
+        justify-content: center;
+        margin-right: 5px;
+
+        i {
+          margin: 0;
+        }
+      }
+
+      .dropdown-datatable-row-text {
+        width: 65px;
+      }
+    }
+  }
+}
+
+body.dark {
+  .dropdown-menu {
+    box-shadow: 0px 0px 10px rgba(178, 191, 210, 0.25);
+
+    &.up-arrow {
+      box-shadow: 0px 7px 20px 1px rgb(86 90 96 / 35%);
+
+      &:before {
+        border-bottom: 10px solid var(--secondary-700);
+      }
+    }
+
+    &.left-arrow {
+      &:before {
+        border-right: 10px solid var(--secondary-700);
+      }
+    }
+
+    .dropdown-item {
+      color: var(--text-color);
+      background-color: transparent;
+
+      &:hover {
+        color: var(--text-color);
+        background-color: var(--primary-color-light);
+      }
+    }
+  }
+
+  .dropdown-datatable {
+    .dropdown-datatable-toggle-button {
+      background: transparent !important;
+      color: var(--secondary-text-color);
+      border: none;
+
+      &:hover {
+        border: none;
+        box-shadow: none;
+        transform: unset;
+      }
+
+      &::after {
+        content: unset !important;
+      }
+    }
+
+    .dropdown-datatable-menu {
+      background-color: var(--boxes-color);
+      box-shadow: 0px 0px 10px rgba(178, 191, 210, 0.25);
+      min-height: fit-content;
+      overflow: hidden;
+
+      .dropdown-datatable-items {
+        &:hover {
+          background-color: unset;
+
+          &:nth-child(1) {
+            color: #21bb21;
+          }
+
+          &:nth-child(2) {
+            color: rgb(241, 153, 0);
+          }
+
+          &:nth-child(3) {
+            color: var(--error-color);
+          }
+        }
+
+        .dropdown-datatable-items-icon {
+          i {
+          }
+        }
+
+        .dropdown-datatable-row-text {
+        }
+      }
+    }
+  }
+}
+
+tr {
+  &:nth-last-child(1) {
+    .dropdown-datatable .dropdown-datatable-menu {
+      top: -50px !important;
+      right: 60% !important;
+      border-radius: 10px !important;
+    }
+  }
+}

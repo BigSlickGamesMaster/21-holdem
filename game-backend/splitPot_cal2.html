@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pot Split Calculator</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 40px 20px;
+        background-color: #2a6382;
+        color: #333;
+      }
+
+      .container {
+        background-color: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      }
+
+      h1 {
+        color: #2a6382;
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 2.2em;
+      }
+
+      .input-group {
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .input-group label {
+        font-weight: 600;
+        min-width: 100px;
+      }
+
+      .input-group input[type='number'] {
+        padding: 8px 12px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 1em;
+        width: 150px;
+      }
+
+      .input-group input[type='number']:focus {
+        border-color: #2a6382;
+        outline: none;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        background-color: #2a6382;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        flex: 1;
+        min-width: 150px;
+      }
+
+      button:hover {
+        background-color: #264a61;
+        transform: translateY(-2px);
+      }
+
+      button.remove-btn {
+        background-color: #dc3545;
+        padding: 8px 16px;
+        max-width: 10px;
+      }
+
+      button.remove-btn:hover {
+        background-color: #c82333;
+      }
+
+      button.calculate-btn {
+        background-color: #28a745;
+        width: 100%;
+        padding: 15px;
+        font-size: 1.1em;
+        margin-top: 20px;
+      }
+
+      button.calculate-btn:hover {
+        background-color: #218838;
+      }
+
+      select {
+        padding: 8px 12px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 0.9em;
+        background-color: white;
+      }
+
+      select:focus {
+        border-color: #2a6382;
+        outline: none;
+      }
+
+      .results {
+        margin-top: 30px;
+        padding: 20px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+      }
+
+      .results h3 {
+        color: #2a6382;
+        margin-top: 0;
+        margin-bottom: 20px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 20px;
+        background-color: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      th,
+      td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      th {
+        background-color: #2a6382;
+        color: white;
+        font-weight: 600;
+      }
+
+      tr:last-child td {
+        border-bottom: none;
+      }
+
+      tr:hover td {
+        background-color: #f8f9fa;
+      }
+
+      .calculation-breakdown {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .player-list {
+        display: grid;
+        gap: 15px;
+        margin: 20px 0;
+      }
+
+      .player-item {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .total-amount {
+        font-size: 1.2em;
+        font-weight: 600;
+        color: #2a6382;
+        text-align: right;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 2px solid #e9ecef;
+      }
+
+      .amount-details {
+        display: flex;
+        gap: 20px;
+        margin-left: auto;
+        font-size: 0.9em;
+      }
+
+      .amount-details span {
+        color: #666;
+      }
+
+      .amount-details .total {
+        font-weight: 600;
+        color: #2a6382;
+      }
+
+      .player-item {
+        padding: 15px 20px;
+      }
+
+      .distribution-details .player-item {
+        background-color: white;
+        border: 1px solid #e9ecef;
+      }
+
+      .distribution-details .player-item:hover {
+        background-color: #f8f9fa;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Pot Split Calculator</h1>
+
+      <div class="input-group">
+        <label>Pot Amount:</label>
+        <input type="number" id="potAmount" value="100" />
+      </div>
+
+      <div class="button-group">
+        <button onclick="addPlayer('DD')">Add DD Player</button>
+        <button onclick="addPlayer('STAND')">Add Stand Player</button>
+        <button onclick="addPlayer('NO_ACTION')">Add No Action Player</button>
+      </div>
+
+      <div id="playersList"></div>
+
+      <button class="calculate-btn" onclick="calculateSplit(); document.getElementById('results').scrollIntoView({behavior: 'smooth'})">Calculate Split</button>
+
+      <div id="results" class="results"></div>
+    </div>
+
+    <script>
+      let players = [];
+      let playerIdCounter = 1;
+
+      function addPlayer(action) {
+        const player = {
+          id: playerIdCounter++,
+          action: action,
+          standTiming: action === 'STAND' ? 1 : null,
+        };
+        players.push(player);
+        updatePlayersList();
+      }
+
+      function removePlayer(id) {
+        players = players.filter(p => p.id !== id);
+        updatePlayersList();
+      }
+
+      function updatePlayersList() {
+        const list = document.getElementById('playersList');
+        list.innerHTML =
+          `<div class="player-list">` +
+          players
+            .map(
+              player => `
+                <div class="player-item">
+                    <span>Player ${player.id} (${player.action})</span>
+                    ${
+                      player.action === 'STAND'
+                        ? `<select onchange="updateStandTiming(${player.id}, this.value)" value="${player.standTiming}">
+                            <option value="1" ${player.standTiming === 1 ? 'selected' : ''}>After 1st Community Card</option>
+                            <option value="2" ${player.standTiming === 2 ? 'selected' : ''}>After 2nd Community Card</option>
+                        </select>`
+                        : ''
+                    }
+                    <button class="remove-btn" onclick="removePlayer(${player.id})">Remove</button>
+                </div>
+            `
+            )
+            .join('') +
+          '</div>';
+      }
+
+      function updateStandTiming(id, timing) {
+        const player = players.find(p => p.id === id);
+        if (player) {
+          player.standTiming = parseInt(timing, 10);
+        }
+      }
+
+      function calculateSplit() {
+        const potAmount = parseFloat(document.getElementById('potAmount').value);
+        if (players.length === 0) {
+          alert('Please add some players first!');
+          return;
+        }
+
+        const results = splitPot(players, potAmount);
+        displayResults(results);
+        displayDetailedCalculation(results);
+      }
+
+      function displayResults(results) {
+        const resultsDiv = document.getElementById('results');
+        let html = '<h3>Results:</h3>';
+        html += '<table>';
+        html += '<tr><th>Player ID</th><th>Type</th><th>Amount</th><th>Bonus</th></tr>';
+
+        ['DD_Players', 'Stand_Players', 'No_Action_Players'].forEach(type => {
+          results[type].forEach(player => {
+            html += `
+                        <tr>
+                            <td>Player ${player.id}</td>
+                            <td>${type.replace('_', ' ')}</td>
+                            <td>₹${player.amount.toFixed(2)}</td>
+                            <td>₹${player.bonusAmount.toFixed(2)}</td>
+                        </tr>
+                    `;
+          });
+        });
+
+        html += '</table>';
+        html += `<p>Total Pot Amount: ₹${results.Pot_Amount.toFixed(2)}</p>`;
+        resultsDiv.innerHTML = html;
+      }
+
+      function displayDetailedCalculation(results) {
+        const resultsDiv = document.getElementById('results');
+        let html = resultsDiv.innerHTML;
+
+        html += `
+            <div class="calculation-breakdown">
+                <h3>Calculation Breakdown</h3>
+                <div class="breakdown-details">
+                    <p><strong>Total Pot:</strong> ₹${results.Pot_Amount.toFixed(2)}</p>
+                    <p><strong>Total Bonus Amount:</strong> ₹${results.Total_Bonus.toFixed(2)}</p>
+                    <p><strong>Remaining Amount:</strong> ₹${results.Remaining_Amount.toFixed(2)}</p>
+                    <p><strong>Equal Share per Player:</strong> ₹${results.Equal_Share.toFixed(2)}</p>
+                </div>
+                
+                <h4>Distribution Details:</h4>
+                <div class="distribution-details">
+                    ${results.No_Action_Players.map(
+                      player => `
+                        <div class="player-item">
+                            <span>Player ${player.id} (No Action)</span>
+                            <div class="amount-details">
+                                <span>Bonus (15%): ₹${player.bonusAmount.toFixed(2)}</span>
+                                <span>Equal Share: ₹${player.equalShare.toFixed(2)}</span>
+                                <span class="total">Total: ₹${player.amount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `
+                    ).join('')}
+                    
+                    ${results.Stand_Players.map(
+                      player => `
+                        <div class="player-item">
+                            <span>Player ${player.id} (Stand After ${player.timing === 2 ? '2nd' : '1st'})</span>
+                            <div class="amount-details">
+                                <span>Bonus (${player.timing === 2 ? '10%' : '5%'}): ₹${player.bonusAmount.toFixed(2)}</span>
+                                <span>Equal Share: ₹${player.equalShare.toFixed(2)}</span>
+                                <span class="total">Total: ₹${player.amount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `
+                    ).join('')}
+                    
+                    ${results.DD_Players.map(
+                      player => `
+                        <div class="player-item">
+                            <span>Player ${player.id} (DD)</span>
+                            <div class="amount-details">
+                                <span>Bonus: ₹${player.bonusAmount.toFixed(2)}</span>
+                                <span>Equal Share: ₹${player.equalShare.toFixed(2)}</span>
+                                <span class="total">Total: ₹${player.amount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    `
+                    ).join('')}
+                </div>
+            </div>
+        `;
+
+        resultsDiv.innerHTML = html;
+      }
+
+      function splitPot(players, potAmount) {
+        let ddPlayers = [];
+        let standPlayers = [];
+        let noActionPlayers = [];
+
+        // Categorize players
+        players.forEach(player => {
+          if (player.action === 'DD') {
+            ddPlayers.push(player);
+          } else if (player.action === 'STAND') {
+            standPlayers.push(player);
+          } else {
+            noActionPlayers.push(player);
+          }
+        });
+
+        let totalBonusAmount = 0;
+
+        // 1. No Action Players (15% to each no action player)
+        let noActionBonuses = noActionPlayers.map(() => {
+          const bonus = 0.15 * potAmount; // Each player gets 15%
+          totalBonusAmount += bonus;
+          return bonus;
+        });
+
+        // 2. Stand Players (timing based bonus)
+        let standBonuses = standPlayers.map(player => {
+          let bonus = 0;
+          if (player.standTiming === 2) {
+            bonus = 0.1 * potAmount; // 10% for timing 2
+          } else if (player.standTiming === 1) {
+            bonus = 0.05 * potAmount; // 5% for timing 1
+          }
+          totalBonusAmount += bonus;
+          return bonus;
+        });
+
+        // 3. DD Players (0% to each DD player)
+        let ddBonuses = ddPlayers.map(() => 0);
+
+        // Calculate remaining amount and distribute equally
+        const remainingAmount = potAmount - totalBonusAmount;
+        const totalPlayers = players.length;
+        const equalShare = remainingAmount / totalPlayers;
+
+        // Calculate final amounts with equal distribution of remaining amount
+        let results = {
+          DD_Players: ddPlayers.map((player, index) => ({
+            id: player.id,
+            amount: equalShare + ddBonuses[index],
+            timing: null,
+            bonusAmount: ddBonuses[index],
+            equalShare: equalShare,
+          })),
+          Stand_Players: standPlayers.map((player, index) => ({
+            id: player.id,
+            amount: equalShare + standBonuses[index],
+            timing: player.standTiming,
+            bonusAmount: standBonuses[index],
+            equalShare: equalShare,
+          })),
+          No_Action_Players: noActionPlayers.map((player, index) => ({
+            id: player.id,
+            amount: equalShare + noActionBonuses[index],
+            timing: null,
+            bonusAmount: noActionBonuses[index],
+            equalShare: equalShare,
+          })),
+          Pot_Amount: potAmount,
+          Total_Bonus: totalBonusAmount,
+          Remaining_Amount: remainingAmount,
+          Equal_Share: equalShare,
+        };
+
+        return results;
+      }
+    </script>
+  </body>
+</html>

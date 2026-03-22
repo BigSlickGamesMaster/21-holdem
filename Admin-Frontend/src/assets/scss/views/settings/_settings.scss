@@ -1,0 +1,177 @@
+.settings {
+    .notes {
+        color: var(--error-color);
+        font-size: 11.5px;
+        // text-align: end;
+        font-weight: 500;
+        font-style: italic;
+        font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+        margin-bottom: 15px;
+    }
+
+    .banner-option-data {
+
+        .data-title,
+        .data-value {
+            font-size: 14px;
+        }
+
+        .data-title {
+            color: var(--secondary-600);
+            font-weight: 500;
+        }
+
+        .data-value {
+            color: var(--text-color);
+        }
+    }
+
+    .banner-add-image {
+        label {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            color: var(--text-color);
+            line-height: 1.83;
+            margin-bottom: 5px;
+        }
+    }
+
+    .fileinput {
+        width: 100%;
+        display: flex;
+        flex-wrap: nowrap;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        // padding: 10px;
+        border-radius: 8px;
+
+        label {
+            font-size: $fs-12;
+            font-weight: $fw-700;
+            font-family: 'Helvetica-Bold';
+            letter-spacing: 0.5px;
+            color: var(--secondary-500) !important;
+            line-height: 2;
+            margin-bottom: 1px;
+            text-transform: uppercase;
+        }
+
+        .inputtypefile {
+            border: 4px solid var(--theme-color);
+            outline: 4px solid var(--secondary-300);
+            width: 100%;
+            height: 180px;
+            margin: 0;
+            position: relative;
+            background-color: var(--input-background-color);
+            border-radius: 8px;
+            overflow: hidden;
+            padding: 0;
+
+            .inputMSG {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                .document-preview-group {
+                    margin: 0;
+                    position: relative;
+                    width: 100%;
+                    z-index: 12;
+
+                    .img-over {
+                        position: absolute;
+                        width: 100%;
+                        height: 100%;
+                        padding: 10px 30px;
+                        background-color: rgba(59, 59, 59, 0.419);
+                        display: none;
+                        text-align: center;
+                        font-family: 'Helvetica-Bold';
+                        letter-spacing: 0.5px;
+                        justify-content: center;
+                        align-items: center;
+                        color: #ffffff;
+                        font-size: 12px;
+                        font-weight: 800;
+                        cursor: pointer;
+                    }
+
+                    &:hover {
+                        .img-over {
+                            display: flex;
+                        }
+                    }
+
+                    .document-preview {
+                        width: 100%;
+                        overflow: hidden;
+
+                        img {
+                            width: 100%;
+                            object-fit: cover;
+                            // height: 130px;
+                        }
+                    }
+                }
+
+                .upload-img {
+                    all: unset;
+                    font-size: 11px;
+                    color: var(--secondary-400);
+                    padding: 5px 10px;
+                    border-radius: 5px;
+                    display: flex;
+                    flex-direction: column;
+                    text-align: center;
+
+                    span {
+                        margin-top: 5px;
+                        letter-spacing: 0.5px;
+                        font-family: 'helvetica-bold';
+                        font-weight: 500;
+                        background: transparent;
+                        color: var(--secondary-300);
+
+                        &.card-error {
+                            margin: 0;
+                            letter-spacing: 0.5px;
+                            font-family: 'helvetica-regular';
+                            font-weight: 600;
+                        }
+                    }
+
+                    svg {
+                        font-size: 30px;
+                        color: var(--secondary-300);
+                    }
+                }
+            }
+
+            input {
+                opacity: 0;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                margin-bottom: 0;
+                position: absolute;
+
+                &:disabled {
+                    display: none;
+
+                }
+            }
+
+            &.isDisabled {
+                background-color: #dbdbdb;
+                cursor: not-allowed;
+            }
+        }
+    }
+}

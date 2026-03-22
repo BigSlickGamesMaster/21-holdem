@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Split Pot Calculator</title>
+    <style>
+      :root {
+        --primary: #2563eb;
+        --danger: #dc2626;
+        --success: #16a34a;
+        --gray: #6b7280;
+        --light: #f3f4f6;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #2a6382;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .subtitle {
+        color: var(--gray);
+        margin-top: -10px;
+      }
+
+      .input-section {
+        margin-bottom: 1.5rem;
+      }
+
+      .input-section label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+
+      input[type='number'] {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 1rem;
+      }
+
+      .controls {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      button {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 6px;
+        background: var(--primary);
+        color: white;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: opacity 0.2s;
+      }
+
+      button:hover {
+        opacity: 0.9;
+      }
+
+      .player-card {
+        background: var(--light);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        position: relative;
+      }
+
+      .player-inputs {
+        margin-bottom: 1.5rem;
+      }
+
+      .player-card select {
+        width: 100%;
+        padding: 0.5rem;
+        margin-top: 0.5rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 1rem;
+      }
+
+      .results {
+        background: #f0fdf4;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1.5rem;
+      }
+
+      .result-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .amount {
+        font-weight: 600;
+        color: var(--success);
+      }
+
+      .remove-player-btn {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: var(--danger);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 0.25rem 0.5rem;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>🎰 Split Pot Calculator</h2>
+        <p class="subtitle">Calculate fair pot distribution based on player actions</p>
+      </div>
+
+      <div class="input-section">
+        <label for="potAmount">Pot Amount: <span style="color: var(--danger)">*</span></label>
+        <input type="number" id="potAmount" placeholder="Enter pot amount..." value="100" min="1" step="1" required />
+      </div>
+
+      <div class="controls">
+        <button onclick="addPlayer()">➕ Add Player</button>
+        <button onclick="calculateSplit(); document.getElementById('results').scrollIntoView({behavior: 'smooth'})" style="background-color: var(--success)">
+          🎯 Calculate Split
+        </button>
+      </div>
+
+      <div id="playerInputs" class="player-inputs">
+        <!-- Players will be added here -->
+      </div>
+
+      <div id="results" class="results" style="display: none">
+        <h3>Results:</h3>
+        <div id="distributionDetails" class="distribution-details"></div>
+      </div>
+    </div>
+
+    <script>
+      let playerCount = 0;
+
+      function addPlayer() {
+        playerCount++;
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'player-card';
+        playerDiv.id = `player-${playerCount}`;
+        playerDiv.innerHTML = `
+          <label>Player ${playerCount}</label>
+          <button class="remove-player-btn" onclick="removeSpecificPlayer(${playerCount})">✕</button>
+          <select class="player-action" onchange="updateStandTiming(this)">
+            <option value="NO_ACTION">No Action</option>
+            <option value="STAND">Stand</option>
+            <option value="DD">Double Down</option>
+          </select>
+          <select class="stand-timing" style="display: none" disabled>
+            <option value="0">-- Select Stand Timing --</option>
+            <option value="1">First to Stand (5% bonus)</option>
+            <option value="2">Last to Stand (10% bonus)</option>
+          </select>
+        `;
+        document.getElementById('playerInputs').appendChild(playerDiv);
+      }
+
+      function removeSpecificPlayer(playerId) {
+        const playerElement = document.getElementById(`player-${playerId}`);
+        if (playerElement) {
+          playerElement.remove();
+          playerCount--;
+          // Renumber remaining players
+          const players = document.querySelectorAll('.player-card');
+          players.forEach((player, index) => {
+            player.id = `player-${index + 1}`;
+            player.querySelector('label').textContent = `Player ${index + 1}`;
+            player.querySelector('.remove-player-btn').setAttribute('onclick', `removeSpecificPlayer(${index + 1})`);
+          });
+        }
+      }
+
+      function updateStandTiming(select) {
+        const standTimingSelect = select.nextElementSibling;
+        if (select.value === 'STAND') {
+          standTimingSelect.style.display = 'block';
+          standTimingSelect.disabled = false;
+        } else {
+          standTimingSelect.style.display = 'none';
+          standTimingSelect.disabled = true;
+        }
+      }
+
+      function splitPot(players, potAmount) {
+        let ddPlayers = [];
+        let standPlayers = [];
+        let noActionPlayers = [];
+
+        // Categorize players
+        players.forEach(player => {
+          if (player.action === 'DD') {
+            ddPlayers.push(player);
+          } else if (player.action === 'STAND') {
+            standPlayers.push(player);
+          } else {
+            noActionPlayers.push(player);
+          }
+        });
+
+        let totalBonusAmount = 0;
+
+        // 1. No Action Players (15% split among all no action players)
+        let noActionBonusPerPlayer = noActionPlayers.length > 0 ? (0.15 * potAmount) / noActionPlayers.length : 0;
+        let noActionBonuses = noActionPlayers.map(() => {
+          totalBonusAmount += noActionBonusPerPlayer;
+          return noActionBonusPerPlayer;
+        });
+
+        // 2. Stand Players (bonus split among players with same timing)
+        let standBonuses = standPlayers.map(player => {
+          let bonusPercent = 0;
+          if (player.standTiming === 2) bonusPercent = 0.1; // 10%
+          else if (player.standTiming === 1) bonusPercent = 0.05; // 5%
+
+          // Count players with same timing to split the bonus
+          const sameTimingCount = standPlayers.filter(p => p.standTiming === player.standTiming).length;
+          const bonus = (bonusPercent * potAmount) / sameTimingCount;
+          totalBonusAmount += bonus;
+          return bonus;
+        });
+
+        // 3. DD Players (0% split among all DD players)
+        let ddBonusPerPlayer = 0; // No bonus for DD players
+        totalBonusAmount += ddBonusPerPlayer * ddPlayers.length;
+
+        // Calculate remaining amount to be distributed equally
+        const remainingAmount = Math.max(0, potAmount - totalBonusAmount);
+        const totalPlayers = players.length;
+        const baseAmount = remainingAmount / totalPlayers;
+
+        // Calculate final amounts
+        let results = {
+          DD_Players: ddPlayers.map(player => ({
+            id: player.id,
+            amount: baseAmount + ddBonusPerPlayer,
+            timing: null,
+            bonusAmount: ddBonusPerPlayer,
+          })),
+          Stand_Players: standPlayers.map((player, index) => ({
+            id: player.id,
+            amount: baseAmount + standBonuses[index],
+            timing: player.standTiming,
+            bonusAmount: standBonuses[index],
+          })),
+          No_Action_Players: noActionPlayers.map((player, index) => ({
+            id: player.id,
+            amount: baseAmount + noActionBonuses[index],
+            timing: null,
+            bonusAmount: noActionBonuses[index],
+          })),
+          Pot_Amount: potAmount,
+        };
+
+        return results;
+      }
+
+      function calculateSplit() {
+        const potAmount = Number(document.getElementById('potAmount').value);
+        if (!potAmount || potAmount <= 0) {
+          alert('Please enter a valid pot amount');
+          return;
+        }
+
+        if (playerCount === 0) {
+          alert('Please add at least one player');
+          return;
+        }
+
+        const players = [];
+        const playerCards = document.querySelectorAll('.player-card');
+
+        let isValid = true;
+        playerCards.forEach((card, index) => {
+          const action = card.querySelector('.player-action').value;
+          const standTimingSelect = card.querySelector('.stand-timing');
+
+          // Validate stand timing selection
+          if (action === 'STAND' && (!standTimingSelect.value || standTimingSelect.value === '0')) {
+            alert('Please select stand timing for all Stand players');
+            isValid = false;
+            return;
+          }
+
+          const standTiming = action === 'STAND' ? Number(standTimingSelect.value) : 0;
+
+          players.push({
+            id: index + 1,
+            action: action,
+            standTiming: standTiming,
+          });
+        });
+
+        if (!isValid) return;
+
+        const results = splitPot(players, potAmount);
+        displayResults(results);
+      }
+
+      function displayResults(results) {
+        const resultsDiv = document.getElementById('results');
+        const distributionDiv = document.getElementById('distributionDetails');
+        distributionDiv.innerHTML = '';
+
+        // Add summary section
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'summary-section';
+        summaryDiv.innerHTML = `
+          <h4>💰 Total Pot: ₹${results.Pot_Amount.toFixed(2)}</h4>
+          <div class="calculation-breakdown">
+            <h4>Bonus Distribution:</h4>
+            <ul>
+              <li>No Action Players: 15% of pot</li>
+              <li>Last to Stand: 10% of pot</li>
+              <li>First to Stand: 5% of pot</li>
+              <li>Double Down: No bonus</li>
+            </ul>
+          </div>
+        `;
+        distributionDiv.appendChild(summaryDiv);
+
+        // Group players by action
+        if (results.No_Action_Players.length > 0) {
+          const noActionSection = document.createElement('div');
+          noActionSection.className = 'player-section';
+          noActionSection.innerHTML = `
+            <h4>🎲 No Action Players (15% Bonus)</h4>
+            <div class="bonus-info">
+              Bonus per player: ₹${((0.15 * results.Pot_Amount) / results.No_Action_Players.length).toFixed(2)}
+            </div>
+          `;
+          results.No_Action_Players.forEach(player => {
+            noActionSection.appendChild(createPlayerCard(player, 'No Action'));
+          });
+          distributionDiv.appendChild(noActionSection);
+        }
+
+        if (results.Stand_Players.length > 0) {
+          const standSection = document.createElement('div');
+          standSection.className = 'player-section';
+          standSection.innerHTML = '<h4>🛑 Stand Players (5-10% Bonus)</h4>';
+          results.Stand_Players.forEach(player => {
+            standSection.appendChild(createPlayerCard(player, 'Stand'));
+          });
+          distributionDiv.appendChild(standSection);
+        }
+
+        if (results.DD_Players.length > 0) {
+          const ddSection = document.createElement('div');
+          ddSection.className = 'player-section';
+          ddSection.innerHTML = '<h4>↕️ Double Down Players (No Bonus)</h4>';
+          results.DD_Players.forEach(player => {
+            ddSection.appendChild(createPlayerCard(player, 'Double Down'));
+          });
+          distributionDiv.appendChild(ddSection);
+        }
+
+        // Add styles for the new elements
+        const style = document.createElement('style');
+        style.textContent = `
+          .summary-section {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+          }
+          .calculation-breakdown {
+            background: var(--light);
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+          }
+          .calculation-breakdown ul {
+            margin: 0;
+            padding-left: 1.5rem;
+          }
+          .player-section {
+            margin-bottom: 1.5rem;
+          }
+          .player-section h4 {
+            margin: 1rem 0;
+            color: var(--gray);
+          }
+          .bonus-info {
+            background: #e0f2fe;
+            padding: 0.5rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #0369a1;
+          }
+          .result-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          }
+          .result-card .details {
+            font-size: 0.9rem;
+            color: var(--gray);
+          }
+        `;
+        document.head.appendChild(style);
+
+        resultsDiv.style.display = 'block';
+      }
+
+      function createPlayerCard(player, actionType) {
+        const card = document.createElement('div');
+        card.className = 'result-card';
+
+        // Calculate base amount by subtracting the actual bonus
+        const baseAmount = player.amount - player.bonusAmount;
+        const bonusAmount = player.bonusAmount;
+
+        let bonusText = '';
+        if (actionType === 'Stand') {
+          const bonusPercent = player.timing === 2 ? '10%' : '5%';
+          const timingText = player.timing === 2 ? 'Last to Stand' : 'First to Stand';
+          bonusText = `(${timingText}, ${bonusPercent} bonus)`;
+        } else if (actionType === 'No Action') {
+          bonusText = '(15% bonus)';
+        }
+
+        card.innerHTML = `
+          <div>
+            <div>Player ${player.id}</div>
+            <div class="details">
+              Base: ₹${baseAmount.toFixed(2)} + Bonus: ₹${bonusAmount.toFixed(2)} ${bonusText}
+            </div>
+          </div>
+          <div class="amount">₹${player.amount.toFixed(2)}</div>
+        `;
+        return card;
+      }
+
+      // Add initial player
+      addPlayer();
+    </script>
+  </body>
+</html>

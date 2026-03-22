@@ -1,0 +1,33 @@
+.wrapper {
+  background-color: var(--boxes-color);
+  padding: 25px;
+  box-shadow: 0px 10px 20px rgb(178 191 210 / 25%);
+  border-radius: 15px;
+  position: relative;
+
+  .label {
+    color: var(--primary-color);
+    text-align: center;
+    letter-spacing: 0.2mm;
+  }
+
+  .line {
+    color: black;
+    margin-top: 0;
+  }
+}
+
+body.dark {
+  .wrapper {
+    .label {
+      color: white;
+      text-align: center;
+      letter-spacing: 0.2mm;
+    }
+
+    .line {
+      color: white;
+      margin-top: 0;
+    }
+  }
+}

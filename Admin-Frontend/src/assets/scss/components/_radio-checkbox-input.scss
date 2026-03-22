@@ -1,0 +1,149 @@
+.form-check:not(.form-switch) {
+  padding-left: 0;
+  margin-bottom: 15px;
+
+  input {
+    display: none;
+  }
+
+  label {
+    font-size: $fs-14;
+    color: var(--secondary-200);
+
+    position: relative;
+    line-height: 1.47;
+    cursor: pointer;
+    text-transform: capitalize;
+  }
+
+  // Radio input
+  input[type='radio'] {
+    &:checked~label {
+      &:before {
+        border-color: var(--primary-color);
+      }
+
+      &:after {
+        transform: scale(1);
+      }
+    }
+
+    &~label {
+      padding-left: 29px;
+
+      &:before {
+        content: '';
+        height: 20px;
+        width: 20px;
+        border-radius: 100%;
+        border: 1px solid var(--secondary-200);
+        position: absolute;
+        top: 0;
+        left: 0;
+        transition: all linear 0.2s;
+      }
+
+      &:after {
+        position: absolute;
+        content: '';
+        width: 10px;
+        height: 10px;
+        background-color: var(--primary-color);
+        border-radius: 100%;
+        top: 5px;
+        left: 5px;
+        transform: scale(0);
+        transition: all linear 0.1s;
+      }
+    }
+  }
+
+  // checkbox input
+  input[type='checkbox'] {
+    @include checkbox();
+  }
+
+  &+.form-check {
+    margin-left: 15px;
+  }
+}
+
+.form-switch {
+  padding: 0;
+
+  .form-check-input {
+    cursor: pointer;
+    background-color: #f2f5f6;
+    width: 40px;
+    margin-left: 0px !important;
+    height: 21px;
+    // border-radius: 89px;
+    // background-image:none !important;
+    border: none;
+    vertical-align: middle;
+    margin-top: 0;
+
+    &:checked {
+      background-color: var(--primary-color);
+      background-image: url('data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%27-4 -4 8 8%27%3e%3ccircle r=%273%27 fill=%27rgba%28255, 255, 255, 1%29%27/%3e%3c/svg%3e') !important;
+    }
+
+    &:focus {
+      box-shadow: none;
+      background-image: url('data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%27-4 -4 8 8%27%3e%3ccircle r=%273%27 fill=%27rgba%28189, 190, 191, 1%29%27/%3e%3c/svg%3e');
+    }
+  }
+
+  &.success .form-check-input:checked {
+    background-color: $green-400;
+  }
+
+  &.danger input {
+    background-color: $red-300;
+  }
+}
+
+// shiv
+
+.checkbox-wrap {
+  position: relative;
+
+  label {
+    display: block;
+    border-radius: 2px;
+    color: var(--white-color);
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+
+    &:after {
+      width: 20px;
+      height: 20px;
+      content: '';
+      background: var(--input-color);
+      border-radius: 2px;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+  }
+
+  input {
+    width: 20px;
+    height: 20px;
+    z-index: 2;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    visibility: hidden;
+
+    &:checked~label {
+      &:after {
+        background: url('../../images/check.svg') no-repeat center, var(--primary-color);
+      }
+    }
+  }
+}

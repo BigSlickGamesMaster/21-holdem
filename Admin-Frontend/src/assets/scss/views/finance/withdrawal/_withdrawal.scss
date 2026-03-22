@@ -1,0 +1,180 @@
+.withdrawal-view-modal {
+  .modal-dialog {
+    box-shadow: 0 0 20px 1px #77777738;
+  }
+
+  .modal-header {
+    color: var(--text-color);
+    padding: 15px 35px;
+
+    button {
+      background-color: var(--white-color);
+      box-shadow: 0px 0px 30px 0px #2b2b2b50;
+      border-radius: 50%;
+    }
+  }
+
+  .modal-body {
+    padding: 8px 35px 20px !important;
+
+    .tag-button {
+      font-size: 11px;
+      text-transform: capitalize;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+      font-weight: 700;
+      border-radius: 50px;
+      border: transparent;
+
+      &.success {
+        background: #67d098e3;
+        color: #aeffd4;
+      }
+
+      &.danger {
+        background: rgb(240 89 89 / 81%);
+        color: #fcc9c9;
+      }
+
+      &.warning {
+        background: rgb(239 185 86 / 75%);
+        color: #ffe7bd;
+      }
+    }
+
+    div {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      margin: 5px 0;
+      font-size: 12px;
+      margin: 0;
+
+      span {
+        color: var(--secondary-600);
+        display: block;
+        padding: 5px;
+        text-transform: capitalize;
+
+        &:not(:first-child) {
+          color: var(--primary-color);
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}
+
+.withdrawal {
+  table {
+    td {
+      .btn-credited,
+      .btn-success {
+        background: #67d098e3;
+        color: #aeffd4;
+        font-size: 12px;
+        height: 25px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 2px 8px;
+        border-radius: 99px;
+        cursor: pointer;
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif !important;
+      }
+
+      &.debited,
+      .btn-danger {
+        cursor: pointer;
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif !important;
+        border-radius: 99px;
+        height: 25px;
+        background: rgb(240 89 89 / 81%);
+        color: #fcc9c9;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 2px 8px;
+      }
+
+      .btn-info {
+        cursor: pointer;
+        font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif !important;
+        border-radius: 99px;
+        height: 25px;
+        background: rgba(16, 183, 255, 0.784);
+        color: var(--white-color);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        padding: 2px 8px;
+      }
+
+      span {
+        &.credited,
+        &.success {
+          background: rgba(46, 204, 113, 0.15);
+          color: #2ecc71;
+          font-size: 12px;
+          text-transform: capitalize;
+          letter-spacing: 0.8px;
+          padding: 4px 10px;
+          font-weight: 700;
+          border-radius: 5px;
+          border: transparent;
+        }
+
+        &.debited,
+        &.rejected {
+          border: transparent;
+          background: rgba(253, 187, 187, 0.81);
+          color: #ff4848;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          padding: 4px 10px;
+          border-radius: 5px;
+        }
+
+        &.pending {
+          border: transparent;
+          // border: 1px solid var(--text-color);
+          background: rgba(239, 185, 86, 0.75);
+          color: #ffe7bd;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          padding: 4px 10px;
+          border-radius: 5px;
+        }
+
+        &.failed {
+          border: transparent;
+          cursor: pointer;
+          font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif !important;
+          border-radius: 5px;
+          height: 25px;
+          background: rgba(253, 187, 187, 0.81);
+          color: #ff4848;
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          padding: 4px 10px;
+        }
+      }
+    }
+  }
+}
+
+.withdrawal-view-modal {
+  .inner-content {
+    .data-title {
+      margin-top: 10px;
+    }
+
+    .data-value {
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: capitalize;
+    }
+  }
+}

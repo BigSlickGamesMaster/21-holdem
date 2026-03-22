@@ -1,0 +1,29 @@
+.player-list {
+  tbody td {
+    &:nth-child(2) {
+      min-width: 50px;
+    }
+    &:nth-child(3) {
+      width: 350px;
+    }
+  }
+  .action-btn {
+    .btn {
+      width: 32px;
+      height: 32px;
+    }
+    i {
+      margin: 0;
+      line-height:24px
+    }
+  }
+  @include media-max(md) {
+    tr td {
+      white-space: nowrap;
+    }
+    ul li {
+      white-space: nowrap;
+      margin: 5px;
+    }
+  }
+}

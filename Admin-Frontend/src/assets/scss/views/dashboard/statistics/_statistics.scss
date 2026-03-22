@@ -1,0 +1,104 @@
+.statistics {
+    .statistic-card {
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            letter-spacing: 0.5px;
+
+            .content {
+                &-left {
+                    .top {
+                        font-size: 20px;
+                        font-weight: $fw-600;
+                        display: flex;
+                        flex-wrap: nowrap;
+                        align-items: center;
+
+                        svg {
+                            font-size: 30px;
+
+                            &.top-1 {
+                                color: $primary-300;
+                            }
+
+                            &.top-2 {
+                                color: $red-300;
+                            }
+
+                            &.top-3 {
+                                color: rgb(0, 213, 255);
+                            }
+
+                            &.top-4 {
+                                color: rgb(255, 208, 0);
+                            }
+
+                            &.top-5 {
+                                color: rgb(79, 204, 44);
+                            }
+                        }
+
+                        span {
+                            color: var(--secondary-700);
+                            margin-left: 10px;
+                        }
+                    }
+
+                    .bottom {
+                        font-family: $primary-font;
+                        margin-top: 5px;
+                        font-weight: $fw-500;
+                        color: var(--secondary-700);
+
+                        .data-value {
+                            color: $primary-300;
+                        }
+                    }
+                }
+
+                &-right {
+                    font-size: 20px;
+                    font-family: $primary-font;
+                    font-weight: $fw-700;
+                    color: var(--secondary-700);
+                    letter-spacing: 0.5px;
+                }
+            }
+        }
+
+        .card-body {
+            margin-top: 20px;
+            font-family: $primary-font;
+            font-weight: $fw-500;
+            line-height: 20px;
+            letter-spacing: 0.5px;
+
+            .data-label {
+                text-transform: capitalize;
+                color: var(--secondary-700);
+            }
+
+            .data-value {
+                font-weight: $fw-600;
+                color: $primary-300;
+            }
+
+            table {
+                tr {
+                    &:last-child {
+                        font-weight: $fw-700;
+                    }
+                }
+
+                td,
+                th {
+                    text-align: end;
+
+                    &:first-child {
+                        text-align: left;
+                    }
+                }
+            }
+        }
+    }
+}

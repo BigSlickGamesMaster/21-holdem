@@ -1,0 +1,8 @@
+node_modules
+package-lock.json
+newrelic_agent.log
+.vscode
+.env
+dev.env
+stag.env
+firebase.json

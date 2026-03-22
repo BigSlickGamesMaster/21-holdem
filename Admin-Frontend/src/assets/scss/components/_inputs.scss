@@ -1,0 +1,208 @@
+.form-group {
+  margin-bottom: 22px;
+
+  // position: relative;
+  .select__multi-value .css-16xfy0z-control {
+    .css-1p3m7a8-multiValue {
+      color: var(--secondary-500);
+      background-color: #d7dee1 !important;
+    }
+  }
+
+  .form-label {
+    font-size: $fs-14;
+    font-weight: $fw-500;
+    letter-spacing: 0.2px;
+    // text-transform: uppercase;
+    color: var(--secondary-600);
+    line-height: 1.83;
+    margin-bottom: 5px;
+
+    span {
+      color: var(--secondary-400);
+    }
+
+    i {
+      font-size: $fs-20;
+      margin-left: 5px;
+      vertical-align: -3px;
+    }
+  }
+
+  .form-control {
+    padding: 8px 10px 8px 12px;
+    border-radius: 4px !important;
+    background-color: rgb(245 247 248);
+    border: none;
+    box-shadow: inset 0 0 0 0 var(--white-color);
+    color: var(--heading-color);
+    font-size: $fs-14;
+    background-image: none;
+
+    &::-ms-expand {
+      display: none;
+    }
+
+    &::placeholder {
+      color: var(--secondary-400);
+    }
+
+    &:not(:read-only):focus {
+      color: var(--text-color);
+      box-shadow: inset 0 0 0 1px var(--secondary-500);
+    }
+
+    &.error {
+      box-shadow: inset 0 0 0 1px $red-300;
+      border-color: var(--error-color);
+    }
+
+    &:disabled {
+      color: var(--secondary-600);
+      background-color: var(--input-disable-background-color) !important;
+    }
+
+    &.form-control-sm,
+    &.form-select-sm {
+      padding: 4px 10px;
+      font-size: $fs-13;
+    }
+
+    &.input-password {
+      width: 114%;
+    }
+  }
+
+  &.only-border .form-control {
+    box-shadow: inset 0 0 0 1px var(--secondary-500);
+    background-color: transparent;
+    border-radius: 4px !important;
+  }
+
+  select.form-control,
+  select.form-control.form-control-sm {
+    padding-right: 32px !important;
+  }
+
+  .input-group {
+    .form-control {
+      padding-right: 40px;
+    }
+
+    .icon-right {
+      color: var(--primary-color);
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 9;
+      transition: all 0.3s ease-in-out;
+
+      &:hover {
+        color: var(--white-color);
+      }
+    }
+
+    .input-group-text {
+      background-color: var(--secondary-700);
+      border: none;
+      color: var(--text-color);
+      font-size: $fs-14;
+      border-radius: 8px 0 0 8px;
+      border-right: 2px solid var(--secondary-500);
+
+      & ~ .form-control {
+        padding-right: 10px;
+        border-radius: 0 8px 8px 0 !important;
+      }
+    }
+
+    &.padding-normal {
+      .form-control {
+        padding: 8px 10px 8px 12px;
+      }
+    }
+
+    &.border-left {
+      .form-control {
+        border-radius: 8px 0 0 8px !important;
+      }
+    }
+  }
+
+  .icon-chevron-down {
+    position: absolute;
+    font-size: $fs-22;
+    right: 10px;
+    top: 38px;
+    pointer-events: none;
+  }
+
+  textarea {
+    resize: none;
+
+    &.form-control {
+      height: 100px;
+    }
+  }
+
+  @include media-max(md) {
+    margin-bottom: 15px;
+
+    .form-label {
+      margin-bottom: 3px;
+    }
+
+    .icon-chevron-down {
+      top: 33px;
+    }
+  }
+
+  .common-view-input {
+    position: relative;
+
+    .common-spinner {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      right: 8px;
+      display: flex;
+      column-gap: 3px;
+
+      div {
+        width: 4px;
+        height: 4px;
+        background-color: var(--primary-color);
+      }
+    }
+  }
+}
+
+.invalid-feedback {
+  display: block;
+  padding: 0 1px;
+  color: var(--error-color);
+  text-align: right;
+  font-size: $fs-12;
+  font-weight: $fw-500;
+  margin: 0;
+  line-height: 1.33;
+  margin-top: 5px;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+input[type='search']::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  height: 20px;
+  width: 20px;
+  background: url('../../images/closefilledblue.svg') no-repeat 50% 50%;
+}

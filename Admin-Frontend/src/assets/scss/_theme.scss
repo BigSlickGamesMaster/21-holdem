@@ -1,0 +1,168 @@
+html {
+  width: 100%;
+}
+
+body {
+  font-family: $primary-font;
+  font-weight: $fw-400;
+  font-size: $fs-12;
+  color: $black;
+  color: var(--secondary-100);
+  background-color: var(--theme-color);
+  // background-color: red;
+  font-style: normal;
+  letter-spacing: 0;
+  word-spacing: 0;
+  text-transform: inherit;
+  overflow-x: hidden;
+}
+
+%heading {
+  font-weight: $fw-700;
+  line-height: 1.4;
+  color: var(--secondary-100);
+}
+
+h1 {
+  @extend %heading;
+  font-size: $fs-28;
+}
+
+h2 {
+  @extend %heading;
+  font-size: $fs-24;
+}
+
+h3 {
+  @extend %heading;
+  font-size: $fs-20;
+}
+
+h4 {
+  @extend %heading;
+  font-size: $fs-18;
+}
+
+h5 {
+  @extend %heading;
+  font-size: $fs-16;
+}
+
+h6 {
+  @extend %heading;
+  font-size: $fs-14;
+}
+
+a {
+  color: $primary-300;
+  text-decoration: none;
+  transition: all 0.3s ease-in-out;
+
+  &:hover {
+    color: $primary-300;
+  }
+}
+
+button,
+button:focus {
+  outline: none;
+}
+
+img {
+  max-width: 100%;
+  border: 0px;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+ul,
+ol {
+  li {
+    font-size: $fs-15;
+  }
+}
+
+.cover {
+  object-fit: cover;
+  height: 100%;
+  width: 100%;
+}
+
+.loading {
+  z-index: 9999;
+  background: #1c2430;
+  opacity: 0.3;
+  left: 0;
+}
+
+.gutter-9 {
+  margin-left: -9px;
+  margin-right: -9px;
+
+  div[class*='col-'] {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+}
+
+.text-danger {
+  color: $red-300 !important;
+}
+
+.sticky-column {
+  position: sticky;
+  top: 85px;
+}
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+// ::-moz-selection {
+//   color: #ffffff;
+//   background: #ffffff47;
+// }
+
+// ::selection {
+//   color: #ffffff;
+//   background: #ffffff47;
+// }
+.inputStar {
+  color: var(--error-color) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.option-icon {
+  background-color: var(--primary-color);
+  width: 35px;
+  height: 35px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+
+  &.big {
+    width: 45px;
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+
+    path {
+      fill: white;
+    }
+  }
+}
+
+.input-group {
+  input:focus {
+    border-color: #ced4da;
+    box-shadow: none;
+  }
+}

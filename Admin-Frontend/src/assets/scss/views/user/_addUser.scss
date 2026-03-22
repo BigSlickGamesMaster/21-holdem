@@ -1,0 +1,23 @@
+.add-user-form {
+  .password-row {
+    display: flex;
+    justify-content: space-between;
+
+    .form-group {
+      input {
+        width: calc(100% - 5px) !important;
+      }
+      overflow: hidden;
+    }
+
+    button {
+      width: 120px;
+      max-width: 120px;
+      margin-left: 5px;
+      height: 40px;
+      margin-top: 30px !important;
+      font-family: 'noto_sans_display' !important;
+      font-weight: 700;
+    }
+  }
+}

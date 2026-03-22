@@ -22,3 +22,14 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# local runtime and cache
+.codex-*
+.codex-runtime/
+.npm-cache/
+.tmp/
+.backend-square-shim.cjs
+game-backend/.codex-mailbox/
+game-backend/.git.nested-backup-20260223/
+game-backend/{
+Admin-Backend/.pm2/

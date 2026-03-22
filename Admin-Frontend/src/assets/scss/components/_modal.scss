@@ -1,0 +1,42 @@
+.modal-content {
+  background-color: var(--white-color);
+  border-radius: 10px;
+  border: none;
+
+  h3,
+  h5,
+  h6 {
+    color: var(--heading-color);
+  }
+
+  .modal-header {
+    border-bottom: 1px solid var(--secondary-100);
+  }
+
+  .modal-body {
+    text-align: center;
+    padding: 40px 22px;
+
+    h5,
+    h6 {
+      font-weight: 300;
+    }
+
+    article {
+      margin-block: 10px 20px;
+    }
+  }
+
+  .modal-footer {
+    border-top: 1px solid var(--secondary-100);
+  }
+}
+
+.image-popup .carousel-inner {
+  max-height: calc(100vh - 100px);
+}
+
+.modal-backdrop {
+  background: #1C2430;
+  opacity: 0.3 !important;
+}

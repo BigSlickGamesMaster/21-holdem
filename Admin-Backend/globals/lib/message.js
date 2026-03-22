@@ -1,0 +1,91 @@
+const customMessages = {
+  insufficient_chips: { code: 419, message: 'You have insufficient balance' },
+  custom_message: { code: 200, message: 'custom message' },
+  user_create_success: { code: 200, message: 'Congratulations!! You have been registered successfully.' },
+  already_exists_email: { code: 409, message: 'User already exists with email id' },
+  already_exists_promotion: { code: 409, message: 'Promotion already exists in given time interval.' },
+  already_exists_mobile: { code: 409, message: 'User already exists with mobile number' },
+  already_exists_username: { code: 409, message: 'User already exists with username' },
+  already_exists_facebook: { code: 409, message: 'User already exists with facebook account' },
+  already_exists_google: { code: 409, message: 'User already exists with google account' },
+  user_not_found: { code: 404, message: "Sorry, we didn't find any account with that Email id/Mobile number" },
+  admin_not_found: { code: 404, message: "Sorry, we didn't find any account with that username" },
+  user_blocked: { code: 419, message: 'Your account is blocked. Please contact to the support' },
+  user_deleted: { code: 419, message: 'Your account is deleted. Please contact to the support' },
+  kyc_remove_old: { code: 419, message: 'Remove old KYC first' },
+  max_bot: { code: 419, message: 'Maximum 5 bots allowed' },
+  max_club: { code: 419, message: 'Maximum 5 clubs allowed' },
+  data_not_available: { code: 419, message: 'No Data found' },
+  duplicate_panCard: { code: 419, message: 'PAN number already exist' },
+  forgot_password: { code: 200, message: 'We have sent a link on the given email id. Kindly check.' },
+  chips_not_negative: { code: 400, message: 'Chips value should not negative' },
+  username_allow_only: { code: 400, message: 'Username only allow letters' },
+  mobile_allow_only: { code: 400, message: 'Mobile Number only allow digit which length is 10' },
+  email_allow_only: { code: 400, message: 'Invalid email format. The email must contain an @ ,letters,domain etc' },
+  withdraw_amount: { code: 419, message: 'withdraw amount should less than user balance' },
+  duplicate_password: { code: 419, message: 'Old password and New password should not be same' },
+  reset_password_link_sent: { code: 200, message: 'Reset password link sent to your email' },
+  forgot_password_link_expired: { code: 406, message: 'Reset password link expired. Request a new one' },
+  rake_amount_not_valid: { code: 419, message: 'Rake amount must be between 0 and 100' },
+};
+/**
+ * Push notification messages
+ */
+const notifications = {};
+
+const builder = {
+  wrong_credentials: prefix => builder.prepare(403, prefix, 'Invalid credentials'),
+  wrong_password: prefix => builder.prepare(403, prefix, 'Current password is invalid'),
+  invalid_req: prefix => builder.prepare(406, prefix, 'invalid Request'),
+  wrong_otp: prefix => builder.prepare(403, prefix, 'entered OTP is invalid'),
+  server_error: prefix => builder.prepare(500, prefix, 'server error'),
+  server_maintenance: prefix => builder.prepare(500, prefix, 'maintenance mode is active'),
+  unauthorized: prefix => builder.prepare(401, prefix, 'authentication Error, please try logging again'),
+  inactive: prefix => builder.prepare(403, prefix, 'inactive'),
+  not_found: prefix => builder.prepare(404, prefix, 'not found'),
+  not_matched: prefix => builder.prepare(406, prefix, 'not matched'),
+  not_valid: prefix => builder.prepare(406, prefix, 'not valid'),
+  invalid: prefix => builder.prepare(406, prefix, 'invalid'),
+  not_verified: prefix => builder.prepare(406, prefix, 'not verified'),
+  already_exists: prefix => builder.prepare(409, prefix, 'already exists'),
+  user_deleted: prefix => builder.prepare(406, prefix, 'deleted by admin'),
+  user_blocked: prefix => builder.prepare(406, prefix, 'blocked by admin'),
+  required_field: prefix => builder.prepare(419, prefix, 'field required'),
+  too_many_request: prefix => builder.prepare(429, prefix, 'too many request'),
+  expired: prefix => builder.prepare(417, prefix, 'expired'),
+  can_not_delete: prefix => builder.prepare(417, prefix, 'can not delete'),
+  canceled: prefix => builder.prepare(419, prefix, 'canceled'),
+  created: prefix => builder.prepare(200, prefix, 'created'),
+  updated: prefix => builder.prepare(200, prefix, 'updated'),
+  deleted: prefix => builder.prepare(200, prefix, 'deleted'),
+  blocked: prefix => builder.prepare(401, prefix, 'blocked'),
+  success: prefix => builder.prepare(200, prefix, 'success'),
+  successfully: prefix => builder.prepare(200, prefix, 'successfully'),
+  error: prefix => builder.prepare(500, prefix, 'error'),
+  no_prefix: prefix => builder.prepare(200, prefix, ''),
+  custom: { ...customMessages },
+  notifications,
+
+  // custom messages
+  successCM: message => ({ code: 200, message }),
+  unauthorizedCM: message => ({ code: 401, message }),
+  forbiddenCM: message => ({ code: 403, message }),
+  notFoundCM: message => ({ code: 404, message }),
+  invalidRequestCM: message => ({ code: 406, message }),
+  alreadyExistsCM: message => ({ code: 409, message }),
+  invalidCM: message => ({ code: 419, message }),
+  serverErrorCM: message => ({ code: 500, message }),
+  customCodeAndMessage: (code, message) => ({ code, message }),
+};
+
+Object.defineProperty(builder, 'prepare', {
+  enumerable: false,
+  configurable: false,
+  writable: false,
+  value: (code, prefix, message) => ({
+    code,
+    message: `${prefix ? `${prefix} ${message}` : message}`,
+  }),
+});
+
+module.exports = builder;

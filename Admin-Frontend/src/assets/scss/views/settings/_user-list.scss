@@ -1,0 +1,25 @@
+.user-list {
+  .verified-icon {
+    border-radius: 100%;
+    background-color: $primary-300;
+    color: var(--secondary-100);
+    font-size: $fs-18;
+    margin-left: 5px;
+  }
+
+  .custom {
+    background-color: #68C69E;
+    color: #1B593F;
+    display: inline-block;
+    border-radius: 9px;
+    line-height: 7px;
+    padding: 6px 10px;
+    margin-right: 12px;
+  }
+
+  @include media-max(md) {
+    tr td {
+      white-space: nowrap;
+    }
+  }
+}

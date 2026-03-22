@@ -1,0 +1,8 @@
+{
+  "short_name": "Install 21 Hold-em App",
+  "name": "21 Hold-em App",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#532f78",
+  "background_color": "#9883af"
+}

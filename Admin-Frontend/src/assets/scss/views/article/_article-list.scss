@@ -1,0 +1,90 @@
+.article-list {
+  tbody td {
+    vertical-align: top;
+    &:nth-child(1) {
+      min-width: 454px;
+    }
+    &:nth-child(2) {
+      min-width: 174px;
+    }
+    &:nth-child(3) {
+      min-width: 200px;
+    }
+    &:hover {
+      .btn-b {
+        opacity: 1;
+      }
+    }
+  }
+  .icons {
+    i {
+      background-color: $primary-200;
+      border-radius: 4px;
+      color: $primary-400;
+      vertical-align: middle;
+      padding: 2px;
+      font-size: $fs-14;
+      margin-right: 8px;
+      &.danger {
+        background: #e54343;
+        color: #662121;
+      }
+    }
+    .badge ~ i {
+      margin-left: 8px;
+    }
+  }
+  .title {
+    font-size: $fs-16;
+    color: var(--secondary-200);
+    line-height: 1.35;
+    margin: 5px 0 0 0;
+  }
+  .date {
+    font-size: $fs-12;
+    color: var(--secondary-400);
+    margin: 6px 0 0 0;
+    span {
+      color: $primary-200;
+      text-transform: uppercase;
+      border-radius: 4px;
+      background-color: var(--secondary-700);
+      display: inline-block;
+      padding: 0px 5px;
+      margin-right: 4px;
+      & ~ span {
+        margin-left: 12px;
+      }
+    }
+  }
+  .cat {
+    font-size: $fs-16;
+    color: var(--secondary-200);
+    font-weight: normal;
+    margin: 0;
+  }
+  .keyword {
+    font-size: $fs-14;
+    color: var(--secondary-200);
+    span {
+      width: 6px;
+      height: 6px;
+      border-radius: 100%;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+  }
+  .btn-b {
+    opacity: 0;
+    transition: all 0.3s ease-in-out;
+    .btn + .btn {
+      margin-left: 5px;
+    }
+  }
+  @include media-max(xl) {
+    .btn-b {
+      opacity: 0;
+    }
+  }
+}

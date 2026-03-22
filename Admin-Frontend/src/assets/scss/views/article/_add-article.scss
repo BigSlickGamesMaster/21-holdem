@@ -1,0 +1,355 @@
+.add-article {
+  .accordion {
+    .accordion-item {
+      background-color: var(--secondary-800);
+      border-radius: 8px;
+      padding: 16px;
+      position: relative;
+      .accordion-header {
+        button {
+          background-color: transparent;
+          box-shadow: none;
+          color: var(--secondary-200);
+          font-size: $fs-14;
+          font-weight: $fw-600;
+          padding: 0 0 0 0;
+          display: flex;
+          justify-content: space-between;
+          // border-bottom: 1px solid var(--secondary-700);
+          &.collapsed i {
+            transform: rotate(180deg);
+          }
+          i {
+            font-size: $fs-24;
+            transition: 0.1s all linear;
+          }
+          &:after {
+            display: none;
+          }
+        }
+      }
+      .accordion-body {
+        padding: 15px 0 0 0;
+        margin-top: 10px;
+        border-top: 1px solid var(--secondary-700);
+        .list-group {
+          .list-group-item {
+            background-color: transparent;
+            color: var(--secondary-400);
+            border: none;
+            padding: 0;
+            font-size: $fs-14 - 1;
+            font-weight: $fw-600;
+            line-height: 1.6;
+            .margin {
+              position: relative;
+              margin-left: 5px;
+              &:not(.badge) {
+                color: var(--secondary-100);
+              }
+              select {
+                background-color: transparent;
+                border: none;
+                color: var(--secondary-100);
+                outline: none;
+                font-weight: $fw-600;
+              }
+              &.user {
+                img {
+                  height: 22px;
+                  width: 22px;
+                  border-radius: 100%;
+                  object-fit: cover;
+                  display: inline-block;
+                  margin-right: 5px;
+                }
+              }
+              .no-img {
+                font-size: $fs-24;
+                vertical-align: middle;
+                margin-right: 5px;
+                color: $primary-400;
+              }
+            }
+            .st-box {
+              vertical-align: top;
+              p {
+                margin: 0;
+                font-size: $fs-12 - 1;
+                font-weight: $fw-400;
+                padding-left: 5px;
+                margin-top: 8px;
+                i {
+                  font-size: $fs-13;
+                  margin-right: 10px;
+                }
+              }
+              .square {
+                line-height: 0;
+                font-size: $fs-14;
+                padding: 2px;
+                margin-left: 10px;
+              }
+              .dropdown {
+                display: inline-block;
+                margin-left: 10px;
+              }
+              .dropdown-toggle {
+                padding: 0;
+                border-radius: 3px;
+                line-height: 0;
+                font-size: $fs-18 - 1;
+                &:after {
+                  display: none;
+                }
+              }
+            }
+            & + .list-group-item {
+              margin-top: 15px;
+            }
+          }
+        }
+        .footer {
+          border-top: 1px solid var(--secondary-700);
+          margin-top: 15px;
+          padding-top: 8px;
+          .left {
+            margin: -5px;
+            width: calc(100% - 50px);
+            .btn-group {
+              .btn {
+                &:first-child {
+                  margin-right: 0;
+                }
+                & ~ .btn {
+                  margin-left: 0;
+                }
+              }
+            }
+            .btn {
+              margin: 5px;
+            }
+          }
+          .right {
+            width: 60px;
+          }
+        }
+        .f-image {
+          border-radius: 8px;
+          background-color: var(--secondary-700);
+          height: 230px;
+          text-align: center;
+          margin-bottom: 22px;
+          overflow: hidden;
+          img {
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+          }
+          label {
+            font-size: $fs-14 - 1;
+            color: var(--secondary-100);
+            cursor: pointer;
+            &.disabled {
+              opacity: 0.5;
+              cursor: default;
+            }
+            i {
+              font-size: $fs-24;
+              margin-right: 8px;
+              vertical-align: -3px;
+            }
+          }
+          .or {
+            font-size: $fs-12;
+            text-transform: uppercase;
+            color: #7c7e82;
+            margin: 5px 0;
+          }
+        }
+        .change-img-btn {
+          margin: -14px -4px 16px -4px;
+          .btn {
+            font-size: $fs-12 - 2;
+            padding: 5px 6px;
+            margin: 4px;
+          }
+        }
+      }
+    }
+    @include media-max(md) {
+      margin-top: 8px;
+    }
+    & + .accordion {
+      margin-top: 8px;
+    }
+  }
+  .permalink {
+    margin-bottom: 22px;
+    .title-txt {
+      font-size: $fs-14;
+      color: var(--secondary-200);
+      letter-spacing: 0.233333px;
+      text-transform: uppercase;
+      margin: 0 10px 0 0;
+    }
+    .link {
+      font-size: $fs-14;
+      color: $primary-200;
+      max-width: 65%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .btn-div {
+      margin-left: 10px;
+    }
+    .btn-p {
+      padding-left: 12px;
+      .btn + .btn {
+        margin-left: 5px;
+      }
+    }
+  }
+  .form-check {
+    button {
+      display: none;
+      margin-left: 28px;
+      text-decoration: underline;
+    }
+    input:checked ~ button {
+      display: block;
+    }
+    input:checked ~ p + button {
+      display: none;
+    }
+    p {
+      margin: 0 0 0 28px;
+      &.disabled {
+        opacity: 0.5;
+      }
+    }
+  }
+  & .view-comment {
+    padding: 10px;
+    background-color: #23272e;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+
+    & .count-circle {
+      background-color: #37b37e;
+      color: #25272b;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 0;
+      margin-left: 2px;
+      border-radius: 50%;
+      height: 25px;
+      width: 25px;
+      display: inline-block;
+      text-align: center;
+    }
+  }
+  .inner-box {
+    border-radius: 8px;
+    padding: 20px 15px;
+    border: 1px solid var(--secondary-700);
+    position: relative;
+    margin-right: 25px;
+    &.error {
+      border-color: $red-300;
+    }
+    & + .inner-box {
+      margin-top: 15px;
+    }
+    .right-btn {
+      position: absolute;
+      top: 5px;
+      left: 100%;
+      background-color: var(--secondary-700);
+      border-radius: 0px 8px 8px 0px;
+      .btn {
+        font-size: $fs-16;
+        padding: 5px 4px 4px 4px;
+      }
+    }
+  }
+  .playing-xi {
+    .league-box + .league-box {
+      margin-top: 20px;
+    }
+    .select-league {
+      .react-select {
+        width: calc(100% - 230px);
+      }
+      .btn {
+        text-decoration: underline;
+      }
+    }
+    .player-role {
+      width: 115px;
+    }
+    .team-box {
+      .team-name {
+        font-size: $fs-16;
+        letter-spacing: 0.4px;
+        color: var(--secondary-400);
+      }
+    }
+    .add-league .btn {
+      color: var(--secondary-200);
+      margin-top: 15px;
+      i {
+        vertical-align: -3px;
+      }
+    }
+  }
+}
+
+.display-author {
+  display: inline-block;
+  .select__menu {
+    min-width: 240px;
+  }
+  .select__control {
+    background-color: transparent;
+    min-height: auto;
+    border: none;
+    .select__value-container {
+      padding: 0px 8px 0 0;
+    }
+  }
+  &:not(.arrow) .select__indicators {
+    display: none;
+  }
+  .select__menu-list {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+}
+
+.big-title {
+  .greyFont {
+    font-size: $fs-16;
+    font-weight: 700;
+    color: var(--secondary-500);
+  }
+  .accordion {
+    .accordion-item {
+      .accordion-header {
+        button {
+          font-size: $fs-18;
+        }
+      }
+      .accordion-body {
+        .selectPlayer_box {
+          .react-select {
+            width: 90%;
+          }
+        }
+      }
+    }
+  }
+}

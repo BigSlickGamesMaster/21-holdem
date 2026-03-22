@@ -1,0 +1,32 @@
+.kyc-list {
+    td {
+        span {
+            font-size: 12px;
+            padding: 2px 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            border-radius: 99px;
+            text-transform: uppercase;
+
+            &.not-found {
+                color: var(--secondary-300);
+                background: rgba(122, 122, 122, 0.616);
+            }
+
+            &.pending {
+                color: orange;
+                background: rgba(255, 202, 103, 0.748);
+            }
+
+            &.rejected {
+                color: red;
+                background: rgba(255, 115, 115, 0.717);
+            }
+
+            &.approved {
+                color: rgba(142, 255, 97, 0.788);
+                background: rgb(57, 209, 87);
+            }
+        }
+    }
+}

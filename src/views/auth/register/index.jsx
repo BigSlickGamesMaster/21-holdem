@@ -19,6 +19,12 @@ const Register = () => {
     const { mutate } = useMutation(registerAPI, {
         onSuccess: (response) => {
             if (response.status === 200) {
+                const devVerificationLink = response?.data?.data?.oDevMailPreview?.sLink;
+                if (devVerificationLink) {
+                    window.location.assign(devVerificationLink);
+                    return;
+                }
+
                 ReactToastify('Email sent successfully', 'success');
                 navigate('/login');
             } else {
@@ -144,9 +150,18 @@ const Register = () => {
                                                         {...register("terms", { required: "You must accept Terms & Conditions and Privacy Policy" })}
                                                     />
                                                     <label className="form-check-label" htmlFor="terms">
-                                                        I accept <Link to='/terms-conditions'>Terms & Conditions</Link> and <Link to='/privacy-policy'>Privacy Policy</Link>
+                                                        I accept
                                                     </label>
+                                                    {' '}
+                                                    <a href="/terms-conditions" target="_blank" rel="noreferrer" className="btn btn-link p-0 align-baseline">
+                                                        Terms & Conditions
+                                                    </a>
+                                                    {' '}and{' '}
+                                                    <a href="/privacy-policy" target="_blank" rel="noreferrer" className="btn btn-link p-0 align-baseline">
+                                                        Privacy Policy
+                                                    </a>
                                                 </div>
+                                                {errors.terms ? <div className="text-danger small mt-1">{errors.terms.message}</div> : null}
                                                 <div className='forgot-password'>
                                                     Already have an account? &nbsp;
                                                     <Link to="/login" className="">
