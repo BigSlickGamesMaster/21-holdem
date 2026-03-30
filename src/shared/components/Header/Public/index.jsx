@@ -1,25 +1,43 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Navbar, Nav } from 'react-bootstrap';
 import logo from '../../../../assets/images/splash/header_logo.png';
 import { Link, useLocation } from 'react-router-dom';
 
 const HeaderPublic = () => {
+    const [expanded, setExpanded] = useState(false);
+    const headerRef = useRef(null);
+    const { pathname } = useLocation();
 
-    const currentPath = useLocation().pathname;
+    useEffect(() => {
+        setExpanded(false);
+    }, [pathname]);
+
+    useEffect(() => {
+        if (!expanded) return undefined;
+
+        const handlePointerDown = event => {
+            if (headerRef.current && !headerRef.current.contains(event.target)) {
+                setExpanded(false);
+            }
+        };
+
+        document.addEventListener('pointerdown', handlePointerDown);
+        return () => document.removeEventListener('pointerdown', handlePointerDown);
+    }, [expanded]);
 
     return (
-        <Navbar expand="lg" className="header-public navbar-expand-xl">
-            <Link to={'/login'} className="logo">
+        <Navbar ref={headerRef} expand="lg" expanded={expanded} className="header-public navbar-expand-xl">
+            <Link to={'/guest'} className="logo">
                 <img src={logo} alt="logo" />
             </Link>
-            <Navbar.Toggle aria-controls="basic-navbar-nav" />
+            <Navbar.Toggle aria-controls="basic-navbar-nav" onClick={() => setExpanded(current => !current)} />
             <Navbar.Collapse id="basic-navbar-nav" className='justify-content-end'>
                 <Nav className="ml-auto navbar-link-grp">
-                    <Link to={'/login'} className={`nav-item ${currentPath === '/login' ? 'active' : ''}`}>HOME</Link>
-                    <Link to={'/about-us'} className={`nav-item ${currentPath === '/about-us' ? 'active' : ''}`}>ABOUT US</Link>
-                    <Link to={'/guest'} className={`nav-item ${currentPath.startsWith('/guest') ? 'active' : ''}`}>GUEST MODE</Link>
-                    <Link to={'/how-to-play'} className={`nav-item ${currentPath === '/how-to-play' ? 'active' : ''}`}>HOW TO PLAY</Link>
-                    <Link to={'/contact'} className={`nav-item ${currentPath === '/contact' ? 'active' : ''}`}>CONTACT</Link>
+                    <Link to={'/guest'} className={`nav-item ${pathname === '/guest' ? 'active' : ''}`} onClick={() => setExpanded(false)}>HOME</Link>
+                    <Link to={'/about-us'} className={`nav-item ${pathname === '/about-us' ? 'active' : ''}`} onClick={() => setExpanded(false)}>ABOUT US</Link>
+                    <Link to={'/guest'} className={`nav-item ${pathname.startsWith('/guest') ? 'active' : ''}`} onClick={() => setExpanded(false)}>GUEST MODE</Link>
+                    <Link to={'/how-to-play'} className={`nav-item ${pathname === '/how-to-play' ? 'active' : ''}`} onClick={() => setExpanded(false)}>HOW TO PLAY</Link>
+                    <Link to={'/contact'} className={`nav-item ${pathname === '/contact' ? 'active' : ''}`} onClick={() => setExpanded(false)}>CONTACT</Link>
                 </Nav>
             </Navbar.Collapse>
         </Navbar>

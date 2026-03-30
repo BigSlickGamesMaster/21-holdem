@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Phaser from "phaser";
 import Preload from "../../scenes/Preload";
 import Level from "../../scenes/Level";
@@ -34,6 +34,25 @@ function Game({ isPausedExternally = false }) {
     const navigate = useNavigate();
     const gameRef = useRef(null);
     const phaserGameRef = useRef(null);
+    const [showLandscapeTip, setShowLandscapeTip] = useState(false);
+
+    useEffect(() => {
+        const updateLandscapeTip = () => {
+            const isNarrowScreen = window.innerWidth <= 991;
+            const isPortrait = window.innerHeight > window.innerWidth;
+            setShowLandscapeTip(isNarrowScreen && isPortrait);
+        };
+
+        updateLandscapeTip();
+        window.addEventListener('resize', updateLandscapeTip);
+        window.addEventListener('orientationchange', updateLandscapeTip);
+
+        return () => {
+            window.removeEventListener('resize', updateLandscapeTip);
+            window.removeEventListener('orientationchange', updateLandscapeTip);
+        };
+    }, []);
+
     useEffect(() => {
         if (!sAuthToken || !iBoardId) {
             navigate(fallbackPath);
@@ -91,7 +110,14 @@ function Game({ isPausedExternally = false }) {
         if (game.scene.isPaused('Boot')) game.scene.resume('Boot');
     }, [isPausedExternally]);
 
-    return <div id='game-stage' className='game-stage' ref={gameRef} />;
+    return (
+        <>
+            {showLandscapeTip ? (
+                <div className='game-orientation-tip'>Best on landscape. Turn your device sideways for the full table view.</div>
+            ) : null}
+            <div id='game-stage' className='game-stage' ref={gameRef} />
+        </>
+    );
 }
 
 export default Game;

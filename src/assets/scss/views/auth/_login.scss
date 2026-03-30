@@ -90,9 +90,10 @@
                     margin-bottom: 14px;
                     color: #ffffff;
                     font-size: 42px;
-                    line-height: 0.95;
-                    font-family: "Neue Plak Condensed";
+                    line-height: 1;
+                    font-family: "TT Commons";
                     font-weight: bold;
+                    letter-spacing: 0.04em;
                     text-transform: uppercase;
                 }
 
@@ -187,9 +188,10 @@
                             h1 {
                                 margin: 0;
                                 font-size: 42px;
-                                font-family: "Neue Plak Condensed";
+                                font-family: "TT Commons";
                                 font-weight: bold;
-                                line-height: 0.85;
+                                line-height: 1;
+                                letter-spacing: 0.035em;
                                 text-transform: uppercase;
                                 color: #ffffff;
                             }
@@ -200,11 +202,12 @@
                         text-align: center;
                         color: #eaf8ff;
                         font-size: 44px;
-                        font-family: "Neue Plak Condensed";
+                        font-family: "TT Commons";
                         font-weight: bold;
                         margin-bottom: 20px;
                         text-transform: uppercase;
-                        letter-spacing: 0.02em;
+                        letter-spacing: 0.04em;
+                        line-height: 1;
                         text-shadow: 0 0 16px rgba(108, 196, 255, 0.18);
                     }
 

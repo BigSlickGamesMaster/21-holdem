@@ -3,6 +3,12 @@ import { Spinner } from 'react-bootstrap'
 import { Route, BrowserRouter, Routes, Navigate } from 'react-router-dom'
 import Router from 'routes/Router'
 import NotFound from 'shared/components/404'
+import { getCookie } from 'shared/utils'
+
+function RootRedirect() {
+    const token = getCookie('sAuthToken')
+    return <Navigate to={token ? '/lobby' : '/guest'} replace />
+}
 
 function AllRoutes() {
     function allPaths(children) {
@@ -41,7 +47,7 @@ function AllRoutes() {
                             </Route>
                         )
                     })}
-                    <Route path='/' element={<Navigate to='/login' />} />
+                    <Route path='/' element={<RootRedirect />} />
                     <Route path='*' element={<NotFound />} />
                 </Routes>
             </BrowserRouter>

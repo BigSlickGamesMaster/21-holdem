@@ -1,3 +1,289 @@
+.guest-tutorial-launch {
+    min-height: calc(100vh - 88px);
+    padding: 96px 16px 32px;
+    background:
+        radial-gradient(circle at 16% 12%, rgba(126, 204, 255, 0.2) 0%, rgba(126, 204, 255, 0) 32%),
+        radial-gradient(circle at 88% 82%, rgba(121, 247, 189, 0.16) 0%, rgba(121, 247, 189, 0) 36%),
+        linear-gradient(180deg, #051425 0%, #071b2d 100%);
+}
+
+.guest-tutorial-launch__shell {
+    display: grid;
+    gap: 18px;
+    max-width: 1120px;
+    margin: 0 auto;
+}
+
+.guest-tutorial-launch__media,
+.guest-tutorial-launch__content {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(141, 252, 179, 0.22);
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(8, 24, 38, 0.95) 0%, rgba(6, 18, 29, 0.96) 100%);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.28);
+}
+
+.guest-tutorial-launch__media {
+    min-height: 340px;
+    padding: 16px;
+    background:
+        radial-gradient(circle at 50% 18%, rgba(127, 203, 255, 0.24) 0%, rgba(127, 203, 255, 0) 34%),
+        linear-gradient(180deg, #0d2235 0%, #071826 100%);
+}
+
+.guest-tutorial-launch__glow {
+    position: absolute;
+    top: 8%;
+    left: 50%;
+    width: 76%;
+    height: 72%;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(96, 167, 255, 0.38) 0%, rgba(96, 167, 255, 0.08) 60%, rgba(96, 167, 255, 0) 72%);
+    transform: translateX(-50%);
+    filter: blur(4px);
+}
+
+.guest-tutorial-launch__table {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: -10%;
+    height: 54%;
+    border: 3px solid rgba(102, 224, 203, 0.4);
+    border-radius: 50% 50% 20% 20% / 58% 58% 28% 28%;
+    background:
+        radial-gradient(circle at 50% 44%, rgba(17, 163, 119, 0.4) 0%, rgba(7, 88, 67, 0.2) 40%, rgba(3, 42, 34, 0.92) 100%),
+        linear-gradient(180deg, rgba(7, 79, 61, 0.96) 0%, rgba(3, 33, 27, 0.98) 100%);
+    box-shadow:
+        inset 0 18px 34px rgba(160, 255, 227, 0.08),
+        inset 0 -20px 30px rgba(0, 0, 0, 0.34),
+        0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.guest-tutorial-launch__table-label {
+    position: absolute;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(5, 18, 30, 0.8);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.guest-tutorial-launch__table-label--dealer {
+    top: 18%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.guest-tutorial-launch__table-label--player {
+    bottom: 24%;
+    left: 18%;
+}
+
+.guest-tutorial-launch__table-chip {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #ffd36a 0%, #c78600 100%);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.24);
+}
+
+.guest-tutorial-launch__table-chip--one {
+    top: 42%;
+    left: 34%;
+}
+
+.guest-tutorial-launch__table-chip--two {
+    top: 46%;
+    right: 34%;
+}
+
+.guest-tutorial-launch__table-chip--three {
+    bottom: 32%;
+    left: 48%;
+}
+
+.guest-tutorial-launch__character {
+    position: absolute;
+    right: 3%;
+    bottom: -1%;
+    z-index: 1;
+    width: min(54%, 360px);
+    max-width: none;
+    filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.34));
+}
+
+.guest-tutorial-launch__speech {
+    position: absolute;
+    top: 18px;
+    right: 10px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-width: 194px;
+    padding: 12px 14px;
+    border: 2px solid rgba(7, 27, 45, 0.92);
+    border-radius: 18px;
+    background: rgba(245, 251, 255, 0.96);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.26);
+}
+
+.guest-tutorial-launch__speech::after {
+    content: '';
+    position: absolute;
+    right: 26px;
+    bottom: -12px;
+    width: 22px;
+    height: 22px;
+    background: rgba(245, 251, 255, 0.96);
+    border-right: 2px solid rgba(7, 27, 45, 0.92);
+    border-bottom: 2px solid rgba(7, 27, 45, 0.92);
+    transform: rotate(45deg);
+}
+
+.guest-tutorial-launch__speech strong {
+    color: #072133;
+    font-family: 'TT Commons';
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.guest-tutorial-launch__speech span {
+    color: #14324a;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.guest-tutorial-launch__content {
+    display: grid;
+    gap: 16px;
+    padding: 24px 20px;
+    color: #fff;
+}
+
+.guest-tutorial-launch__eyebrow {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(141, 252, 179, 0.12);
+    color: #a9ffd0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.guest-tutorial-launch__content h1 {
+    margin: 0;
+    font-family: 'TT Commons';
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.guest-tutorial-launch__content p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.guest-tutorial-launch__steps {
+    display: grid;
+    gap: 10px;
+}
+
+.guest-tutorial-launch__steps div {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: start;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(141, 252, 179, 0.14);
+}
+
+.guest-tutorial-launch__steps strong {
+    color: #ffd36a;
+    font-family: 'Neue Plak Condensed';
+    font-size: 28px;
+    line-height: 1;
+}
+
+.guest-tutorial-launch__steps span {
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.guest-tutorial-launch__status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(141, 252, 179, 0.16);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.guest-tutorial-launch__actions {
+    display: grid;
+    gap: 12px;
+}
+
+.guest-tutorial-launch__actions .btn {
+    min-height: 52px;
+    border: 0;
+    border-radius: 16px;
+    font-family: 'Neue Plak Condensed';
+    font-size: 28px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.guest-tutorial-launch__actions .btn:first-child {
+    background: linear-gradient(180deg, #ffc247 0%, #d89400 100%);
+    color: #1b1200;
+}
+
+.guest-tutorial-launch__actions .btn:first-child:hover,
+.guest-tutorial-launch__actions .btn:first-child:focus {
+    background: linear-gradient(180deg, #ffd46e 0%, #e8a41c 100%);
+    color: #1b1200;
+}
+
+.guest-tutorial-launch__actions .btn:last-child {
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    border: 1px solid rgba(141, 252, 179, 0.22);
+}
+
+.guest-tutorial-launch__actions .btn:last-child:hover,
+.guest-tutorial-launch__actions .btn:last-child:focus {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
 .guest-tutorial-shell {
     position: relative;
 }
@@ -131,14 +417,17 @@
 
 .guest-tutorial-panel h2 {
     margin: 0 0 12px;
+    font-family: 'TT Commons';
     font-size: 30px;
-    line-height: 1.05;
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: 0.02em;
 }
 
 .guest-tutorial-panel.intro-card h2 {
     color: #20314d;
     font-size: 34px;
-    letter-spacing: -0.03em;
+    letter-spacing: 0.02em;
 }
 
 .guest-tutorial-panel p {
@@ -188,6 +477,14 @@
 }
 
 @media (max-width: 768px) {
+    .guest-tutorial-launch {
+        padding-top: 92px;
+    }
+
+    .guest-tutorial-launch__speech {
+        max-width: 170px;
+    }
+
     .guest-tutorial-panel {
         width: auto;
     }
@@ -219,5 +516,48 @@
 
     .guest-tutorial-panel.anchored::before {
         display: none;
+    }
+}
+
+@media (min-width: 768px) {
+    .guest-tutorial-launch {
+        padding: 104px 24px 48px;
+    }
+
+    .guest-tutorial-launch__shell {
+        grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.58fr);
+        align-items: stretch;
+    }
+
+    .guest-tutorial-launch__media {
+        min-height: 520px;
+    }
+
+    .guest-tutorial-launch__speech {
+        top: 28px;
+        right: 18px;
+        max-width: 220px;
+    }
+
+    .guest-tutorial-launch__speech strong {
+        font-size: 26px;
+    }
+
+    .guest-tutorial-launch__speech span {
+        font-size: 14px;
+    }
+
+    .guest-tutorial-launch__character {
+        right: 4%;
+        width: min(48%, 380px);
+    }
+
+    .guest-tutorial-launch__content {
+        padding: 28px 24px;
+        align-content: center;
+    }
+
+    .guest-tutorial-launch__actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

@@ -6,6 +6,15 @@
   var ROOT_ID = 'fx-overlay-ui-root';
   var STYLE_ID = 'fx-overlay-ui-style';
 
+  function isGuestLandingRoute() {
+    try {
+      var path = global.location && global.location.pathname ? global.location.pathname : '';
+      return path === '/guest' || path === '/guest/tutorial';
+    } catch (_error) {
+      return false;
+    }
+  }
+
   function injectStyles() {
     if (!global.document || global.document.getElementById(STYLE_ID)) return false;
 
@@ -47,6 +56,11 @@
 
     root = global.document.createElement('div');
     root.id = ROOT_ID;
+
+    if (isGuestLandingRoute()) {
+      global.document.body.appendChild(root);
+      return root;
+    }
 
     var bugTab = global.document.createElement('button');
     bugTab.type = 'button';

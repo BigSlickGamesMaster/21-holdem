@@ -289,3 +289,100 @@ When implementation begins, this change request should be updated with a complet
 - reason for each edit
 - any deviations from this request
 - any follow-up work deferred to a separate request
+
+## Implementation Progress
+
+Status: In progress
+
+### Completed So Far
+
+#### 1. Routing pass completed
+
+- Root route `/` now redirects unauthenticated users to `/guest`.
+- Root route `/` now redirects authenticated users to `/lobby`.
+- Authenticated users attempting to access guest routes are redirected to `/lobby`.
+
+#### 2. Guest landing redesign pass completed
+
+- The old guest auto-entry screen was replaced with a real guest landing page.
+- The guest landing page now uses mobile-first layout and shorter, more visual messaging.
+- The guest landing page now leads with game imagery and the 21 Hold'em splash logo.
+- The guest landing page now includes comic-style table callouts highlighting gameplay hooks.
+- The guest landing page now includes clear CTAs for:
+  - entering the guest table
+  - starting the tutorial
+  - signing in
+  - creating an account
+- The guest landing page now includes reward/value messaging for:
+  - 10K free chips on sign-up
+  - daily bonuses
+  - missions
+
+#### 3. Mobile gameplay recommendation added
+
+- A lightweight in-game recommendation now appears on narrow portrait screens telling players to rotate their device to landscape for the best table experience.
+
+#### 4. Guest landing polish pass completed
+
+- The guest landing hero was tightened to reduce text load for first-time players.
+- Mobile image callouts were reduced so the table art remains readable on small screens.
+- The guest landing page was shifted closer to the original auth-screen look with a crisper blue-green palette and cleaner borders.
+- The shared footer was removed from guest landing routes to preserve mobile screen space.
+
+#### 5. In-place tutorial hero pass completed
+
+- The guest tutorial entry no longer requires navigating away from the landing page.
+- The top hero image now acts as the tutorial stage, so the character and table art stay visible during onboarding.
+- The tutorial CTA now advances short step-by-step lessons directly on the landing page.
+- Lightweight deal-card animation was added inside the hero window to preview table flow without loading the gameplay route.
+- The screenshot-style hero was replaced with a custom stage built around the new single-character artwork.
+
+### Edited Files So Far
+
+- `docs/CHANGE_REQUEST_GUEST_FIRST_LOGIN_REDESIGN.md`
+  - Added the original change request, requirements checklist, and this implementation progress section.
+  - Why: keep planning and implementation tracking in one place.
+
+- `src/routes/index.jsx`
+  - Added auth-aware root redirect logic.
+  - Why: new players must land on guest mode instead of login.
+
+- `src/routes/GuestRoutes.jsx`
+  - Redirects authenticated users away from guest routes to `/lobby`.
+  - Why: signed-in players should bypass public guest entry flow.
+
+- `src/views/guest/index.jsx`
+  - Replaced the auto-loading guest join screen with a marketing-oriented guest landing page.
+  - Added short-form educational copy, comic-style callouts, sign-up value messaging, and clearer CTA structure.
+  - Reworked the tutorial CTA so it now runs in-place inside the hero window with step-based copy and animated demo cards.
+  - Swapped the screenshot hero composition for a custom staged layout that uses the new single-character art.
+  - Why: guest mode is now the public homepage and must explain the game quickly.
+
+- `src/assets/scss/views/guest/_guest.scss`
+  - Added dedicated mobile-first styles for the new guest landing page.
+  - Added hero-stage overlay, tutorial callout, and card-deal animation styles for the embedded front-page tutorial.
+  - Added staged felt-table and host-character placement styles for the new asset-driven hero.
+  - Why: the new guest homepage needed its own layout and visual system.
+
+- `src/assets/scss/main.scss`
+  - Imported the new guest landing stylesheet.
+  - Why: activate the new guest page styles in the global Sass build.
+
+- `src/views/game/index.jsx`
+  - Added a portrait-screen landscape recommendation.
+  - Why: gameplay is not mobile-friendly yet, so players need guidance for the best experience.
+
+- `src/assets/scss/views/game/_game.scss`
+  - Added styling for the in-game landscape recommendation banner.
+  - Why: support the mobile guidance added to the game shell.
+
+- `src/shared/components/Footer/index.jsx`
+  - Hides the shared footer on `/guest` and `/guest/tutorial`.
+  - Why: the footer consumed too much mobile viewport space on the guest landing experience.
+
+### Still Pending
+
+- Login page redesign
+- Final review of guest landing imagery and copy
+- Follow-up documentation for any additional implementation passes
+- Separate change request for gameplay-page mobile responsiveness, if approved

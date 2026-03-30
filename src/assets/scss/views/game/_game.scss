@@ -46,6 +46,24 @@ body {
     margin: 0 auto;
 }
 
+.game-orientation-tip {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    z-index: 40;
+    transform: translateX(-50%);
+    width: min(calc(100vw - 24px), 460px);
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 194, 71, 0.34);
+    border-radius: 14px;
+    background: rgba(16, 14, 6, 0.88);
+    color: #ffe2a1;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.32);
+}
+
 @media (max-width: 1280px) {
     #game-stage {
         width: min(calc(100vw - 12px), calc((var(--vh, 1vh) * 100 - 12px) * 1.7777778));
@@ -163,8 +181,10 @@ body {
     h2 {
         color: #ffffff;
         font-size: 34px;
-        line-height: 0.95;
-        font-family: "Neue Plak Condensed";
+        line-height: 1;
+        font-family: "TT Commons";
+        font-weight: 700;
+        letter-spacing: 0.03em;
         text-transform: uppercase;
     }
 }
@@ -262,7 +282,10 @@ body {
         margin-bottom: 10px;
         color: #ffffff;
         font-size: 24px;
-        font-family: "Neue Plak Condensed";
+        font-family: "TT Commons";
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        line-height: 1.05;
         text-transform: uppercase;
     }
 }

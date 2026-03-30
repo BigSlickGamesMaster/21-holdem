@@ -20,6 +20,7 @@
 
 // Views
 @import './views/auth/login';
+@import './views/guest/guest';
 @import './views/game/game';
 @import './views/dashboard/dashboard';
 @import './views/profile/profile';
@@ -32,12 +33,19 @@
 @import './layouts/auth-layout/auth-layout';
 
 
+html,
+body,
+#root {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
 body {
     background: rgb(0, 0, 0);
     background: linear-gradient(90deg, rgba(0, 0, 0, 1) 0%, var(--theme-color) 50%, rgba(0, 0, 0, 1) 100%);
     font-family: 'TT Commons';
     font-weight: 400;
-    width: 100vw;
+    width: 100%;
     overflow-x: hidden;
 }
 
