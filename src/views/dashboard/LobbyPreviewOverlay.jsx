@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import _ from 'scripts/helper';
 
-const PREFERRED_SEAT_COUNTS = [4, 6, 9];
+const PLAYER_OPTIONS = [4, 6, 9];
+const BUY_IN_OPTIONS = [1000, 5000, 15000, 20000];
 
 function formatAmount(amount) {
     const nAmount = Number(amount) || 0;
@@ -15,91 +16,74 @@ function getBlindLabel(nMinBet) {
     return `${formatAmount(nSmallBlind)}/${formatAmount(nBigBlind)}`;
 }
 
-function groupTablesByBuyIn(tables, seatCount) {
-    const oGrouped = {};
+function getDefaultSeatCount(tables) {
+    return PLAYER_OPTIONS.find(nSeatCount =>
+        (tables || []).some(table => Number(table.nMaxPlayer) === nSeatCount)
+    ) || PLAYER_OPTIONS[0];
+}
 
-    tables
-        .filter(table => Number(table.nMaxPlayer) === Number(seatCount))
-        .forEach(table => {
-            const nBuyIn = Number(table.nMinBuyIn) || 0;
-            if (!oGrouped[nBuyIn]) oGrouped[nBuyIn] = [];
-            oGrouped[nBuyIn].push(table);
-        });
+function getDefaultBuyIn(tables, nSeatCount) {
+    return BUY_IN_OPTIONS.find(nBuyIn =>
+        (tables || []).some(
+            table => Number(table.nMaxPlayer) === nSeatCount && Number(table.nMinBuyIn) === nBuyIn
+        )
+    ) || BUY_IN_OPTIONS[0];
+}
 
-    return Object.entries(oGrouped)
-        .map(([nBuyIn, aTables]) => ({
-            nBuyIn: Number(nBuyIn),
-            aTables: [...aTables].sort((a, b) => {
-                const nMinBetDiff = Number(a.nMinBet || 0) - Number(b.nMinBet || 0);
-                if (nMinBetDiff !== 0) return nMinBetDiff;
-                return String(a.sName || '').localeCompare(String(b.sName || ''));
-            }),
-        }))
-        .sort((a, b) => a.nBuyIn - b.nBuyIn);
+function getSelectedOptionIndex(options, value) {
+    const nIndex = options.indexOf(value);
+    return nIndex >= 0 ? nIndex : 0;
 }
 
 function LobbyPreviewOverlay({ isOpen, isEmbedded, onClose, tables, onJoinTable, isJoining, isLoading }) {
-    const aSeatCounts = useMemo(() => {
-        const oSeatCountSet = new Set(
-            (tables || [])
-                .map(table => Number(table.nMaxPlayer))
-                .filter(nSeats => Number.isFinite(nSeats) && nSeats > 0)
-        );
-        const aExtra = [...oSeatCountSet]
-            .filter(nSeats => !PREFERRED_SEAT_COUNTS.includes(nSeats))
-            .sort((a, b) => a - b);
-
-        return [...PREFERRED_SEAT_COUNTS, ...aExtra];
-    }, [tables]);
-
-    const [nActiveSeatCount, setNActiveSeatCount] = useState(PREFERRED_SEAT_COUNTS[0]);
-    const [nActiveBuyIn, setNActiveBuyIn] = useState(null);
-    const [oFocusedTable, setOFocusedTable] = useState(null);
+    const [nActiveSeatCount, setNActiveSeatCount] = useState(PLAYER_OPTIONS[0]);
+    const [nActiveBuyIn, setNActiveBuyIn] = useState(BUY_IN_OPTIONS[0]);
+    const [bHasAdjustedFilters, setBHasAdjustedFilters] = useState(false);
 
     useEffect(() => {
-        if (!isOpen) return;
-        if (!aSeatCounts.includes(nActiveSeatCount)) setNActiveSeatCount(aSeatCounts[0]);
-    }, [isOpen, aSeatCounts, nActiveSeatCount]);
+        if (!isOpen || bHasAdjustedFilters || !(tables || []).length) return;
 
-    const aBuyInRows = useMemo(
-        () => groupTablesByBuyIn(tables || [], nActiveSeatCount),
-        [tables, nActiveSeatCount]
-    );
+        const nDefaultSeatCount = getDefaultSeatCount(tables);
+        const nDefaultBuyIn = getDefaultBuyIn(tables, nDefaultSeatCount);
 
-    const aBuyInOptions = useMemo(() => aBuyInRows.map(({ nBuyIn, aTables }) => ({
-        nBuyIn,
-        nTableCount: aTables.length,
-    })), [aBuyInRows]);
+        setNActiveSeatCount(nDefaultSeatCount);
+        setNActiveBuyIn(nDefaultBuyIn);
+    }, [isOpen, bHasAdjustedFilters, tables]);
 
-    useEffect(() => {
-        if (!isOpen) return;
+    const aFilteredTables = useMemo(() => (
+        (tables || [])
+            .filter(table => (
+                Number(table.nMaxPlayer) === nActiveSeatCount
+                && Number(table.nMinBuyIn) === nActiveBuyIn
+            ))
+            .sort((a, b) => {
+                const nPlayerDiff = Number(b.nActivePlayers || 0) - Number(a.nActivePlayers || 0);
+                if (nPlayerDiff !== 0) return nPlayerDiff;
 
-        if (!aBuyInOptions.length) {
-            if (nActiveBuyIn !== null) setNActiveBuyIn(null);
-            return;
-        }
+                const nBlindDiff = Number(a.nMinBet || 0) - Number(b.nMinBet || 0);
+                if (nBlindDiff !== 0) return nBlindDiff;
 
-        const bHasActiveBuyIn = aBuyInOptions.some(({ nBuyIn }) => nBuyIn === nActiveBuyIn);
-        if (!bHasActiveBuyIn) setNActiveBuyIn(aBuyInOptions[0].nBuyIn);
-    }, [isOpen, aBuyInOptions, nActiveBuyIn]);
+                return String(a.sName || '').localeCompare(String(b.sName || ''));
+            })
+    ), [tables, nActiveSeatCount, nActiveBuyIn]);
 
-    useEffect(() => {
-        if (!oFocusedTable) return;
-        const bTableStillPresent = (tables || []).some(table => String(table._id) === String(oFocusedTable._id));
-        if (!bTableStillPresent) setOFocusedTable(null);
-    }, [tables, oFocusedTable]);
-
-    const oActiveBuyInRow = useMemo(
-        () => aBuyInRows.find(({ nBuyIn }) => nBuyIn === nActiveBuyIn) || null,
-        [aBuyInRows, nActiveBuyIn]
-    );
-
-    const nTotalTables = (tables || []).length;
-    const nActiveSeatPoolSize = aBuyInRows.reduce((nTotal, row) => nTotal + row.aTables.length, 0);
-    const nBlindTierCount = aBuyInRows.length;
-    const oQuickJoinTable = oActiveBuyInRow?.aTables?.[0] || null;
-
+    const oPrimaryTable = aFilteredTables[0] || null;
+    const nSeatSliderIndex = getSelectedOptionIndex(PLAYER_OPTIONS, nActiveSeatCount);
+    const nBuyInSliderIndex = getSelectedOptionIndex(BUY_IN_OPTIONS, nActiveBuyIn);
     const bShowCloseButton = !isEmbedded && typeof onClose === 'function';
+
+    const handleSeatCountChange = (nIndex) => {
+        const nNextSeatCount = PLAYER_OPTIONS[Number(nIndex)] || PLAYER_OPTIONS[0];
+        setBHasAdjustedFilters(true);
+        setNActiveSeatCount(nNextSeatCount);
+    };
+
+    const handleBuyInChange = (nIndex) => {
+        const nNextBuyIn = BUY_IN_OPTIONS[Number(nIndex)] || BUY_IN_OPTIONS[0];
+        setBHasAdjustedFilters(true);
+        setNActiveBuyIn(nNextBuyIn);
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -107,14 +91,14 @@ function LobbyPreviewOverlay({ isOpen, isEmbedded, onClose, tables, onJoinTable,
             className={`lobby-preview-overlay ${isEmbedded ? 'lobby-preview-overlay--embedded' : ''}`}
             role={isEmbedded ? undefined : 'dialog'}
             aria-modal={isEmbedded ? undefined : 'true'}
-            aria-label={isEmbedded ? undefined : 'Lobby redesign preview'}
+            aria-label={isEmbedded ? undefined : 'Choose your table set-up'}
         >
             {!isEmbedded ? (
                 <button
                     type='button'
                     className='lobby-preview-overlay__backdrop'
                     onClick={onClose}
-                    aria-label='Close lobby preview'
+                    aria-label='Close table setup'
                 />
             ) : null}
 
@@ -125,25 +109,20 @@ function LobbyPreviewOverlay({ isOpen, isEmbedded, onClose, tables, onJoinTable,
 
                 <header className='lobby-preview-overlay__header'>
                     <div>
-                        <div className='lobby-preview-overlay__eyebrow'>Live Lobby Experience</div>
-                        <h2>Choose Your Arena</h2>
-                        <p>Seat tabs, buy-in tiers, and fast table entry with richer visual feedback.</p>
-                        <div className='lobby-preview-overlay__stats'>
-                            <span>Live Tables: {nTotalTables}</span>
-                            <span>{nActiveSeatCount}-Seat Pool: {nActiveSeatPoolSize}</span>
-                            <span>Blind Tiers: {nBlindTierCount}</span>
-                        </div>
+                        <div className='lobby-preview-overlay__eyebrow'>Live Lobby</div>
+                        <h2>Choose Your Table Set-Up</h2>
+                        <p>The list below shows the tables available for you to play and how many players are currently seated.</p>
                     </div>
 
                     <div className='lobby-preview-overlay__header-actions'>
-                        {oQuickJoinTable ? (
+                        {oPrimaryTable ? (
                             <button
                                 type='button'
                                 className='lobby-preview-overlay__quick-join'
-                                onClick={() => onJoinTable(oQuickJoinTable._id)}
+                                onClick={() => onJoinTable(oPrimaryTable._id)}
                                 disabled={isJoining}
                             >
-                                {isJoining ? 'Joining...' : 'Quick Join'}
+                                {isJoining ? 'Joining...' : 'Take A Seat'}
                             </button>
                         ) : null}
 
@@ -155,158 +134,145 @@ function LobbyPreviewOverlay({ isOpen, isEmbedded, onClose, tables, onJoinTable,
                     </div>
                 </header>
 
-                <div className='lobby-preview-overlay__tabs'>
-                    {aSeatCounts.map(nSeatCount => (
-                        <button
-                            key={nSeatCount}
-                            type='button'
-                            className={nSeatCount === nActiveSeatCount ? 'is-active' : ''}
-                            onClick={() => setNActiveSeatCount(nSeatCount)}
-                        >
-                            {nSeatCount} Players
-                        </button>
-                    ))}
-                </div>
+                <section className='lobby-preview-overlay__controls' aria-label='Table setup controls'>
+                    <article className='lobby-preview-overlay__control-card'>
+                        <div className='lobby-preview-overlay__control-top'>
+                            <div className='lobby-preview-overlay__control-label'>Number of Players</div>
+                            <div className='lobby-preview-overlay__control-value'>{nActiveSeatCount} Players</div>
+                        </div>
 
-                <div className='lobby-preview-overlay__subtabs'>
-                    {aBuyInOptions.length > 0 ? (
-                        aBuyInOptions.map(({ nBuyIn, nTableCount }) => (
-                            <button
-                                key={`${nActiveSeatCount}-${nBuyIn}`}
-                                type='button'
-                                className={nBuyIn === nActiveBuyIn ? 'is-active' : ''}
-                                onClick={() => setNActiveBuyIn(nBuyIn)}
-                            >
-                                {formatAmount(nBuyIn)} ({nTableCount})
-                            </button>
-                        ))
-                    ) : (
-                        <span>No table amounts available</span>
-                    )}
-                </div>
+                        <input
+                            type='range'
+                            min='0'
+                            max={PLAYER_OPTIONS.length - 1}
+                            step='1'
+                            value={nSeatSliderIndex}
+                            className='lobby-preview-overlay__control-range'
+                            onChange={(event) => handleSeatCountChange(event.target.value)}
+                            aria-label='Choose number of players'
+                            aria-valuetext={`${nActiveSeatCount} players`}
+                        />
+
+                        <div className='lobby-preview-overlay__control-stops'>
+                            {PLAYER_OPTIONS.map((nSeatOption) => (
+                                <button
+                                    key={nSeatOption}
+                                    type='button'
+                                    className={`lobby-preview-overlay__control-stop ${nSeatOption === nActiveSeatCount ? 'is-active' : ''}`}
+                                    onClick={() => handleSeatCountChange(PLAYER_OPTIONS.indexOf(nSeatOption))}
+                                >
+                                    {nSeatOption}
+                                </button>
+                            ))}
+                        </div>
+                    </article>
+
+                    <article className='lobby-preview-overlay__control-card'>
+                        <div className='lobby-preview-overlay__control-top'>
+                            <div className='lobby-preview-overlay__control-label'>Buy-In</div>
+                            <div className='lobby-preview-overlay__control-value'>{formatAmount(nActiveBuyIn)}</div>
+                        </div>
+
+                        <input
+                            type='range'
+                            min='0'
+                            max={BUY_IN_OPTIONS.length - 1}
+                            step='1'
+                            value={nBuyInSliderIndex}
+                            className='lobby-preview-overlay__control-range'
+                            onChange={(event) => handleBuyInChange(event.target.value)}
+                            aria-label='Choose buy-in amount'
+                            aria-valuetext={`${formatAmount(nActiveBuyIn)} buy-in`}
+                        />
+
+                        <div className='lobby-preview-overlay__control-stops'>
+                            {BUY_IN_OPTIONS.map((nBuyInOption) => (
+                                <button
+                                    key={nBuyInOption}
+                                    type='button'
+                                    className={`lobby-preview-overlay__control-stop ${nBuyInOption === nActiveBuyIn ? 'is-active' : ''}`}
+                                    onClick={() => handleBuyInChange(BUY_IN_OPTIONS.indexOf(nBuyInOption))}
+                                >
+                                    {formatAmount(nBuyInOption)}
+                                </button>
+                            ))}
+                        </div>
+
+                        <p className='lobby-preview-overlay__control-hint'>Blinds adjust automatically based on the table rules for this buy-in.</p>
+                    </article>
+                </section>
 
                 <div className='lobby-preview-overlay__content'>
+                    <div className='lobby-preview-overlay__list-header'>
+                        <div>
+                            <h3>Available Tables</h3>
+                            <p>{nActiveSeatCount} players | Buy-In {formatAmount(nActiveBuyIn)}</p>
+                        </div>
+                        <span>{aFilteredTables.length} table(s)</span>
+                    </div>
+
                     {isLoading ? (
                         <div className='lobby-preview-overlay__loading'>
                             <div className='lobby-preview-overlay__loading-ring' />
                             <p>Syncing live tables...</p>
                         </div>
-                    ) : oActiveBuyInRow ? (
-                        <section key={`${nActiveSeatCount}-${oActiveBuyInRow.nBuyIn}`} className='lobby-preview-overlay__buyin-row'>
-                            <div className='lobby-preview-overlay__buyin-row-header'>
-                                <h3>{nActiveSeatCount}-Player Arena | Buy-In {formatAmount(oActiveBuyInRow.nBuyIn)}</h3>
-                                <span>{oActiveBuyInRow.aTables.length} table(s) live</span>
-                            </div>
+                    ) : aFilteredTables.length ? (
+                        <div className='lobby-preview-overlay__table-list'>
+                            {aFilteredTables.map((table, index) => {
+                                const bRapid = !!(Number(table.nRapidPlay) || table.nRapidPlay === true);
+                                const bMultiDeck = !!(Number(table.nMultiDeck) || table.nMultiDeck === true);
+                                const nActivePlayers = Number(table.nActivePlayers) || 0;
+                                const nLiveTableCount = Number(table.nLiveTableCount) || 0;
 
-                            <div className='lobby-preview-overlay__table-grid'>
-                                {oActiveBuyInRow.aTables.map((table, index) => {
-                                    const bRapid = !!(Number(table.nRapidPlay) || table.nRapidPlay === true);
-                                    const bMultiDeck = !!(Number(table.nMultiDeck) || table.nMultiDeck === true);
-                                    return (
-                                        <article
-                                            key={table._id || `${table.sName}-${index}`}
-                                            className='lobby-preview-overlay__table-card'
-                                            style={{ animationDelay: `${Math.min(index * 70, 420)}ms` }}
+                                return (
+                                    <article
+                                        key={table._id || `${table.sName}-${index}`}
+                                        className='lobby-preview-overlay__table-row'
+                                        style={{ animationDelay: `${Math.min(index * 70, 420)}ms` }}
+                                    >
+                                        <div className='lobby-preview-overlay__table-row-main'>
+                                            <div className='lobby-preview-overlay__table-row-copy'>
+                                                <div className='lobby-preview-overlay__table-row-title'>{table.sName}</div>
+                                                <div className='lobby-preview-overlay__table-row-subtitle'>
+                                                    Blinds {getBlindLabel(table.nMinBet)}
+                                                </div>
+                                            </div>
+
+                                            <div className='lobby-preview-overlay__table-row-meta'>
+                                                <span className='lobby-preview-overlay__table-pill'>
+                                                    {nActivePlayers}/{table.nMaxPlayer} seated
+                                                </span>
+                                                <span className='lobby-preview-overlay__table-pill'>
+                                                    Buy-In {formatAmount(table.nMinBuyIn)}
+                                                </span>
+                                                {nLiveTableCount ? (
+                                                    <span className='lobby-preview-overlay__table-pill'>
+                                                        {nLiveTableCount} live {nLiveTableCount === 1 ? 'table' : 'tables'}
+                                                    </span>
+                                                ) : null}
+                                                {bRapid ? <span className='lobby-preview-overlay__table-pill is-hot'>Rapid</span> : null}
+                                                {bMultiDeck ? <span className='lobby-preview-overlay__table-pill is-hot'>Multi Deck</span> : null}
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type='button'
+                                            className='lobby-preview-overlay__join'
+                                            onClick={() => onJoinTable(table._id)}
+                                            disabled={isJoining}
                                         >
-                                            <div className='lobby-preview-overlay__table-glow' />
-                                            <div className='lobby-preview-overlay__table-head'>
-                                                <div className='lobby-preview-overlay__table-name'>{table.sName}</div>
-                                                <div className='lobby-preview-overlay__table-seats'>{table.nMaxPlayer} Seats</div>
-                                            </div>
-
-                                            <div className='lobby-preview-overlay__table-meta'>
-                                                <span>Blinds {getBlindLabel(table.nMinBet)}</span>
-                                                <span>Buy-In {formatAmount(table.nMinBuyIn)}</span>
-                                                {bRapid ? <span className='is-hot'>Rapid</span> : null}
-                                                {bMultiDeck ? <span className='is-hot'>Multi Deck</span> : null}
-                                            </div>
-
-                                            <div className='lobby-preview-overlay__table-actions'>
-                                                <button
-                                                    type='button'
-                                                    className='lobby-preview-overlay__inspect'
-                                                    onClick={() => setOFocusedTable(table)}
-                                                >
-                                                    Details
-                                                </button>
-                                                <button
-                                                    type='button'
-                                                    className='lobby-preview-overlay__join'
-                                                    onClick={() => onJoinTable(table._id)}
-                                                    disabled={isJoining}
-                                                >
-                                                    {isJoining ? 'Joining...' : 'Play Table'}
-                                                </button>
-                                            </div>
-                                        </article>
-                                    );
-                                })}
-                            </div>
-                        </section>
+                                            {isJoining ? 'Joining...' : 'Take A Seat'}
+                                        </button>
+                                    </article>
+                                );
+                            })}
+                        </div>
                     ) : (
                         <div className='lobby-preview-overlay__empty'>
-                            No {nActiveSeatCount}-player tables found. Create table prototypes in admin and they will appear here automatically.
+                            No tables match this setup yet. Try another player count or buy-in.
                         </div>
                     )}
                 </div>
-
-                {oFocusedTable ? (
-                    <div className='lobby-preview-overlay__modal-layer' role='dialog' aria-modal='true' aria-label='Table details'>
-                        <button
-                            type='button'
-                            className='lobby-preview-overlay__modal-backdrop'
-                            onClick={() => setOFocusedTable(null)}
-                            aria-label='Close table details'
-                        />
-                        <section className='lobby-preview-overlay__modal'>
-                            <button
-                                type='button'
-                                className='lobby-preview-overlay__modal-close'
-                                onClick={() => setOFocusedTable(null)}
-                            >
-                                Close
-                            </button>
-                            <div className='lobby-preview-overlay__modal-eyebrow'>Table Intel</div>
-                            <h4>{oFocusedTable.sName}</h4>
-
-                            <div className='lobby-preview-overlay__modal-grid'>
-                                <div>
-                                    <span>Buy-In</span>
-                                    <strong>{formatAmount(oFocusedTable.nMinBuyIn)}</strong>
-                                </div>
-                                <div>
-                                    <span>Blinds</span>
-                                    <strong>{getBlindLabel(oFocusedTable.nMinBet)}</strong>
-                                </div>
-                                <div>
-                                    <span>Seats</span>
-                                    <strong>{oFocusedTable.nMaxPlayer} Players</strong>
-                                </div>
-                                <div>
-                                    <span>Mode</span>
-                                    <strong>{oFocusedTable.nRapidPlay ? 'Rapid' : 'Standard'}</strong>
-                                </div>
-                            </div>
-
-                            <div className='lobby-preview-overlay__modal-actions'>
-                                <button type='button' className='secondary' onClick={() => setOFocusedTable(null)}>
-                                    Back
-                                </button>
-                                <button
-                                    type='button'
-                                    className='primary'
-                                    onClick={() => {
-                                        setOFocusedTable(null);
-                                        onJoinTable(oFocusedTable._id);
-                                    }}
-                                    disabled={isJoining}
-                                >
-                                    {isJoining ? 'Joining...' : 'Join This Table'}
-                                </button>
-                            </div>
-                        </section>
-                    </div>
-                ) : null}
             </section>
         </div>
     );
@@ -323,6 +289,8 @@ LobbyPreviewOverlay.propTypes = {
             nMinBuyIn: PropTypes.number,
             nMinBet: PropTypes.number,
             nMaxPlayer: PropTypes.number,
+            nActivePlayers: PropTypes.number,
+            nLiveTableCount: PropTypes.number,
             nRapidPlay: PropTypes.oneOfType([PropTypes.bool, PropTypes.number]),
             nMultiDeck: PropTypes.oneOfType([PropTypes.bool, PropTypes.number]),
         })

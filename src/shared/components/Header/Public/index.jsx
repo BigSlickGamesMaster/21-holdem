@@ -1,12 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Navbar, Nav } from 'react-bootstrap';
-import logo from '../../../../assets/images/splash/header_logo.png';
 import { Link, useLocation } from 'react-router-dom';
+import AppWordmark from '../../AppWordmark';
 
 const HeaderPublic = () => {
     const [expanded, setExpanded] = useState(false);
     const headerRef = useRef(null);
     const { pathname } = useLocation();
+    const handleOpenBugPanel = () => {
+        setExpanded(false);
+        window.FXOverlayUI?.toggleBugPanel?.();
+    };
 
     useEffect(() => {
         setExpanded(false);
@@ -27,8 +31,8 @@ const HeaderPublic = () => {
 
     return (
         <Navbar ref={headerRef} expand="lg" expanded={expanded} className="header-public navbar-expand-xl">
-            <Link to={'/guest'} className="logo">
-                <img src={logo} alt="logo" />
+            <Link to={'/guest'} className="logo app-wordmark" aria-label="21 Hold'em home">
+                <AppWordmark className='app-wordmark__svg' />
             </Link>
             <Navbar.Toggle aria-controls="basic-navbar-nav" onClick={() => setExpanded(current => !current)} />
             <Navbar.Collapse id="basic-navbar-nav" className='justify-content-end'>
@@ -38,6 +42,7 @@ const HeaderPublic = () => {
                     <Link to={'/guest'} className={`nav-item ${pathname.startsWith('/guest') ? 'active' : ''}`} onClick={() => setExpanded(false)}>GUEST MODE</Link>
                     <Link to={'/how-to-play'} className={`nav-item ${pathname === '/how-to-play' ? 'active' : ''}`} onClick={() => setExpanded(false)}>HOW TO PLAY</Link>
                     <Link to={'/contact'} className={`nav-item ${pathname === '/contact' ? 'active' : ''}`} onClick={() => setExpanded(false)}>CONTACT</Link>
+                    <button type='button' className='nav-item header-public__bug-link' onClick={handleOpenBugPanel}>REPORT BUG</button>
                 </Nav>
             </Navbar.Collapse>
         </Navbar>

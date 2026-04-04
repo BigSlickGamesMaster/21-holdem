@@ -149,12 +149,52 @@
     });
   }
 
+  function showOverlayEffect(methodName, options) {
+    var overlayUI = getModule('overlayUI');
+    if (!overlayUI || typeof overlayUI[methodName] !== 'function') return false;
+
+    return safe(function () {
+      return overlayUI[methodName](options || {});
+    });
+  }
+
+  function shakeScreen(intensity, duration) {
+    var screenShake = getModule('screenShake');
+    if (!screenShake || typeof screenShake.shake !== 'function') return false;
+
+    return safe(function () {
+      return screenShake.shake(intensity, duration);
+    });
+  }
+
   function resolveAudioAction(options, fallback) {
     if (!options || !Object.prototype.hasOwnProperty.call(options, 'audioAction')) {
       return fallback;
     }
 
     return options.audioAction;
+  }
+
+  function resolveEffectAnchor(options, fallbackName) {
+    var anchor = options && options.anchor;
+    if (anchor && isFiniteNumber(anchor.x) && isFiniteNumber(anchor.y)) {
+      return {
+        x: Number(anchor.x),
+        y: Number(anchor.y),
+        width: isFiniteNumber(anchor.width) ? Number(anchor.width) : 0,
+        height: isFiniteNumber(anchor.height) ? Number(anchor.height) : 0,
+      };
+    }
+
+    if (options && options.anchorName && global.FXOverlay && typeof global.FXOverlay.getAnchor === 'function') {
+      return global.FXOverlay.getAnchor(options.anchorName);
+    }
+
+    if (fallbackName && global.FXOverlay && typeof global.FXOverlay.getAnchor === 'function') {
+      return global.FXOverlay.getAnchor(fallbackName);
+    }
+
+    return null;
   }
 
   var FXOverlay = global.FXOverlay || {};
@@ -235,13 +275,6 @@
       stagger: 44,
     });
     setPotAmount(options && options.potAmount, { target: 'potPile' });
-    pulsePot({
-      duration: 240,
-      blur: 12,
-      color: 'rgba(255, 224, 150, 0.28)',
-      brightness: 1.02,
-      target: 'potPile',
-    });
 
     return true;
   };
@@ -253,7 +286,7 @@
     if (audioAction) {
       dispatchAudioAction(audioAction, { amount: amount });
     }
-    chipThrow(amountToCount(amount, 2, 4), amount, 26, 760, {
+    chipThrow(amountToCount(amount, 3, 6), amount, 26, 820, {
       source: options && options.source,
       sourceAnchor: options && options.sourceAnchor,
       target: options && options.target ? options.target : 'potPile',
@@ -261,13 +294,6 @@
       stagger: 56,
     });
     setPotAmount(options && options.potAmount, { target: 'potPile' });
-    pulsePot({
-      duration: 280,
-      blur: 16,
-      color: 'rgba(255, 222, 142, 0.34)',
-      brightness: 1.04,
-      target: 'potPile',
-    });
 
     return true;
   };
@@ -279,7 +305,7 @@
     if (audioAction) {
       dispatchAudioAction(audioAction, { amount: amount });
     }
-    chipThrow(amountToCount(amount, 4, 6), amount || 0, 28, 920, {
+    chipThrow(amountToCount(amount, 5, 8), amount || 0, 28, 980, {
       source: options && options.source,
       sourceAnchor: options && options.sourceAnchor,
       target: options && options.target ? options.target : 'potPile',
@@ -287,13 +313,6 @@
       stagger: 62,
     });
     setPotAmount(options && options.potAmount, { target: 'potPile' });
-    pulsePot({
-      duration: 360,
-      blur: 20,
-      color: 'rgba(255, 188, 120, 0.42)',
-      brightness: 1.08,
-      target: 'potPile',
-    });
 
     return true;
   };
@@ -302,27 +321,85 @@
     if (!isEnabled()) return false;
 
     dispatchAudioAction('winPot', { amount: amount });
-    pulsePot({
-      duration: 340,
-      blur: 24,
-      color: 'rgba(120, 255, 180, 0.85)',
-      brightness: 1.1,
-      target: options && options.source ? options.source : 'potPile',
-    });
-    chipWinBurst(amountToCount(amount, 4, 6), amount, 86, 440, {
+    chipWinBurst(amountToCount(amount, 6, 9), amount, 96, 520, {
       target: options && options.source ? options.source : 'potPile',
       targetAnchor: options && options.sourceAnchor,
       size: 20,
     });
-    chipThrow(amountToCount(amount, 4, 6), amount, 26, 860, {
-      source: options && options.source ? options.source : 'potPile',
-      sourceAnchor: options && options.sourceAnchor,
-      target: options && options.target ? options.target : 'table',
-      targetAnchor: options && options.targetAnchor,
-      stagger: 58,
-    });
 
     return true;
+  };
+
+  FXOverlay.winnerCelebration = function (options) {
+    if (!isEnabled()) return false;
+
+    return showOverlayEffect('showWinnerCelebration', {
+      anchor: resolveEffectAnchor(options, options && options.isSelf ? 'mySeat' : 'activePlayer'),
+      isSelf: !!(options && options.isSelf),
+      text: options && options.text ? options.text : null,
+    });
+  };
+
+  FXOverlay.crownWinner = function (options) {
+    if (!isEnabled()) return false;
+
+    return showOverlayEffect('showCrown', {
+      anchor: resolveEffectAnchor(options, 'activePlayer'),
+      duration: options && options.duration,
+    });
+  };
+
+  FXOverlay.bust = function (options) {
+    if (!isEnabled()) return false;
+
+    var anchor = resolveEffectAnchor(options, options && options.isSelf ? 'mySeat' : 'activePlayer');
+    showOverlayEffect('showBust', {
+      anchor: anchor,
+      isSelf: !!(options && options.isSelf),
+      text: options && options.text ? options.text : null,
+    });
+
+    if (options && options.isSelf) {
+      shakeScreen(
+        isFiniteNumber(options.intensity) ? Number(options.intensity) : 3.6,
+        isFiniteNumber(options.duration) ? Number(options.duration) : 180
+      );
+    }
+
+    return true;
+  };
+
+  FXOverlay.crowdOoh = function (options) {
+    if (!isEnabled()) return false;
+
+    dispatchAudioAction('crowdOoh', {
+      text: options && options.text ? options.text : 'Oooooohhhhhh',
+    });
+    return showOverlayEffect('showCrowdOoh', {
+      anchor: resolveEffectAnchor(options, 'mySeat'),
+      isSelf: !!(options && options.isSelf),
+      text: options && options.text ? options.text : null,
+    });
+  };
+
+  FXOverlay.doubleDownMoment = function (options) {
+    if (!isEnabled()) return false;
+
+    return showOverlayEffect('showActionText', {
+      anchor: resolveEffectAnchor(options, options && options.isSelf ? 'mySeat' : 'activePlayer'),
+      isSelf: !!(options && options.isSelf),
+      variant: 'doubleDown',
+      text: options && options.text ? options.text : 'Double Down!',
+      duration: options && options.duration ? options.duration : 2400,
+    });
+  };
+
+  FXOverlay.screenShake = function (options) {
+    if (!isEnabled()) return false;
+    return shakeScreen(
+      isFiniteNumber(options && options.intensity) ? Number(options.intensity) : 2.6,
+      isFiniteNumber(options && options.duration) ? Number(options.duration) : 140
+    );
   };
 
   FXOverlay.blackjack = function () {

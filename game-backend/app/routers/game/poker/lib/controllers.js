@@ -56,8 +56,45 @@ controllers.listBoard = async (req, res) => {
     };
 
     const aProtoData = await BoardProtoType.find(query, project).sort({ nMinBet: 1 }).lean();
+    const aProtoIds = aProtoData.map(proto => proto._id);
 
-    return res.reply(messages.success(), aProtoData);
+    const aLiveBoardStats = aProtoIds.length
+      ? await PokerBoard.aggregate([
+        { $match: { iProtoId: { $in: aProtoIds } } },
+        {
+          $project: {
+            iProtoId: 1,
+            nParticipantCount: { $size: { $ifNull: ['$aParticipants', []] } },
+          },
+        },
+        {
+          $group: {
+            _id: '$iProtoId',
+            nLiveTableCount: { $sum: 1 },
+            nLiveParticipants: { $sum: '$nParticipantCount' },
+            nActivePlayers: { $max: '$nParticipantCount' },
+          },
+        },
+      ])
+      : [];
+
+    const oLiveBoardMap = aLiveBoardStats.reduce((accumulator, liveBoard) => {
+      accumulator[liveBoard._id.toString()] = liveBoard;
+      return accumulator;
+    }, {});
+
+    const aBoardList = aProtoData.map(proto => {
+      const oLiveBoard = oLiveBoardMap[proto._id.toString()] || {};
+
+      return {
+        ...proto,
+        nActivePlayers: oLiveBoard.nActivePlayers || 0,
+        nLiveTableCount: oLiveBoard.nLiveTableCount || 0,
+        nLiveParticipants: oLiveBoard.nLiveParticipants || 0,
+      };
+    });
+
+    return res.reply(messages.success(), aBoardList);
   } catch (error) {
     return res.reply(messages.server_error(), error);
   }

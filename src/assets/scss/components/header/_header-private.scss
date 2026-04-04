@@ -13,19 +13,26 @@
     font-weight: 400;
 
     .header-private__logo {
-
-        // h3 {
-        //     color: var(--black-color);
-        //     font-family: 'Neue Plak Condensed';
-        //     font-weight: bold;
-        //     text-transform: uppercase;
-        // }
         margin-left: 10px;
 
-        img {
-            width: 150px;
-            object-fit: contain;
-            margin-top: 5px;
+        a {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        .app-wordmark {
+            display: inline-flex;
+            align-items: center;
+            width: 248px;
+            max-width: 34vw;
+            transform: translateZ(0);
+
+            &__svg {
+                display: block;
+                width: 100%;
+                height: auto;
+            }
         }
     }
 
@@ -52,6 +59,20 @@
                     color: var(--black-color);
                     text-decoration: none;
                     font-weight: 600;
+
+                    &.active,
+                    &:hover {
+                        color: #FBFA36;
+                    }
+                }
+
+                .header-private__bug-link {
+                    border: 0;
+                    background: transparent;
+                    color: var(--black-color);
+                    font-weight: 600;
+                    padding: 0;
+                    line-height: inherit;
 
                     &.active,
                     &:hover {
@@ -263,9 +284,9 @@
 @include media-max(md) {
     .header-private {
         .header-private__logo {
-            img {
-                width: 100px;
-                object-fit: contain;
+            .app-wordmark {
+                width: 182px;
+                max-width: 52vw;
             }
         }
 

@@ -23,8 +23,7 @@ import Phaser from 'phaser';
 import config from '../scripts/config';
 import background from '../assets/images/bg/background.png'
 // gameplay
-import table from '../assets/images/gameplay/table.png'
-import private_table from '../assets/images/gameplay/private_table.png'
+import portrait_table from '../assets/images/gameplay/portrate_table.png'
 import prompt_bg from '../assets/images/gameplay/prompt_bg.png'
 import chip_icon from '../assets/images/gameplay/chip_icon.png';
 import pot_amount_base from '../assets/images/gameplay/pot_amount_base.png';
@@ -41,6 +40,16 @@ import btn_smallOrange from '../assets/images/buttons/btn_smallOrange.png'
 import btn_close from '../assets/images/buttons/btn_close.png'
 import btn_exit from '../assets/images/buttons/btn_exit.png'
 import btn_setting from '../assets/images/buttons/btn_setting.png'
+import console_art from '../assets/images/buttons/console.png'
+import console_button_base from '../assets/images/buttons/button_base.png'
+import call_button from '../assets/images/buttons/call_button.png'
+import check_button from '../assets/images/buttons/check_button.png'
+import raise_button from '../assets/images/buttons/raise_button.png'
+import double_down_button from '../assets/images/buttons/d-down_button.png'
+import stand_button from '../assets/images/buttons/stand_button.png'
+import fold_button from '../assets/images/buttons/fold_button.png'
+import blank_button from '../assets/images/buttons/blank_button.png'
+import call_stand_button from '../assets/images/buttons/call_stand_button_ tutorial.png'
 // wifi
 import ping_bg from '../assets/images/wifi/ping_bg.png'
 import wifi_icon from '../assets/images/wifi/wifi_icon.png'
@@ -97,12 +106,10 @@ import coin_sound from '../assets/sounds/coin_sound.mp3'
 import chipsIn_sound from '../assets/sounds/chipsIn.mp3'
 import card_sound from '../assets/sounds/card_sound.mp3'
 import click_sound from '../assets/sounds/click_sound.mp3'
-import bust_sound from '../assets/sounds/bust_sound.mp3'
 import fold_sound from '../assets/sounds/fold_sound.mp3'
 import timer_sound from '../assets/sounds/timer_sound.mp3'
 import raise_sound from '../assets/sounds/raise_sound.mp3'
 import check_sound from '../assets/sounds/check_sound.mp3'
-import doubleDownSound from '../assets/sounds/DD.m4a'
 import NeuePlakCondensed from '../assets/fonts/game/NeuePlak-CondRegular.ttf'
 import TTCommons from '../assets/fonts/game/TTCommons-Regular.ttf'
 import playerFont from '../assets/fonts/game/player_font.ttf'
@@ -122,8 +129,8 @@ export default class Preload extends Phaser.Scene {
 
         this.load.image('background', background);
         // gameplay
-        this.load.image('table', table);
-        this.load.image('private_table', private_table);
+        this.load.image('table', portrait_table);
+        this.load.image('private_table', portrait_table);
         this.load.image('prompt_bg', prompt_bg);
         this.load.image('chip_icon', chip_icon);
         this.load.image('pot_amount_base', pot_amount_base);
@@ -140,6 +147,16 @@ export default class Preload extends Phaser.Scene {
         this.load.image('btn_close', btn_close);
         this.load.image('btn_exit', btn_exit);
         this.load.image('btn_setting', btn_setting);
+        this.load.image('console_art', console_art);
+        this.load.image('console_button_base', console_button_base);
+        this.load.image('call_button', call_button);
+        this.load.image('check_button', check_button);
+        this.load.image('raise_button', raise_button);
+        this.load.image('double_down_button', double_down_button);
+        this.load.image('stand_button', stand_button);
+        this.load.image('fold_button', fold_button);
+        this.load.image('blank_button', blank_button);
+        this.load.image('call_stand_button', call_stand_button);
         // wifi
         this.load.image('ping_bg', ping_bg);
         this.load.image('wifi_icon', wifi_icon);
@@ -196,35 +213,54 @@ export default class Preload extends Phaser.Scene {
         this.load.audio('chipsIn_sound', chipsIn_sound);
         this.load.audio('card_sound', card_sound);
         this.load.audio('click_sound', click_sound);
-        this.load.audio('bust_sound', bust_sound);
         this.load.audio('fold_sound', fold_sound);
         this.load.audio('timer_sound', timer_sound);
         this.load.audio('raise_sound', raise_sound);
         this.load.audio('check_sound', check_sound);
-        this.load.audio('doubleDown_sound', doubleDownSound);
+        this.load.audio('doubleDown_sound', raise_sound);
     }
     editorCreate() {
-        const bg = this.add.image(config.centerX, config.centerY, 'game_bg');
-        const logo = this.add.image(config.centerX, config.centerY, 'logo');
-        this.txt_progress = this.add.text(config.centerX, 1630, "0%",
-            { fontFamily: config.fontFamily1, fontSize: '44px', color: '#ffffff', align: 'center', });
-        this.txt_progress.setOrigin(0.5, 0.5);
+        this.cameras.main.setBackgroundColor('#04101a');
 
-        this.outerBar = this.add.image(config.centerX, 1700, 'outerBar');
-        this.innerBar = this.add.image(240, 1693, 'innerBar').setOrigin(0, 0.5);;
+        const table = this.add.image(config.centerX, config.centerY, 'preload_table');
+        table.setDisplaySize(config.width, config.height);
 
-        this.innerBarWidth = this.innerBar.displayWidth;
+        this.add.rectangle(config.centerX, 220, config.width, 440, 0x04111d, 0.52);
+        this.add.rectangle(config.centerX, config.height - 190, config.width, 380, 0x02070d, 0.68);
+        const glow = this.add.circle(config.centerX, config.centerY + 40, 300, 0x67c4ff, 0.09);
+        const ring = this.add.circle(config.centerX, config.centerY + 40, 264, 0x9fe1ff, 0.06);
+        ring.setStrokeStyle(3, 0xb8e9ff, 0.2);
 
-        this.maskGraphics = this.make.graphics();
-        this.maskGraphics.fillStyle(0xffffff);
-        this.maskGraphics.fillRect(
-            this.innerBar.x,
-            this.innerBar.y - this.innerBar.displayHeight / 2,
-            this.innerBar.displayWidth,
-            this.innerBar.displayHeight
-        );
+        this.loading_hint = this.add.text(config.centerX, config.height - 212, 'Get your chips ready!', {
+            fontFamily: config.ButtonFont,
+            fontSize: '54px',
+            color: '#f4fbff',
+            fontStyle: 'bold',
+            stroke: '#03111d',
+            strokeThickness: 3,
+            align: 'center',
+        }).setOrigin(0.5);
+        this.loading_hint.setLetterSpacing(2);
 
-        this.innerBar.setMask(this.maskGraphics.createGeometryMask());
+        this.tweens.add({
+            targets: [glow, ring],
+            alpha: { from: 0.05, to: 0.16 },
+            scale: { from: 0.96, to: 1.04 },
+            duration: 1800,
+            repeat: -1,
+            yoyo: true,
+            ease: 'Sine.easeInOut',
+        });
+
+        this.tweens.add({
+            targets: this.loading_hint,
+            alpha: { from: 0.84, to: 1 },
+            scale: { from: 0.985, to: 1.015 },
+            duration: 1200,
+            repeat: -1,
+            yoyo: true,
+            ease: 'Sine.easeInOut',
+        });
     }
     init({ sAuthToken, iBoardId, sPrivateCode }) {
         this.sAuthToken = sAuthToken;
@@ -235,19 +271,6 @@ export default class Preload extends Phaser.Scene {
     preload() {
         this.editorCreate();
         this.editorPreload();
-
-        this.load.on(Phaser.Loader.Events.PROGRESS, (progress) => {
-            const currentProgress = progress;
-            this.maskGraphics.clear();
-            this.maskGraphics.fillStyle(0xffffff);
-            this.maskGraphics.fillRect(
-                this.innerBar.x,
-                this.innerBar.y - this.innerBar.displayHeight / 2,
-                this.innerBarWidth * currentProgress,
-                this.innerBar.displayHeight
-            );
-            this.txt_progress.setText(`${(currentProgress * 100).toFixed(0)}%`);
-        });
         const data = {
             sAuthToken: this.sAuthToken,
             iBoardId: this.iBoardId,

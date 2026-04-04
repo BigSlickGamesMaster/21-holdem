@@ -15,11 +15,22 @@
         color: var(--black-color) !important;
         font-size: 26px;
         margin-left: 10px;
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+    }
 
-        img {
-            width: 150px;
-            object-fit: contain;
-            margin-top: 5px;
+    .app-wordmark {
+        display: inline-flex;
+        align-items: center;
+        width: 248px;
+        max-width: 34vw;
+        transform: translateZ(0);
+
+        &__svg {
+            display: block;
+            width: 100%;
+            height: auto;
         }
     }
 
@@ -47,6 +58,13 @@
                 color: #FBFA36 !important;
             }
         }
+
+        .header-public__bug-link {
+            border: 0;
+            background: transparent;
+            padding: 0;
+            line-height: inherit;
+        }
     }
 }
 
@@ -68,10 +86,8 @@
         padding: 10px 16px;
 
         .logo {
-            img {
-                width: 100px;
-                object-fit: contain;
-            }
+            width: 182px;
+            max-width: 52vw;
         }
 
         .navbar-collapse {

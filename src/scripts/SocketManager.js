@@ -29,6 +29,7 @@
  */
 
 import io from 'socket.io-client';
+import { getApiRoot } from '../axios';
 
 export default class SocketManager {
     // --------------------------------------------------------------
@@ -38,7 +39,7 @@ export default class SocketManager {
     // --------------------------------------------------------------
     constructor(oScene, { sAuthToken, iBoardId }) {
         this.oScene = oScene;
-        this.sRoot = process.env.REACT_APP_API_ENDPOINT;
+        this.sRoot = getApiRoot();
         this.sAuthToken = sAuthToken;
         this.iBoardId = iBoardId;
         console.log(sAuthToken);
@@ -207,7 +208,7 @@ export default class SocketManager {
     onCallBackReceive(sEventName, response, error) {
         if (response && response.message) {
             console.log(`%c ${sEventName}`, 'color: #5BB381', response);
-            this.oScene.prompt.showForSeconds(response.message);
+            this.oScene.handleActionError?.(sEventName, response.message);
             return;
         }
         switch (sEventName) {
@@ -218,17 +219,17 @@ export default class SocketManager {
 
             case 'reqCall':
                 console.log('%c reqCall', 'color: #5BB381', response, error);
-                this.oScene.prompt.showForSeconds(error.error);
+                this.oScene.handleActionError?.('reqCall', error.error);
                 break;
 
             case 'reqRaise':
                 console.log('%c reqRaise', 'color: #5BB381', response, error);
-                this.oScene.prompt.showForSeconds(error.error);
+                this.oScene.handleActionError?.('reqRaise', error.error);
                 break;
 
             case 'reqDoubleDown':
                 console.log('%c reqDoubleDown', 'color: #5BB381', response, error);
-                this.oScene.prompt.showForSeconds(error.error);
+                this.oScene.handleActionError?.('reqDoubleDown', error.error);
                 break;
 
             default:

@@ -288,7 +288,7 @@ class Participant extends Service {
 
       const oCard = this.oBoard.aDeck.pop();
       this.aCardHand.push(oCard);
-      this.nCardScore += oCard.nValue;
+      this.nCardScore = (Number(this.nCardScore) || 0) + (Number(oCard?.nValue) || 0);
 
       if (this.nCardScore > 21) {
         const oAceCardHand = this.aCardHand.find(card => card.nValue === 11);
@@ -617,11 +617,12 @@ class Participant extends Service {
           let winner = [];
 
           for (const participant of this.oBoard.aParticipant) {
-            if (participant.eState == 'playing' && participant.nCardScore <= 21) {
-              if (participant.nCardScore > maxScore) {
-                maxScore = participant.nCardScore;
+            const nParticipantScore = Number(participant.nCardScore) || 0;
+            if (participant.eState === 'playing' && nParticipantScore <= 21) {
+              if (nParticipantScore > maxScore) {
+                maxScore = nParticipantScore;
                 winner = [participant];
-              } else if (participant.nCardScore === maxScore) {
+              } else if (nParticipantScore === maxScore) {
                 winner.push(participant);
               }
             }

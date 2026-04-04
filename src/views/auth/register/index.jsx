@@ -142,7 +142,7 @@ const Register = () => {
                                                 </div>
                                             </div>
                                             <div className="form-group d-flex justify-content-between align-items-center">
-                                                <div className="form-check">
+                                                <div className="form-check auth-terms-check">
                                                     <input
                                                         type="checkbox"
                                                         className={`form-check-input ${errors.terms ? 'border border-danger' : ''}`}
@@ -152,14 +152,15 @@ const Register = () => {
                                                     <label className="form-check-label" htmlFor="terms">
                                                         I accept
                                                     </label>
-                                                    {' '}
-                                                    <a href="/terms-conditions" target="_blank" rel="noreferrer" className="btn btn-link p-0 align-baseline">
-                                                        Terms & Conditions
-                                                    </a>
-                                                    {' '}and{' '}
-                                                    <a href="/privacy-policy" target="_blank" rel="noreferrer" className="btn btn-link p-0 align-baseline">
-                                                        Privacy Policy
-                                                    </a>
+                                                    <span className="auth-terms-copy">
+                                                        <a href="/terms-conditions" target="_blank" rel="noreferrer" className="btn btn-link p-0 align-baseline auth-terms-link">
+                                                            Terms & Conditions
+                                                        </a>
+                                                        <span className="auth-terms-joiner">and</span>
+                                                        <a href="/privacy-policy" target="_blank" rel="noreferrer" className="btn btn-link p-0 align-baseline auth-terms-link">
+                                                            Privacy Policy
+                                                        </a>
+                                                    </span>
                                                 </div>
                                                 {errors.terms ? <div className="text-danger small mt-1">{errors.terms.message}</div> : null}
                                                 <div className='forgot-password'>

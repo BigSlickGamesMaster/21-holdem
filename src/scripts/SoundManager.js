@@ -10,7 +10,6 @@ export default class SoundManager {
         this.chipsIn_sound = this.createSoundRef('chipsIn_sound', { volume: 0.34, allowOverlap: false, restartOnPlay: true });
         this.card_sound = this.createSoundRef('card_sound', { volume: 0.2, allowOverlap: false, restartOnPlay: true });
         this.click_sound = this.createSoundRef('click_sound', { volume: 0.22, allowOverlap: false, restartOnPlay: true });
-        this.bust_sound = this.createSoundRef('bust_sound', { volume: 0.34, allowOverlap: false, restartOnPlay: true });
         this.fold_sound = this.createSoundRef('fold_sound', { volume: 0.34, allowOverlap: false, restartOnPlay: true });
         this.timer_sound = this.createSoundRef('timer_sound', { volume: 0.22, allowOverlap: false, restartOnPlay: true });
         this.raise_sound = this.createSoundRef('raise_sound', { volume: 0.32, allowOverlap: false, restartOnPlay: true });
@@ -24,7 +23,6 @@ export default class SoundManager {
             this.chipsIn_sound,
             this.card_sound,
             this.click_sound,
-            this.bust_sound,
             this.fold_sound,
             this.timer_sound,
             this.raise_sound,

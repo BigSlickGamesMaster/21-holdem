@@ -66,7 +66,12 @@ export default class Settings extends Phaser.GameObjects.Container {
         });
         this.add(this.btn_gameInfo);
 
-        const version = scene.add.text(0, this.btn_gameInfo.y + 50, `Version ${config.version}`, { ...style, fontSize: '14px' }).setOrigin(0.5);
+        this.btn_reportBug = new Button(scene, 0, this.btn_gameInfo.y + 74, { texture: assets.btn_blue, scaleX: 0.55, scaleY: 0.55, text: 'Report Bug', textX: 0, textY: 0, fontSize: '32px', color: '#ffffcf', stroke: '#ffffcf', strokeThickness: 2 }, () => {
+            window.FXOverlayUI?.toggleBugPanel?.();
+        });
+        this.add(this.btn_reportBug);
+
+        const version = scene.add.text(0, this.btn_reportBug.y + 54, `Version ${config.version}`, { ...style, fontSize: '14px' }).setOrigin(0.5);
         this.add(version);
     }
     switchAnimation = (switcher, x, texture) => {

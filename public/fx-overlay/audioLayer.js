@@ -8,7 +8,6 @@
     allIn: 'fx-overlay/audio/all-in.mp3',
     blackjack: 'fx-overlay/audio/blackjack.mp3',
     button: 'fx-overlay/audio/button.mp3',
-    bust: 'fx-overlay/audio/bust.mp3',
     cardFlip: 'fx-overlay/audio/card-flip.mp3',
     dealCard: 'fx-overlay/audio/deal-card.mp3',
     doubleDown: 'fx-overlay/audio/double-down.mp3',
@@ -25,7 +24,6 @@
     allIn: { sound: 'allIn', volume: 0.34, playbackRate: 0.94 },
     blackjack: { sound: 'blackjack', volume: 0.42, playbackRate: 1.0 },
     bigBet: { sound: 'raise', volume: 0.28, playbackRate: 0.98 },
-    bust: { sound: 'bust', volume: 0.3, playbackRate: 1.0 },
     button: { sound: 'button', volume: 0.18, playbackRate: 1.0 },
     call: { sound: 'smallBet', volume: 0.2, playbackRate: 1.02 },
     cardFlip: { sound: 'cardFlip', volume: 0.14, playbackRate: 1.1 },
@@ -46,6 +44,7 @@
     isMusicEnabled: true,
     isSoundEnabled: true,
     activeMusic: {},
+    activeSpeech: null,
   };
 
   function clamp(value, min, max) {
@@ -122,7 +121,47 @@
     return true;
   }
 
+  function playCrowdOoh(payload) {
+    try {
+      if (!state.isSoundEnabled) return false;
+      if (!global.speechSynthesis || typeof global.SpeechSynthesisUtterance !== 'function') return false;
+
+      try {
+        global.speechSynthesis.cancel();
+      } catch (_error) {}
+
+      var utterance = new global.SpeechSynthesisUtterance(
+        (payload && payload.text) || 'Oooooohhhhhh'
+      );
+      utterance.volume = clamp(
+        payload && Number.isFinite(Number(payload.volume)) ? Number(payload.volume) : 0.7,
+        0,
+        1
+      );
+      utterance.rate = clamp(
+        payload && Number.isFinite(Number(payload.rate)) ? Number(payload.rate) : 0.74,
+        0.3,
+        2
+      );
+      utterance.pitch = clamp(
+        payload && Number.isFinite(Number(payload.pitch)) ? Number(payload.pitch) : 0.72,
+        0,
+        2
+      );
+      utterance.lang = 'en-US';
+      state.activeSpeech = utterance;
+      global.speechSynthesis.speak(utterance);
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   function handleAction(actionName, payload) {
+    if (actionName === 'crowdOoh') {
+      return playCrowdOoh(payload || {});
+    }
+
     var action = ACTION_MAP[actionName];
     if (!action) return false;
 

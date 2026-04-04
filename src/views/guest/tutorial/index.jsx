@@ -1,15 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Spinner } from 'react-bootstrap';
-import { guestLogin, joinGuestTutorialTable } from 'query/guest.query';
+import { joinGuestTutorialTable } from 'query/guest.query';
 import roundOneTutorial from '../../../assets/images/bg/round_1_tutorial.png';
 import sceneOne from '../../../assets/images/bg/scene_1.png';
 import communityCards from '../../../assets/images/bg/community.png';
-import singleCharacter from '../../../assets/images/bg/single_character.png';
+import guestWelcomeCharacter from '../../../assets/images/bg/master_welcome.png';
 import callButtonTutorial from '../../../assets/images/buttons/call_button_tutorial.png';
 import raiseButtonTutorial from '../../../assets/images/buttons/raise_button_tutorial.png';
 import callStandButtonTutorial from '../../../assets/images/buttons/call_stand_button_ tutorial.png';
 import foldButtonTutorial from '../../../assets/images/buttons/fold_button_tutorial.png';
+import { getGuestDeviceId, loginGuestWithDeviceId } from '../session';
 
 const TUTORIAL_STEPS = [
     {
@@ -81,7 +82,7 @@ const TUTORIAL_STEPS = [
     {
         id: 'showdown',
         type: 'image',
-        image: singleCharacter,
+        image: guestWelcomeCharacter,
         imageAlt: '21 Holdem tutorial host character',
         title: 'Ready For The Showdown?',
         body: 'Once all players are happy with their totals, without going over 21, we see who has won.',
@@ -94,16 +95,6 @@ const TUTORIAL_STEPS = [
         caption: 'That is the core action row: Call, Raise, Call / Stand, and Fold. Once those feel familiar, you are ready for the guided table.',
     },
 ];
-
-function getGuestDeviceId() {
-    const storageKey = 'guest-device-id';
-    const existingId = window.localStorage.getItem(storageKey);
-    if (existingId) return existingId;
-
-    const nextId = `guest-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    window.localStorage.setItem(storageKey, nextId);
-    return nextId;
-}
 
 function GuestTutorialLanding() {
     const navigate = useNavigate();
@@ -184,10 +175,7 @@ function GuestTutorialLanding() {
         setError('');
 
         try {
-            const loginResponse = await guestLogin({ sDeviceId: guestDeviceId });
-            const sAuthToken = loginResponse?.headers?.authorization || loginResponse?.data?.data?.sToken;
-            if (!sAuthToken) throw new Error('Guest token was not returned');
-
+            const sAuthToken = await loginGuestWithDeviceId(guestDeviceId);
             const joinResponse = await joinGuestTutorialTable({ sAuthToken });
             const iBoardId = joinResponse?.data?.data?.iBoardId;
             if (!iBoardId) throw new Error('Tutorial table was not created');
@@ -261,7 +249,7 @@ function GuestTutorialLanding() {
                         <div className='guest-landing__preview-footer guest-landing__preview-chat'>
                             <div className='guest-landing__chat-meta'>
                                 <div className='guest-landing__chat-avatar'>
-                                    <img src={singleCharacter} alt='Tutorial host avatar' />
+                                    <img src={guestWelcomeCharacter} alt='Tutorial host avatar' />
                                 </div>
                                 <div>
                                     <strong>Tutorial Host</strong>

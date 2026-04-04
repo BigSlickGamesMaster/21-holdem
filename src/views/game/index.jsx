@@ -3,9 +3,10 @@ import Phaser from "phaser";
 import Preload from "../../scenes/Preload";
 import Level from "../../scenes/Level";
 import config from "../../scripts/config";
+import { clearSavedGameUiLayout } from "../../scripts/gameUiLayout";
 import { useLocation, useNavigate } from "react-router-dom";
-import logo from '../../assets/images/splash/logo.png';
 import game_bg from '../../assets/images/bg/game_bg.png';
+import portrait_table from '../../assets/images/gameplay/portrate_table.png';
 
 class Boot extends Phaser.Scene {
     constructor() {
@@ -24,8 +25,8 @@ class Boot extends Phaser.Scene {
             sPrivateCode: this.sPrivateCode,
             isGuestTutorial: this.isGuestTutorial,
         }
-        this.load.image('logo', logo);
         this.load.image('game_bg', game_bg);
+        this.load.image('preload_table', portrait_table);
         this.load.on(Phaser.Loader.Events.COMPLETE, () => this.scene.start("Preload", data));
     }
 }
@@ -34,22 +35,21 @@ function Game({ isPausedExternally = false }) {
     const navigate = useNavigate();
     const gameRef = useRef(null);
     const phaserGameRef = useRef(null);
-    const [showLandscapeTip, setShowLandscapeTip] = useState(false);
+    const [layoutMode, setLayoutMode] = useState(() => (typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'desktop' : 'mobile'));
 
     useEffect(() => {
-        const updateLandscapeTip = () => {
-            const isNarrowScreen = window.innerWidth <= 991;
-            const isPortrait = window.innerHeight > window.innerWidth;
-            setShowLandscapeTip(isNarrowScreen && isPortrait);
+        const updateLayoutMode = () => {
+            const nextLayoutMode = window.innerWidth >= 1024 ? 'desktop' : 'mobile';
+            setLayoutMode(previousLayoutMode => (previousLayoutMode === nextLayoutMode ? previousLayoutMode : nextLayoutMode));
         };
 
-        updateLandscapeTip();
-        window.addEventListener('resize', updateLandscapeTip);
-        window.addEventListener('orientationchange', updateLandscapeTip);
+        updateLayoutMode();
+        window.addEventListener('resize', updateLayoutMode);
+        window.addEventListener('orientationchange', updateLayoutMode);
 
         return () => {
-            window.removeEventListener('resize', updateLandscapeTip);
-            window.removeEventListener('orientationchange', updateLandscapeTip);
+            window.removeEventListener('resize', updateLayoutMode);
+            window.removeEventListener('orientationchange', updateLayoutMode);
         };
     }, []);
 
@@ -58,6 +58,8 @@ function Game({ isPausedExternally = false }) {
             navigate(fallbackPath);
             return;
         }
+        clearSavedGameUiLayout();
+        config.setLayout('mobile');
         const gameConfig = {
             type: Phaser.AUTO,
             width: config.width,
@@ -88,7 +90,7 @@ function Game({ isPausedExternally = false }) {
             game.destroy(true);
         };
 
-    }, [fallbackPath, iBoardId, isGuestTutorial, navigate, sAuthToken]);
+    }, [fallbackPath, iBoardId, isGuestTutorial, layoutMode, navigate, sAuthToken]);
 
     useEffect(() => {
         const game = phaserGameRef.current;
@@ -111,12 +113,9 @@ function Game({ isPausedExternally = false }) {
     }, [isPausedExternally]);
 
     return (
-        <>
-            {showLandscapeTip ? (
-                <div className='game-orientation-tip'>Best on landscape. Turn your device sideways for the full table view.</div>
-            ) : null}
-            <div id='game-stage' className='game-stage' ref={gameRef} />
-        </>
+        <div className={`game-shell game-shell--${layoutMode}`}>
+            <div id='game-stage' className={`game-stage game-stage--${layoutMode}`} ref={gameRef} />
+        </div>
     );
 }
 

@@ -82,7 +82,7 @@ class Board extends Service {
 
         const oCard = this.aDeck.pop();
         participant.aCardHand.push(oCard);
-        participant.nCardScore += oCard.nValue;
+        participant.nCardScore = (Number(participant.nCardScore) || 0) + (Number(oCard?.nValue) || 0);
         participant.emit('resCardHand', { aCardHand: participant.aCardHand, nCardScore: participant.nCardScore });
 
         participant.updateUser({ $inc: { nGamePlayed: 1 } });
@@ -114,7 +114,7 @@ class Board extends Service {
           participant.aUserAction = participant.aUserAction.map(action => (action === 'c' ? 'ck' : action === 'd' ? 's' : action));
         }
         if (participant.isDoubleDownLock) continue;
-        participant.nCardScore += oCard.nValue;
+        participant.nCardScore = (Number(participant.nCardScore) || 0) + (Number(oCard?.nValue) || 0);
 
         if (participant.nCardScore > 21) {
           for (const card of this.aCommunityCard) {
@@ -156,6 +156,14 @@ class Board extends Service {
       await this.update({ aCommunityCard: this.aCommunityCard, aParticipant: this.aParticipant.map(p => p.toJSON()) });
       await this.emit('resCommunityCard', { aCommunityCard: this.aCommunityCard, aParticipant: this.aParticipant });
 
+      const aPerfectScoreWinners = this.aParticipant.filter(participant => {
+        const nParticipantScore = Number(participant.nCardScore) || 0;
+        return participant.eState === 'playing' && nParticipantScore === 21;
+      });
+      if (aPerfectScoreWinners.length) {
+        return await this.declareResult(aPerfectScoreWinners, 'dealCommunityCard: exact 21 winner');
+      }
+
       let allParticipantsAreBust = true;
       for (const participant of this.aParticipant) {
         if (participant.eState === 'playing') {
@@ -170,11 +178,12 @@ class Board extends Service {
         let aWinner = [];
 
         for (const participant of this.aParticipant) {
-          if (participant.eState == 'playing' && participant.nCardScore <= 21) {
-            if (participant.nCardScore > maxScore) {
-              maxScore = participant.nCardScore;
+          const nParticipantScore = Number(participant.nCardScore) || 0;
+          if (participant.eState === 'playing' && nParticipantScore <= 21) {
+            if (nParticipantScore > maxScore) {
+              maxScore = nParticipantScore;
               aWinner = [participant];
-            } else if (participant.nCardScore === maxScore) {
+            } else if (nParticipantScore === maxScore) {
               aWinner.push(participant);
             }
           }
@@ -209,6 +218,9 @@ class Board extends Service {
         if (aPlayingParticipants.length <= 1) return await this.declareResult(aPlayingParticipants, 'dealCommunityCard: invalid userTurn fallback');
         return log.red('userTurn not found in dealCommunityCard');
       }
+
+      const nRevealDelay = Math.max(Number(this.oSetting?.nAnimationCountdown) || 0, 850);
+      await _.delay(nRevealDelay);
       userTurn.takeTurn();
     } catch (error) {
       console.log('dealCommunityCard', error);
@@ -244,7 +256,7 @@ class Board extends Service {
 
         const getContribution = participant => Math.max(Number(participant.nTotalBidChips) || 0, 0);
         const payoutByUserId = new Map();
-        const showdownEligible = this.aParticipant.filter(p => p.eState === 'playing' && p.nCardScore <= 21);
+        const showdownEligible = this.aParticipant.filter(p => p.eState === 'playing' && (Number(p.nCardScore) || 0) <= 21);
         const showdownEligibleIds = new Set(showdownEligible.map(p => _.toString(p.iUserId)));
         const contributedPlayers = this.aParticipant.filter(p => getContribution(p) > 0);
         const contributionLevels = [...new Set(contributedPlayers.map(getContribution).filter(v => v > 0))].sort((a, b) => a - b);
@@ -296,10 +308,11 @@ class Board extends Service {
             let nMaxScore = 0;
             let aPotWinners = [];
             for (const participant of aPotContestants) {
-              if (participant.nCardScore > nMaxScore) {
-                nMaxScore = participant.nCardScore;
+              const nParticipantScore = Number(participant.nCardScore) || 0;
+              if (nParticipantScore > nMaxScore) {
+                nMaxScore = nParticipantScore;
                 aPotWinners = [participant];
-              } else if (participant.nCardScore === nMaxScore) {
+              } else if (nParticipantScore === nMaxScore) {
                 aPotWinners.push(participant);
               }
             }

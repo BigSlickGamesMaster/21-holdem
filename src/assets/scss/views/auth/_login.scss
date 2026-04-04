@@ -290,18 +290,67 @@
 
                                         .form-check-input {
                                             width: auto;
+                                            min-width: 22px;
+                                            height: 22px;
                                             margin-bottom: 5px;
+                                            margin-top: 0;
                                             padding: 10px;
+                                            border: 1px solid rgba(223, 242, 255, 0.68);
+                                            background-color: rgba(6, 21, 43, 0.9);
+                                            box-shadow: 0 0 0 1px rgba(66, 160, 255, 0.16);
                                         }
 
                                         .form-check-input:checked[type=checkbox] {
                                             --bs-form-check-bg-image: url(data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3E%3C/svg%3E);
+                                            background-color: #43e6b0;
+                                            border-color: #43e6b0;
+                                            box-shadow: 0 0 0 1px rgba(67, 230, 176, 0.3), 0 0 18px rgba(67, 230, 176, 0.45);
+                                        }
+
+                                        .form-check-input:focus {
+                                            border-color: #74a9ff;
+                                            box-shadow: 0 0 0 0.2rem rgba(116, 169, 255, 0.18);
                                         }
 
                                         .form-check-label {
                                             color: var(--white-color);
                                             font-size: 16px !important;
                                             font-weight: 400;
+                                        }
+
+                                        &.auth-terms-check {
+                                            align-items: flex-start;
+                                            gap: 4px 10px;
+
+                                            .auth-terms-copy {
+                                                display: inline-flex;
+                                                align-items: center;
+                                                flex-wrap: wrap;
+                                                gap: 0 8px;
+                                                color: rgba(244, 251, 255, 0.92);
+                                                font-family: "Neue Plak Condensed";
+                                                font-size: 16px;
+                                                line-height: 1.25;
+                                            }
+
+                                            .auth-terms-joiner {
+                                                color: rgba(244, 251, 255, 0.92);
+                                                font-weight: 500;
+                                            }
+
+                                            .auth-terms-link {
+                                                color: #8cd6ff;
+                                                font-family: "Neue Plak Condensed";
+                                                font-size: 16px;
+                                                font-weight: 700;
+                                                line-height: 1.25;
+                                                text-decoration: underline;
+
+                                                &:hover,
+                                                &:focus {
+                                                    color: #c2edff;
+                                                }
+                                            }
                                         }
                                     }
 
@@ -488,6 +537,13 @@
                                             .form-check-label {
                                                 font-size: 16px;
                                             }
+
+                                            &.auth-terms-check {
+                                                .auth-terms-copy,
+                                                .auth-terms-link {
+                                                    font-size: 16px;
+                                                }
+                                            }
                                         }
 
                                         .forgot-password,
@@ -640,6 +696,13 @@
                                             .form-check-label {
                                                 font-size: 14px;
                                             }
+
+                                            &.auth-terms-check {
+                                                .auth-terms-copy,
+                                                .auth-terms-link {
+                                                    font-size: 14px;
+                                                }
+                                            }
                                         }
 
                                         .forgot-password,
@@ -771,6 +834,13 @@
                                             .form-check-label {
                                                 font-size: 14px;
                                             }
+
+                                            &.auth-terms-check {
+                                                .auth-terms-copy,
+                                                .auth-terms-link {
+                                                    font-size: 14px;
+                                                }
+                                            }
                                         }
 
                                         .forgot-password,
@@ -870,8 +940,17 @@
                                         flex-direction: column;
 
                                         .form-check {
+                                            max-width: 100%;
+
                                             .form-check-label {
                                                 font-size: 14px;
+                                            }
+
+                                            &.auth-terms-check {
+                                                .auth-terms-copy,
+                                                .auth-terms-link {
+                                                    font-size: 14px;
+                                                }
                                             }
                                         }
 

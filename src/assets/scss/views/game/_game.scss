@@ -1,8 +1,12 @@
-body {
+html,
+body,
+#root {
     // background-color: #343639;
     // margin: 0;
     // padding: 0;
     // overflow: hidden;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 #game-stage canvas {
@@ -37,37 +41,225 @@ body {
     padding: 0;
 }
 
+.game-shell {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+}
+
 #game-stage {
     position: relative;
-    width: min(calc(100vw - 24px), calc((var(--vh, 1vh) * 100 - 24px) * 1.7777778));
-    aspect-ratio: 16 / 9;
-    max-width: 1920px;
+    overflow: hidden;
+}
+
+.game-shell--mobile #game-stage,
+.game-stage--mobile {
+    width: min(100%, calc((var(--vh, 1vh) * 100) * 0.5625));
+    aspect-ratio: 9 / 16;
+    max-width: 1080px;
+    max-height: calc(var(--vh, 1vh) * 100);
+    margin: 0;
+}
+
+.game-shell--desktop #game-stage,
+.game-stage--desktop {
+    width: min(calc(100% - 24px), calc((var(--vh, 1vh) * 100 - 24px) * 0.5625));
+    aspect-ratio: 9 / 16;
+    max-width: 1080px;
     max-height: calc(var(--vh, 1vh) * 100 - 24px);
     margin: 0 auto;
 }
 
-.game-orientation-tip {
-    position: absolute;
-    top: 14px;
-    left: 50%;
-    z-index: 40;
-    transform: translateX(-50%);
-    width: min(calc(100vw - 24px), 460px);
-    padding: 10px 14px;
-    border: 1px solid rgba(255, 194, 71, 0.34);
-    border-radius: 14px;
-    background: rgba(16, 14, 6, 0.88);
-    color: #ffe2a1;
-    font-size: 13px;
-    font-weight: 700;
-    text-align: center;
-    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.32);
+@media (max-width: 1280px) {
+    .game-shell--mobile #game-stage,
+    .game-stage--mobile {
+        width: min(100%, calc((var(--vh, 1vh) * 100) * 0.5625));
+        max-height: calc(var(--vh, 1vh) * 100);
+    }
 }
 
-@media (max-width: 1280px) {
-    #game-stage {
-        width: min(calc(100vw - 12px), calc((var(--vh, 1vh) * 100 - 12px) * 1.7777778));
-        max-height: calc(var(--vh, 1vh) * 100 - 12px);
+.game-ui-layout {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    z-index: 40;
+    width: min(320px, calc(100% - 28px));
+    pointer-events: none;
+}
+
+.game-ui-layout__toggle {
+    width: 100%;
+    border: 1px solid rgba(140, 212, 255, 0.24);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(10, 29, 47, 0.96) 0%, rgba(6, 18, 29, 0.98) 100%);
+    color: #f3fbff;
+    padding: 12px 16px 10px;
+    font-size: 16px;
+    font-family: "Neue Plak Condensed";
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+    pointer-events: auto;
+}
+
+.game-ui-layout__panel {
+    margin-top: 10px;
+    border: 1px solid rgba(140, 212, 255, 0.22);
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(9, 28, 45, 0.96) 0%, rgba(5, 16, 27, 0.98) 100%);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+    backdrop-filter: blur(14px);
+    padding: 16px;
+    max-height: min(78vh, 720px);
+    overflow-y: auto;
+    pointer-events: auto;
+}
+
+.game-ui-layout__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+
+    h2 {
+        margin: 4px 0 0;
+        color: #ffffff;
+        font-size: 28px;
+        line-height: 1;
+        font-family: "TT Commons";
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+    }
+}
+
+.game-ui-layout__eyebrow {
+    margin: 0;
+    color: #89d5ff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.game-ui-layout__saved,
+.game-ui-layout__status {
+    color: #8dfcb3;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.game-ui-layout__help {
+    margin: 12px 0 0;
+    color: rgba(233, 244, 250, 0.9);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.game-ui-layout__group {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(140, 212, 255, 0.12);
+
+    h3 {
+        margin: 0 0 12px;
+        color: #ffffff;
+        font-size: 16px;
+        font-family: "TT Commons";
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+}
+
+.game-ui-layout__control + .game-ui-layout__control {
+    margin-top: 12px;
+}
+
+.game-ui-layout__control-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+
+    span {
+        color: #f3fbff;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    input {
+        width: 82px;
+        border: 1px solid rgba(140, 212, 255, 0.18);
+        border-radius: 12px;
+        background: rgba(4, 14, 24, 0.92);
+        color: #ffffff;
+        padding: 8px 10px;
+        font-size: 14px;
+        text-align: right;
+    }
+}
+
+.game-ui-layout__slider {
+    width: 100%;
+    accent-color: #6cc7ff;
+}
+
+.game-ui-layout__actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+
+    button {
+        flex: 1 1 0;
+        border: 0;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #8dfcb3 0%, #44da89 100%);
+        color: #072133;
+        padding: 12px 14px 10px;
+        font-size: 15px;
+        font-family: "Neue Plak Condensed";
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        box-shadow: 0 12px 24px rgba(62, 191, 122, 0.18);
+    }
+
+    .is-secondary {
+        border: 1px solid rgba(140, 212, 255, 0.28);
+        background: rgba(9, 28, 45, 0.96);
+        color: #f3fbff;
+        box-shadow: none;
+    }
+}
+
+.game-ui-layout__status {
+    margin: 12px 0 0;
+}
+
+@media (max-width: 767px) {
+    .game-ui-layout {
+        top: 10px;
+        left: 10px;
+        width: min(300px, calc(100% - 20px));
+    }
+
+    .game-ui-layout__panel {
+        max-height: 56vh;
+        padding: 14px;
+    }
+
+    .game-ui-layout__header h2 {
+        font-size: 24px;
+    }
+
+    .game-ui-layout__actions {
+        flex-direction: column;
     }
 }
 

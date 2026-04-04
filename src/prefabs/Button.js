@@ -24,6 +24,7 @@ export default class Button extends Phaser.GameObjects.Container {
                 stroke: true,
             },
             iconTexture = '',
+            iconScale = 1,
             iconX = 0,
             iconY = 0,
             sound = scene.oSoundManager.click_sound,
@@ -75,11 +76,14 @@ export default class Button extends Phaser.GameObjects.Container {
         ).setOrigin(0.5);
         this.add(this.btn_text);
 
+        this.btn_icon = null;
         if (iconTexture) {
             const icon = scene.add.image(iconX, iconY, iconTexture);
+            icon.setScale(iconScale);
             icon.setX(this.btn_text.x - this.btn_text.displayWidth / 2);
             this.btn_text.setX(icon.x + icon.displayWidth / 2 + this.btn_text.displayWidth / 2 + 10);
             this.add(icon);
+            this.btn_icon = icon;
         }
     }
 }

@@ -140,9 +140,9 @@ const Profile = () => {
                                             </div>
 
                                             <div className="avatar-picker-copy">
-                                                <div className="avatar-picker-title">Pick a player icon</div>
+                                                <div className="avatar-picker-title">Choose your profile image</div>
                                                 <div className="avatar-picker-text">
-                                                    Temporary built-in item avatars while custom profile art is still being finished.
+                                                    Your new profile image set is ready. Pick the look you want to take to the table.
                                                 </div>
                                             </div>
                                             <div className="avatar-list">

@@ -10,6 +10,9 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     super(scene, x, y);
     scene.add.existing(this);
     this.scene = scene;
+    this.isLocalSeat = nPlayerIndex === 0;
+    this.isRightSideSeat = !this.isLocalSeat && x > (config.centerX + 32);
+    this.profileScaleBoost = 1.3;
     const style = {
       fontSize: "20px",
       fontFamily: config.playerFont,
@@ -29,10 +32,10 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.container_profile = scene.add
       .container(0, 0)
       .setVisible(false)
-      .setScale(nPlayerIndex == 0 ? 1 : 0.7);
+      .setScale(nPlayerIndex == 0 ? 0.97 * this.profileScaleBoost : 0.73 * this.profileScaleBoost);
     this.add(this.container_profile);
 
-    this.container_cards = scene.add.container(0, -120);
+    this.container_cards = scene.add.container(0, nPlayerIndex === 0 ? -164 : -108);
     this.container_profile.add(this.container_cards);
 
     const createPromptContainer = (type) => {
@@ -83,6 +86,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .image(150, 0, assets.bettingLabel_base)
       .setAlpha(1)
       .setScale(0.7);
+    this.bettingLabel_base = bettingLabel_base;
     this.container_bettingLabel.add(bettingLabel_base);
     this.txt_bettingLabel = scene.add
       .text(bettingLabel_base.x + 20, bettingLabel_base.y - 10, "", {
@@ -108,25 +112,27 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     const profile_box = scene.add.image(0, 0, assets.player_profile);
     this.container_profile.add(profile_box);
 
-    const profileSize = nPlayerIndex === 0 ? 180 : 120;
+    const profileSize = nPlayerIndex === 0 ? 180 : 128;
+    const profileOffsetY = nPlayerIndex === 0 ? -4 : -2;
     this.profileSize = profileSize;
+    this.profileCoverScale = nPlayerIndex === 0 ? 1.3 : 1.46;
+    this.profileOffsetY = profileOffsetY;
+    this.profileMaskDiameter = profileSize;
 
     this.profile = scene.add
-      .image(0, 0, assets.profile_picture)
-      .setDisplaySize(profileSize, profileSize)
+      .image(0, profileOffsetY, assets.profile_picture)
       .setScale(nPlayerIndex === 0 ? 1 : 1);
     this.container_profile.add(this.profile);
+    this.applyProfileTextureLayout();
 
-    const mask = scene.make.graphics();
-    mask.fillStyle(0xffffff);
-    mask.fillRoundedRect(
-      x - profileSize / 2,
-      y - profileSize / 2,
-      profileSize,
-      profileSize,
-      profileSize / 2
+    const profileMask = scene.make.graphics({ add: false });
+    profileMask.fillStyle(0xffffff);
+    profileMask.fillCircle(
+      x,
+      y + profileOffsetY * this.container_profile.scaleY,
+      (profileSize * this.container_profile.scaleX) / 2
     );
-    this.profile.setMask(mask.createGeometryMask());
+    this.profile.setMask(profileMask.createGeometryMask());
 
     this.my_player = scene.add.container(0, 0).setVisible(false);
     this.container_profile.add(this.my_player);
@@ -173,7 +179,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
         "0",
         {
           ...style,
-          fontSize: "26px",
+          fontSize: "30px",
           fontStyle: "bold",
           fontFamily: config.playerFontBold,
         }
@@ -186,6 +192,25 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
         this.txt_price.displayWidth / 1.5
     );
     this.other_player.add(this.txt_price);
+
+    this.self_bankroll_base = scene.add
+      .rectangle(0, 126, 194, 56, 0x030507, 0.94)
+      .setStrokeStyle(2, 0x223342, 0.96);
+    this.my_player.add(this.self_bankroll_base);
+
+    this.self_chip_icon = scene.add.image(-70, this.self_bankroll_base.y + 1, assets.chip_icon).setScale(0.82);
+    this.my_player.add(this.self_chip_icon);
+
+    this.self_txt_price = scene.add
+      .text(-42, this.self_chip_icon.y, "0", {
+        ...style,
+        fontSize: "32px",
+        fontStyle: "bold",
+        fontFamily: config.playerFontBold,
+        color: "#ffffff",
+      })
+      .setOrigin(0, 0.5);
+    this.my_player.add(this.self_txt_price);
 
     this.turn_timer = scene.add.image(0, 0, assets.timer).setVisible(false);
     this.container_profile.add(this.turn_timer);
@@ -200,13 +225,14 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
 
     this.score_bg = scene.add
       .image(100, -70, assets.score_bg)
+      .setScale(1.12)
       .setVisible(false);
     this.container_profile.add(this.score_bg);
 
     this.txt_score = scene.add
       .text(this.score_bg.x, this.score_bg.y, "0", {
         ...style,
-        fontSize: "32px",
+        fontSize: "38px",
         fontStyle: "bold",
       })
       .setOrigin(0.5)
@@ -236,6 +262,8 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setScale(0.7)
       .setVisible(false);
     this.other_player.add(this.raise_arrow);
+
+    this.updateBettingLabelLayout();
   }
   setProfile({ sUserName, sAvatar }) {
     this.txt_name.setText(_.appendSuffix(_.getFirstCapital(sUserName)));
@@ -251,8 +279,19 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       turn_timer: this.turn_timer,
     };
   }
+  clearScore() {
+    this.txt_score.setText("");
+    this.score_bg.setVisible(false);
+    this.txt_score.setVisible(false);
+  }
   setScore(nScore) {
-    this.txt_score.setText(nScore);
+    const parsedScore = Number(nScore);
+    if (!Number.isFinite(parsedScore) || parsedScore <= 0) {
+      this.clearScore();
+      return;
+    }
+
+    this.txt_score.setText(parsedScore);
     this.score_bg.setVisible(true);
     this.txt_score.setVisible(true);
   }
@@ -276,6 +315,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     }
   }
   setBettingLabel(sBettingLabel, nAmount = null) {
+    this.updateBettingLabelLayout();
     this.container_bettingLabel.setVisible(true);
     this.txt_bettingLabel.setText(sBettingLabel);
 
@@ -307,6 +347,20 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.dd_highlighter.setVisible(false);
   }
 
+  updateBettingLabelLayout() {
+    if (!this.bettingLabel_base || !this.txt_bettingLabel || !this.txt_bettingAmount || !this.raise_arrow) return;
+
+    const nBannerOffsetX = this.isRightSideSeat ? -164 : 164;
+    const nTextOffsetX = this.isRightSideSeat ? -18 : 18;
+    const nRaiseArrowX = this.isRightSideSeat ? -108 : 100;
+
+    this.bettingLabel_base.setX(nBannerOffsetX);
+    this.bettingLabel_base.setFlipX(this.isRightSideSeat);
+    this.txt_bettingLabel.setX(this.bettingLabel_base.x + nTextOffsetX);
+    this.txt_bettingAmount.setX(this.bettingLabel_base.x + nTextOffsetX);
+    this.raise_arrow.setX(nRaiseArrowX);
+  }
+
   setWaiting() {
     this.txt_name.setVisible(false);
     this.chip_icon.setVisible(false);
@@ -320,6 +374,17 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.txt_waiting.setVisible(false);
   }
   setAmountIn(nAmountIn) {
+    if (this.isLocalSeat && this.self_chip_icon && this.self_txt_price) {
+      this.self_chip_icon.setX(-70);
+      this.self_txt_price.setX(-42);
+      this.self_txt_price.setText(
+        nAmountIn < 9999
+          ? _.formatCurrencyWithComa(nAmountIn)
+          : _.formatCurrency(nAmountIn)
+      );
+      return;
+    }
+
     this.chip_icon.setX(-50);
     this.txt_price.setX(this.chip_icon.x + this.chip_icon.displayWidth);
     this.txt_price.setText(
@@ -361,7 +426,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
   setProfileImage(url, name) {
     const setDefaultProfile = () => {
       this.profile.setTexture(assets.profile_picture);
-      this.profile.setDisplaySize(this.profileSize, this.profileSize);
+      this.applyProfileTextureLayout();
     };
     const resolvedUrl = getAvatarImageSrc(url, name);
     if (resolvedUrl) {
@@ -378,7 +443,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
         this.scene.load.once("complete", () => {
           if (this.scene.textures.exists(textureKey)) {
             this.profile.setTexture(textureKey);
-            this.profile.setDisplaySize(this.profileSize, this.profileSize);
+            this.applyProfileTextureLayout();
           } else {
             console.error("Texture does not exist after loading:", textureKey);
             setDefaultProfile();
@@ -396,6 +461,24 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     } else {
       setDefaultProfile();
     }
+  }
+  applyProfileTextureLayout() {
+    const frame = this.profile?.frame;
+    const sourceWidth =
+      Number(frame?.realWidth) ||
+      Number(frame?.width) ||
+      Number(this.profile?.width) ||
+      this.profileMaskDiameter;
+    const sourceHeight =
+      Number(frame?.realHeight) ||
+      Number(frame?.height) ||
+      Number(this.profile?.height) ||
+      this.profileMaskDiameter;
+    const targetDiameter = this.profileMaskDiameter * this.profileCoverScale;
+    const coverScale = Math.max(targetDiameter / sourceWidth, targetDiameter / sourceHeight);
+
+    this.profile.setDisplaySize(sourceWidth * coverScale, sourceHeight * coverScale);
+    this.profile.setY(this.profileOffsetY);
   }
   resTurnTimer = ({ ttl, nTotalTurnTime, nGraceTime, eTurnType, iUserId }) => {
     this.resetTurnTimer();
@@ -524,6 +607,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     });
   }
   setLeave() {
+    this.clearScore();
     this.container_profile.setVisible(false);
     this.container_emptySpot.setVisible(false);
   }

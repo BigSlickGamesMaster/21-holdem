@@ -1,3 +1,5 @@
+import config from './config';
+
 /**
  * ==========================================================
  * GameManager.js — BEGINNER “CONTROL PANEL” + SAFE EDIT ZONES
@@ -101,17 +103,29 @@ export default class GameManager {
     // Expected outcome: ONLY visual movement of player HUDs.
     // ==========================================================
     getPlayerProfileSpecs(nPlayer) {
-        const aPlayerProfile = [
-            { x: 960, y: 860 }, // 0 (bottom center)
-            { x: 600, y: 760 }, // 1 (bottom left)
-            { x: 310, y: 600 }, // 2 (bottom middle left)
-            { x: 310, y: 260 }, // 3 (middle right)
-            { x: 640, y: 160 }, // 4 (top left)
-            { x: 1280, y: 160 }, // 5 (top right)
-            { x: 1610, y: 260 }, // 6 (middle right)
-            { x: 1610, y: 600 }, // 7 (bottom middle right)
-            { x: 1320, y: 760 }, // 8 (bottom right)
-        ]
+        const aPlayerProfile = config.isDesktopLayout()
+            ? [
+                { x: 960, y: 860 }, // 0
+                { x: 600, y: 760 }, // 1
+                { x: 310, y: 600 }, // 2
+                { x: 310, y: 260 }, // 3
+                { x: 640, y: 160 }, // 4
+                { x: 1280, y: 160 }, // 5
+                { x: 1610, y: 260 }, // 6
+                { x: 1610, y: 600 }, // 7
+                { x: 1320, y: 760 }, // 8
+            ]
+            : [
+                { x: 540, y: 1460 }, // 0
+                { x: 282, y: 1350 }, // 1
+                { x: 116, y: 1092 }, // 2
+                { x: 112, y: 804 }, // 3
+                { x: 284, y: 540 }, // 4
+                { x: 796, y: 540 }, // 5
+                { x: 968, y: 804 }, // 6
+                { x: 964, y: 1092 }, // 7
+                { x: 798, y: 1350 }, // 8
+            ];
         return aPlayerProfile[nPlayer];
     }
     getHighCardSpecs(nPlayer) {
