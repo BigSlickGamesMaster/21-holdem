@@ -30,8 +30,6 @@ class Participant extends Service {
       this.nTotalBidChips = (this.nTotalBidChips ?? 0) + nCallAmount;
       if (!bCallStand && this.nChips <= 0) {
         this.nChips = 0;
-        this.isAllInLock = true;
-        this.aUserAction = ['f'];
       }
 
       if (nCallAmount > 0) {
@@ -126,8 +124,6 @@ class Participant extends Service {
       this.nTotalBidChips = (this.nTotalBidChips ?? 0) + nTotalDebit;
       if (!bRaiseStand && this.nChips <= 0) {
         this.nChips = 0;
-        this.isAllInLock = true;
-        this.aUserAction = ['f'];
       }
 
       await this.recordTransaction({

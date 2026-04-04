@@ -115,7 +115,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     const profileSize = nPlayerIndex === 0 ? 180 : 128;
     const profileOffsetY = nPlayerIndex === 0 ? -4 : -2;
     this.profileSize = profileSize;
-    this.profileCoverScale = nPlayerIndex === 0 ? 1.3 : 1.46;
+    this.profileCoverScale = nPlayerIndex === 0 ? 1.34 : 1.52;
     this.profileOffsetY = profileOffsetY;
     this.profileMaskDiameter = profileSize;
 
@@ -477,8 +477,9 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     const targetDiameter = this.profileMaskDiameter * this.profileCoverScale;
     const coverScale = Math.max(targetDiameter / sourceWidth, targetDiameter / sourceHeight);
 
+    this.profile.setOrigin(0.5, 0.5);
     this.profile.setDisplaySize(sourceWidth * coverScale, sourceHeight * coverScale);
-    this.profile.setY(this.profileOffsetY);
+    this.profile.setPosition(0, this.profileOffsetY);
   }
   resTurnTimer = ({ ttl, nTotalTurnTime, nGraceTime, eTurnType, iUserId }) => {
     this.resetTurnTimer();

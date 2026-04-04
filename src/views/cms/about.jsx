@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom';
+import aboutVoiceover from '../../assets/sounds/21_Holdem_about.mp3';
 
 const highlights = [
     {
@@ -16,14 +17,45 @@ const highlights = [
     },
 ];
 
-const principles = [
-    'Build toward 21 without overcommitting chips too early.',
-    'Use Stand when you want to lock a total and stop later board cards from changing it.',
-    'Use Double Down when one final card is worth the extra risk.',
-    'Read the table, not just your own hand, because everyone shares the board.',
-];
-
 const About = () => {
+    const audioRef = useRef(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+
+    useEffect(() => {
+        const audio = new Audio(aboutVoiceover);
+        audioRef.current = audio;
+
+        const handleEnded = () => setIsPlaying(false);
+
+        audio.addEventListener('ended', handleEnded);
+
+        return () => {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.removeEventListener('ended', handleEnded);
+        };
+    }, []);
+
+    const handleListenToggle = async () => {
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        if (isPlaying) {
+            audio.pause();
+            audio.currentTime = 0;
+            setIsPlaying(false);
+            return;
+        }
+
+        try {
+            audio.currentTime = 0;
+            await audio.play();
+            setIsPlaying(true);
+        } catch (_error) {
+            setIsPlaying(false);
+        }
+    };
+
     return (
         <div className='cms-page about-page'>
             <div className="cms-header">About 21 Hold&apos;em</div>
@@ -38,6 +70,19 @@ const About = () => {
                         <p>
                             The goal is simple: make the strongest total you can without losing control of the hand. The interesting part is how you get there.
                         </p>
+                        <button
+                            type="button"
+                            className={`about-audio-button ${isPlaying ? 'is-playing' : ''}`}
+                            onClick={handleListenToggle}
+                            aria-pressed={isPlaying}
+                        >
+                            <span className="about-audio-icon" aria-hidden="true">
+                                {isPlaying ? '||' : '>'}
+                            </span>
+                            <span className="about-audio-copy">
+                                {isPlaying ? 'Stop Audio' : 'Listen'}
+                            </span>
+                        </button>
                     </div>
                     <div className="about-cta-card">
                         <div className="about-cta-label">No account needed to look around</div>
@@ -60,22 +105,6 @@ const About = () => {
                         </div>
                     ))}
                 </div>
-
-                <p className="content-title">What makes the game work</p>
-                <ul>
-                    {principles.map((item) => (
-                        <li key={item}>{item}</li>
-                    ))}
-                </ul>
-
-                <p className="content-title">What players should expect</p>
-                <p>
-                    Early hands are easy to read, but table pressure escalates quickly once betting opens. That is where discipline matters.
-                    Calling keeps you alive, standing protects a number you trust, and doubling down is a deliberate attack when one more card is worth the exposure.
-                </p>
-                <p>
-                    The current build is focused on getting the core table flow solid and readable first. The guest entry path, player identity polish, and content pass are part of that push.
-                </p>
             </div>
         </div>
     )

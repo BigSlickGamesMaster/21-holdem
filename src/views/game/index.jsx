@@ -7,6 +7,7 @@ import { clearSavedGameUiLayout } from "../../scripts/gameUiLayout";
 import { useLocation, useNavigate } from "react-router-dom";
 import game_bg from '../../assets/images/bg/game_bg.png';
 import portrait_table from '../../assets/images/gameplay/portrate_table.png';
+import GameActionOverlay from "./GameActionOverlay";
 
 class Boot extends Phaser.Scene {
     constructor() {
@@ -114,7 +115,9 @@ function Game({ isPausedExternally = false }) {
 
     return (
         <div className={`game-shell game-shell--${layoutMode}`}>
-            <div id='game-stage' className={`game-stage game-stage--${layoutMode}`} ref={gameRef} />
+            <div id='game-stage' className={`game-stage game-stage--${layoutMode}`} ref={gameRef}>
+                <GameActionOverlay isPaused={isPausedExternally} />
+            </div>
         </div>
     );
 }

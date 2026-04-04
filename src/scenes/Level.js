@@ -16,6 +16,11 @@ import Services from '../scripts/Services';
 import Animations from '../scripts/Animations';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
+import {
+    emitGameActionOverlayState,
+    GAME_ACTION_OVERLAY_COMMAND_EVENT,
+    hideGameActionOverlay,
+} from '../scripts/gameActionOverlayBridge';
 import GameInfo from 'prefabs/GameInfo';
 /**
  * ======================================================================
@@ -66,6 +71,10 @@ import GameInfo from 'prefabs/GameInfo';
 export default class Level extends Phaser.Scene {
     constructor() {
         super("Level");
+    }
+
+    getPlayfieldOffsetY() {
+        return -50;
     }
 
     getTableImageOffsetY() {
@@ -153,6 +162,10 @@ export default class Level extends Phaser.Scene {
 }
 
 enableContainerButtons(container) {
+    if (Array.isArray(container?.buttonKeys)) {
+        container.buttonKeys.forEach(key => this.setGameActionButtonEnabled(this.oButtons?.[key], true));
+    }
+
     container.list.forEach(btn => {
         if (btn.btn_image) {
             btn.btn_image.setInteractive();
@@ -162,6 +175,10 @@ enableContainerButtons(container) {
 
 // Helper method to disable all buttons in a container  
 disableContainerButtons(container) {
+    if (Array.isArray(container?.buttonKeys)) {
+        container.buttonKeys.forEach(key => this.setGameActionButtonEnabled(this.oButtons?.[key], false));
+    }
+
     container.list.forEach(btn => {
         if (btn.btn_image) {
             btn.btn_image.disableInteractive();
@@ -226,6 +243,26 @@ shouldShowPlayerScore(aCardHand = [], nCardScore = 0, playerProfile = null) {
     if (this.getIncomingHandIds(aCardHand).length > 0) return true;
 
     return (Number(playerProfile?.container_cards?.list?.length) || 0) > 0;
+}
+
+shouldRevealPlayerScore(player = null, aCardHand = [], nCardScore = 0, options = {}) {
+    const { forceReveal = false } = options;
+    if (!player?.playerProfile) return false;
+    if (!this.shouldShowPlayerScore(aCardHand, nCardScore, player.playerProfile)) return false;
+    if (forceReveal) return true;
+
+    return player.iUserId === this.iUserId;
+}
+
+syncPlayerScoreDisplay(player = null, nCardScore = 0, aCardHand = [], options = {}) {
+    if (!player?.playerProfile) return;
+
+    if (this.shouldRevealPlayerScore(player, aCardHand, nCardScore, options)) {
+        player.playerProfile.setScore(Number(nCardScore));
+        return;
+    }
+
+    player.playerProfile.clearScore?.();
 }
 
 playerHandNeedsReset(player, aCardHand = []) {
@@ -340,9 +377,214 @@ getFXOverlayScreenAnchor(gameObject, options = {}) {
     }
 }
 
-emitTutorialOverlay(detail = {}) {
-    if (!this.isGuestTutorial || typeof window === 'undefined') return;
-    window.dispatchEvent(new CustomEvent('guest-tutorial:update', { detail }));
+    emitTutorialOverlay(detail = {}) {
+        if (!this.isGuestTutorial || typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent('guest-tutorial:update', { detail }));
+    }
+
+createGameActionButtonState(command, label, variant = 'secondary') {
+    const button = {
+        command,
+        label,
+        variant,
+        visible: false,
+        enabled: true,
+        alpha: 1,
+        x: 0,
+        y: 0,
+        nRaiseAmount: 0,
+        bAllInMode: false,
+        bCallStandMode: false,
+        setVisible(nextVisible) {
+            button.visible = Boolean(nextVisible);
+            return button;
+        },
+        setAlpha(nextAlpha) {
+            button.alpha = Number(nextAlpha) || 0;
+            return button;
+        },
+        setPosition(nextX = 0, nextY = 0) {
+            button.x = Number(nextX) || 0;
+            button.y = Number(nextY) || 0;
+            return button;
+        },
+    };
+
+    button.btn_text = {
+        displayWidth: 0,
+        setText(nextLabel) {
+            button.label = String(nextLabel ?? '');
+            return button.btn_text;
+        },
+        setFontSize() { return button.btn_text; },
+        setFontFamily() { return button.btn_text; },
+        setColor() { return button.btn_text; },
+        setFontStyle() { return button.btn_text; },
+        setLetterSpacing() { return button.btn_text; },
+        setShadow() { return button.btn_text; },
+        setStroke() { return button.btn_text; },
+        setScale() { return button.btn_text; },
+        setX() { return button.btn_text; },
+        setY() { return button.btn_text; },
+        setVisible() { return button.btn_text; },
+    };
+
+    Object.defineProperty(button.btn_text, 'text', {
+        get: () => button.label,
+    });
+
+    button.btn_image = {
+        displayWidth: 0,
+        displayHeight: 0,
+        setTexture() { return button.btn_image; },
+        clearTint() { return button.btn_image; },
+        setScale() { return button.btn_image; },
+        setY() { return button.btn_image; },
+        setInteractive() {
+            button.enabled = true;
+            return button.btn_image;
+        },
+        disableInteractive() {
+            button.enabled = false;
+            return button.btn_image;
+        },
+    };
+
+    return button;
+}
+
+setGameActionButtonEnabled(button, enabled = true) {
+    if (!button) return;
+    button.enabled = Boolean(enabled);
+}
+
+getGameActionOverlayButton(button) {
+    if (!button?.visible) return null;
+
+    return {
+        key: button.command,
+        label: String(button.label || ''),
+        variant: button.variant || 'secondary',
+        disabled: button.enabled === false,
+        amount: Number(button.nRaiseAmount) || 0,
+    };
+}
+
+createGameActionOverlayRow(id, buttonKeys = [], className = '') {
+    const buttons = buttonKeys
+        .map(key => this.getGameActionOverlayButton(this.oButtons?.[key]))
+        .filter(Boolean);
+
+    if (!buttons.length) return null;
+
+    return {
+        id,
+        className,
+        buttons,
+    };
+}
+
+    syncGameActionOverlay() {
+        if (!this.oButtons) {
+            hideGameActionOverlay();
+            return;
+        }
+
+        const rows = [];
+
+        if (this.sRaiseUiMode === 'confirm') {
+            rows.push(
+                this.createGameActionOverlayRow('confirm', ['btn_confirmRaise', 'btn_standRaise', 'btn_cancelRaise'], 'game-action-overlay__row--three'),
+            );
+        } else if (this.sRaiseUiMode === 'builder') {
+            rows.push(
+                this.createGameActionOverlayRow('raise-top', ['btn_min', 'btn_halfPot', 'btn_fullPot'], 'game-action-overlay__row--three game-action-overlay__row--preset'),
+                this.createGameActionOverlayRow('raise-bottom', ['btn_cancel'], 'game-action-overlay__row--single'),
+            );
+        } else if (this.container_buttons?.visible) {
+            rows.push(
+                this.createGameActionOverlayRow('main-top', ['btn_fold', 'btn_call', 'btn_check'], 'game-action-overlay__row--three'),
+                this.createGameActionOverlayRow('main-bottom', ['btn_raise', 'btn_doubleDown', 'btn_stand'], 'game-action-overlay__row--three'),
+            );
+        }
+
+        const aVisibleRows = rows.filter(Boolean);
+
+        emitGameActionOverlayState({
+            visible: aVisibleRows.length > 0,
+            mode: this.sRaiseUiMode || (aVisibleRows.length > 0 ? 'main' : 'hidden'),
+            message: this.sRaiseUiMode === 'builder'
+                ? ''
+                : (this.sRaiseUiMode === 'confirm'
+                    ? `Raise ${this.formatRaiseAmountLabel(this.oGameManager?.tempRaiseAmount)}`
+                    : ''),
+            rows: aVisibleRows,
+        });
+    }
+
+bindGameActionOverlayEvents() {
+    if (typeof window === 'undefined') return;
+
+    this.handleGameActionOverlayCommand = (event) => {
+        const command = String(event?.detail?.command || '');
+        if (!command || !this.isMyTurn) return;
+
+        switch (command) {
+            case 'fold':
+                this.oSocketManager.emit(emitter.reqFold);
+                break;
+            case 'call':
+                if (this.oButtons?.btn_call?.bAllInMode) {
+                    this.oSocketManager.emit(emitter.reqRaise, { nRaiseAmount: this.getRaiseRequestAmountForAllIn() });
+                } else {
+                    this.oSocketManager.emit(emitter.reqCall);
+                }
+                break;
+            case 'check':
+                this.oSocketManager.emit(emitter.reqCheck);
+                break;
+            case 'raise':
+                this.openRaiseBuilder();
+                break;
+            case 'doubleDown':
+                this.oSocketManager.emit(emitter.reqDoubleDown);
+                break;
+            case 'stand':
+                if (this.oButtons?.btn_stand?.bCallStandMode) {
+                    this.oSocketManager.emit(emitter.reqCall, { bTakeCard: false });
+                } else {
+                    this.oSocketManager.emit(emitter.reqStand);
+                }
+                break;
+            case 'minRaise':
+                this.openRaiseConfirm(this.oButtons?.btn_min?.nRaiseAmount);
+                break;
+            case 'halfPotRaise':
+                this.openRaiseConfirm(this.oButtons?.btn_halfPot?.nRaiseAmount);
+                break;
+            case 'fullPotRaise':
+                this.openRaiseConfirm(this.oButtons?.btn_fullPot?.nRaiseAmount);
+                break;
+            case 'cancelRaiseBuilder':
+                this.container_raise_buttons?.setVisible(false);
+                this.container_confirm_raise?.setVisible(false);
+                this.showAllButtons(this.oTurnContext?.aUserAction, this.oTurnContext?.nMinBet, this.oTurnContext?.toCallAmount);
+                break;
+            case 'confirmRaise':
+                this.submitRaiseRequest({ bTakeCard: true });
+                break;
+            case 'standRaise':
+                this.submitRaiseRequest({ bTakeCard: false });
+                break;
+            case 'cancelRaiseConfirm':
+                this.openRaiseBuilder();
+                break;
+            default:
+                break;
+        }
+    };
+
+    window.addEventListener(GAME_ACTION_OVERLAY_COMMAND_EVENT, this.handleGameActionOverlayCommand);
 }
 
 getTutorialActionFromState() {
@@ -352,20 +594,28 @@ getTutorialActionFromState() {
 }
 
 getTutorialButtonTarget(actionKey) {
-    const oButtonMap = {
-        call: this.oButtons?.btn_call,
-        stand: this.oButtons?.btn_stand,
-        doubleDown: this.oButtons?.btn_doubleDown,
-        check: this.oButtons?.btn_check,
-        raise: this.oButtons?.btn_raise,
-    };
-    const button = oButtonMap[actionKey];
-    if (!button?.btn_image) return null;
+    if (typeof document === 'undefined') return null;
 
-    return this.getFXOverlayScreenAnchor(button, {
-        width: button.btn_image.displayWidth * (button.scaleX || 1),
-        height: button.btn_image.displayHeight * (button.scaleY || 1),
-    });
+    const actionSelectorMap = {
+        call: 'call',
+        stand: 'stand',
+        doubleDown: 'doubleDown',
+        check: 'check',
+        raise: 'raise',
+    };
+    const sActionKey = actionSelectorMap[actionKey];
+    if (!sActionKey) return null;
+
+    const element = document.querySelector(`[data-game-action-key="${sActionKey}"]`);
+    if (!element) return null;
+
+    const rect = element.getBoundingClientRect();
+    return {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+    };
 }
 
 syncTutorialState(oTutorial = this.oTutorialState, extraDetail = {}) {
@@ -577,32 +827,19 @@ clearFXOverlayPotAnchor() {
 
 setStandButtonLabel(label = 'Stand') {
     const btn = this.oButtons?.btn_stand;
-    if (!btn?.btn_image) return;
+    if (!btn) return;
 
     const sLabel = String(label || '').trim();
-    this.applyUtilityLabelButton(btn, {
-        scaleX: 0.68,
-        scaleY: 0.68,
-        fontSize: sLabel.toLowerCase() === 'call/stand' ? '46px' : '52px',
-    });
-    btn.btn_text.setText(sLabel || 'Stand');
-    this.layoutButtonIconText(btn);
+    btn.variant = 'secondary';
+    btn.label = sLabel || 'Stand';
 }
 
 setCallButtonLabel(label = 'Call') {
     const btn = this.oButtons?.btn_call;
-    if (!btn?.btn_image) return;
+    if (!btn) return;
 
-    if (String(label || '').trim().toLowerCase() === 'all in') {
-        this.applyUtilityLabelButton(btn, { tint: 0x902837, scaleX: 0.68, scaleY: 0.68, fontSize: '52px' });
-        btn.btn_text.setText('All In');
-        this.layoutButtonIconText(btn);
-        return;
-    }
-
-    this.applyUtilityLabelButton(btn, { scaleX: 0.68, scaleY: 0.68, fontSize: '52px' });
-    btn.btn_text.setText(String(label || 'Call'));
-    this.layoutButtonIconText(btn);
+    btn.variant = 'primary';
+    btn.label = String(label || 'Call').trim().toLowerCase() === 'all in' ? 'All In' : String(label || 'Call');
 }
 
 getButtonRowWidth(button) {
@@ -629,32 +866,7 @@ layoutVisibleButtonRow(buttons = [], { centerX = config.centerX, gap = 28, fallb
 }
 
 layoutActionButtonGroups() {
-    if (!this.oButtons) return;
-
-    this.layoutVisibleButtonRow(
-        [this.oButtons.btn_fold, this.oButtons.btn_call, this.oButtons.btn_check],
-        { gap: 56, fallbackY: this.oButtons.btn_fold?.y || this.oButtons.btn_call?.y || 0 }
-    );
-
-    this.layoutVisibleButtonRow(
-        [this.oButtons.btn_raise, this.oButtons.btn_doubleDown, this.oButtons.btn_stand, this.oButtons.btn_allInCommon],
-        { gap: 40, fallbackY: this.oButtons.btn_raise?.y || this.oButtons.btn_doubleDown?.y || 0 }
-    );
-
-    this.layoutVisibleButtonRow(
-        [this.oButtons.btn_min, this.oButtons.btn_halfPot, this.oButtons.btn_fullPot],
-        { gap: 24, fallbackY: this.oButtons.btn_min?.y || 0 }
-    );
-
-    this.layoutVisibleButtonRow(
-        [this.oButtons.btn_allIn, this.oButtons.btn_cancel],
-        { gap: 34, fallbackY: this.oButtons.btn_allIn?.y || this.oButtons.btn_cancel?.y || 0 }
-    );
-
-    this.layoutVisibleButtonRow(
-        [this.oButtons.btn_confirmRaise, this.oButtons.btn_standRaise, this.oButtons.btn_cancelRaise],
-        { gap: 24, fallbackY: this.oButtons.btn_confirmRaise?.y || 0 }
-    );
+    this.syncGameActionOverlay();
 }
 
 formatRaiseAmountLabel(amount = 0) {
@@ -684,27 +896,13 @@ getRaiseRequestAmountForAllIn() {
 }
 
 setPresetButtonState(button, { label, amount, visible = true, enabled = true }) {
-    if (!button?.btn_text) return;
+    if (!button) return;
 
     button.nRaiseAmount = amount;
     button.setVisible(visible);
-    button.btn_text.setFontSize('36px');
-    button.btn_text.setText(label);
-    this.layoutButtonIconText(button);
-
-    if (!button.btn_image) return;
-    if (!visible) {
-        button.btn_image.disableInteractive();
-        return;
-    }
-
-    if (enabled) {
-        button.btn_image.setInteractive();
-        button.setAlpha(1);
-    } else {
-        button.btn_image.disableInteractive();
-        button.setAlpha(0.45);
-    }
+    button.label = String(label || '');
+    this.setGameActionButtonEnabled(button, visible && enabled);
+    button.setAlpha(enabled ? 1 : 0.45);
 }
 
 refreshRaisePresetLabels() {
@@ -712,7 +910,7 @@ refreshRaisePresetLabels() {
     const btnHalfPot = this.oButtons?.btn_halfPot;
     const btnFullPot = this.oButtons?.btn_fullPot;
     const btnAllIn = this.oButtons?.btn_allIn;
-    if (!btnMin?.btn_text || !btnHalfPot?.btn_text || !btnFullPot?.btn_text || !btnAllIn?.btn_text) return false;
+    if (!btnMin || !btnHalfPot || !btnFullPot) return false;
 
     const { minRaise, potAmount, maxRaiseAmount } = this.getRaiseContext();
     const canAffordRaise = maxRaiseAmount >= minRaise && minRaise > 0;
@@ -723,36 +921,34 @@ refreshRaisePresetLabels() {
     const effectiveFullPot = Math.min(desiredFullPot, maxRaiseAmount);
 
     this.setPresetButtonState(btnMin, {
-        label: `MIN ${this.formatRaiseAmountLabel(minRaise)}`,
+        label: 'MIN',
         amount: minRaise,
         visible: canAffordRaise,
         enabled: canAffordRaise,
     });
 
     this.setPresetButtonState(btnHalfPot, {
-        label: desiredHalfPot > maxRaiseAmount
-            ? `MAX ${this.formatRaiseAmountLabel(effectiveHalfPot)}`
-            : `1/2 ${this.formatRaiseAmountLabel(effectiveHalfPot)}`,
+        label: '1/2',
         amount: effectiveHalfPot,
         visible: canAffordRaise,
         enabled: canAffordRaise && effectiveHalfPot >= minRaise,
     });
 
     this.setPresetButtonState(btnFullPot, {
-        label: desiredFullPot > maxRaiseAmount
-            ? `ALL IN ${this.formatRaiseAmountLabel(effectiveFullPot)}`
-            : `POT ${this.formatRaiseAmountLabel(effectiveFullPot)}`,
+        label: 'POT',
         amount: effectiveFullPot,
         visible: canAffordRaise,
         enabled: canAffordRaise && effectiveFullPot >= minRaise,
     });
 
-    this.setPresetButtonState(btnAllIn, {
-        label: `ALL IN ${this.formatRaiseAmountLabel(maxRaiseAmount)}`,
-        amount: maxRaiseAmount,
-        visible: canAffordRaise,
-        enabled: canAffordRaise,
-    });
+    if (btnAllIn) {
+        this.setPresetButtonState(btnAllIn, {
+            label: '',
+            amount: 0,
+            visible: false,
+            enabled: false,
+        });
+    }
 
     return canAffordRaise;
 }
@@ -769,10 +965,14 @@ openRaiseBuilder() {
     this.container_buttons.setVisible(false);
     this.container_confirm_raise.setVisible(false);
     this.container_raise_buttons.setVisible(true);
+    this.oButtons?.btn_cancel?.setVisible(true);
+    this.oButtons?.btn_confirmRaise?.setVisible(false);
+    this.oButtons?.btn_standRaise?.setVisible(false);
+    this.oButtons?.btn_cancelRaise?.setVisible(false);
     this.enableContainerButtons(this.container_raise_buttons);
     this.sRaiseUiMode = 'builder';
     this.setConsolePrompt('Set your raise');
-    this.layoutActionButtonGroups();
+    this.syncGameActionOverlay();
     return true;
 }
 
@@ -788,10 +988,14 @@ openRaiseConfirm(nRaiseAmount) {
     this.disableContainerButtons(this.container_raise_buttons);
     this.container_raise_buttons.setVisible(false);
     this.container_confirm_raise.setVisible(true);
+    this.oButtons?.btn_cancel?.setVisible(false);
+    this.oButtons?.btn_confirmRaise?.setVisible(true);
+    this.oButtons?.btn_standRaise?.setVisible(true);
+    this.oButtons?.btn_cancelRaise?.setVisible(true);
     this.enableContainerButtons(this.container_confirm_raise);
     this.sRaiseUiMode = 'confirm';
     this.setConsolePrompt('Confirm your raise');
-    this.layoutActionButtonGroups();
+    this.syncGameActionOverlay();
     return true;
 }
 
@@ -821,6 +1025,7 @@ handleActionError(sEventName, sErrorMessage) {
 
 submitRaiseRequest(extraData = {}) {
     this.disableContainerButtons(this.container_confirm_raise);
+    this.syncGameActionOverlay();
     this.setConsolePrompt('Submitting raise');
     this.oSocketManager.emit(emitter.reqRaise, {
         nRaiseAmount: this.oGameManager.tempRaiseAmount,
@@ -1002,12 +1207,14 @@ styleConsoleButton(button, options = {}) {
     }
     this.layoutButtonIconText(button);
     if (button.btn_text) {
-        button.btn_text.setFontSize(compact ? 40 : 58);
-        button.btn_text.setY(compact ? -3 : -5);
+        button.btn_text.setFontFamily(config.ButtonFont);
+        button.btn_text.setFontSize(compact ? 38 : 56);
+        button.btn_text.setY(0);
     }
     button.btn_text.setFontStyle('bold');
-    button.btn_text.setLetterSpacing(compact ? 1.3 : 1.9);
-    button.btn_text.setShadow(0, 2, '#04101a', 2, false, true);
+    button.btn_text.setLetterSpacing(0);
+    button.btn_text.setShadow(0, 0, '#000000', 0, false, false);
+    button.btn_text.setStroke('#000000', 0);
     return button;
 }
 
@@ -1031,26 +1238,63 @@ applyUtilityLabelButton(button, options = {}) {
     if (!button?.btn_image) return button;
     const {
         textureKey = assets.blank_button,
-        tint = 0x1d232c,
         scaleX = 0.62,
         scaleY = 0.62,
         fontSize = '40px',
-        color = '#f7fbff',
     } = options;
 
     button.btn_image.setTexture(textureKey);
     button.btn_image.clearTint();
-    button.btn_image.setTint(tint);
     button.btn_image.setScale(scaleX, scaleY);
 
     if (button.btn_text) {
         button.btn_text.setVisible(true);
+        button.btn_text.setFontFamily(config.ButtonFont);
         button.btn_text.setFontSize(fontSize);
-        button.btn_text.setColor(color);
+        button.btn_text.setColor('#ffffff');
         button.btn_text.setFontStyle('bold');
+        button.btn_text.setLetterSpacing(0);
+        button.btn_text.setShadow(0, 0, '#000000', 0, false, false);
+        button.btn_text.setStroke('#000000', 0);
     }
 
     return button;
+}
+
+createAuthButtonTexture(key, width, height, options = {}) {
+    if (this.textures.exists(key)) return key;
+
+    const {
+        primary = false,
+        radius = Math.round(height / 2),
+    } = options;
+
+    const graphics = this.make.graphics({ add: false });
+
+    // Exact source styling copied from:
+    // src/assets/scss/views/auth/_login.scss
+    // - .auth-intro-actions .guest-entry-btn
+    // - .auth-intro-actions .about-entry-btn
+
+    if (primary) {
+        graphics.fillStyle(0x42d985, 0.22);
+        graphics.fillRoundedRect(0, 12, width, height, radius);
+        graphics.fillGradientStyle(
+            0x8dfcb3, 0x8dfcb3,
+            0x42d985, 0x42d985,
+            1, 1, 1, 1
+        );
+        graphics.fillRoundedRect(0, 0, width, height, radius);
+    } else {
+        graphics.fillStyle(0xffffff, 0.06);
+        graphics.fillRoundedRect(0, 0, width, height, radius);
+        graphics.lineStyle(2, 0x89d5ff, 0.45);
+        graphics.strokeRoundedRect(1.5, 1.5, width - 3, height - 3, radius);
+    }
+
+    graphics.generateTexture(key, width, height);
+    graphics.destroy();
+    return key;
 }
 
 ensureGameUiTextures() {
@@ -1124,26 +1368,8 @@ ensureGameUiTextures() {
         shadowAlpha: 0.28,
         simple: true,
     });
-    this.createGlassTexture('ui_btn_primary', 380, 84, {
-        radius: 30,
-        top: 0x74ffbc,
-        bottom: 0x25c96f,
-        border: 0xd5ffe8,
-        innerBorder: 0x68f0a7,
-        shadow: 0x0f6a42,
-        shadowAlpha: 0.24,
-        simple: true,
-    });
-    this.createGlassTexture('ui_btn_secondary', 380, 84, {
-        radius: 30,
-        top: 0x2f86ff,
-        bottom: 0x1359cb,
-        border: 0xcbe8ff,
-        innerBorder: 0x63b2ff,
-        shadow: 0x09131d,
-        shadowAlpha: 0.26,
-        simple: true,
-    });
+    this.createAuthButtonTexture('ui_btn_primary', 380, 84, { primary: true, radius: 30 });
+    this.createAuthButtonTexture('ui_btn_secondary', 380, 84, { primary: false, radius: 30 });
     this.createGlassTexture('ui_btn_positive', 380, 84, {
         radius: 30,
         top: 0x7effd0,
@@ -1164,26 +1390,8 @@ ensureGameUiTextures() {
         shadowAlpha: 0.2,
         simple: true,
     });
-    this.createGlassTexture('ui_btn_preset', 254, 78, {
-        radius: 26,
-        top: 0x2a7aff,
-        bottom: 0x1558c3,
-        border: 0xc9e7ff,
-        innerBorder: 0x6cb7ff,
-        shadow: 0x09131d,
-        shadowAlpha: 0.24,
-        simple: true,
-    });
-    this.createGlassTexture('ui_btn_preset_positive', 254, 78, {
-        radius: 26,
-        top: 0x74ffbc,
-        bottom: 0x25c96f,
-        border: 0xd5ffe8,
-        innerBorder: 0x68f0a7,
-        shadow: 0x0f6a42,
-        shadowAlpha: 0.24,
-        simple: true,
-    });
+    this.createAuthButtonTexture('ui_btn_preset', 254, 78, { primary: false, radius: 26 });
+    this.createAuthButtonTexture('ui_btn_preset_positive', 254, 78, { primary: true, radius: 26 });
     this.createGlassTexture('ui_btn_preset_warning', 254, 78, {
         radius: 26,
         top: 0xff8f98,
@@ -1252,9 +1460,6 @@ setConsolePrompt(label = 'Waiting for turn') {
     // - You’ll see changes immediately on reload (pure UI).
 
     setHeader() {
-        const header = this.add.rectangle(config.centerX, 88, config.width - 108, 118, 0x071d31, 0.76);
-        this.container_header.add(header);
-
         const ping_bg = this.add.image(config.centerX, 88, assets.ping_bg).setScale(1.18);
         this.container_header.add(ping_bg);
 
@@ -1392,204 +1597,29 @@ setConsolePrompt(label = 'Waiting for turn') {
         this.isFinishGame = true;
     }
 setButtons() {
-    const trayY = this.oFooter?.action_tray?.y || (config.height - 130);
-    const slotPositions = this.oFooter?.slot_positions || {};
-    const rowTopY = slotPositions.mainTopY || (trayY - 34);
-    const rowBottomY = slotPositions.mainBottomY || (trayY + 54);
-    const leftX = slotPositions.leftTopX || (config.centerX - 214);
-    const rightX = slotPositions.rightTopX || (config.centerX + 214);
-    const middleX = slotPositions.centerBottomX || config.centerX;
-    const raiseLeftX = slotPositions.raiseLeftX || (config.centerX - 302);
-    const raiseCenterX = slotPositions.raiseCenterX || config.centerX;
-    const raiseRightX = slotPositions.raiseRightX || (config.centerX + 302);
-    const mainButtonStyle = {
-        scaleX: 0.82,
-        scaleY: 0.82,
-        fontFamily: config.ButtonFont,
-        fontSize: '50px',
-        color: '#ffffcf',
-        stroke: '#000000',
-        strokeThickness: 2,
-        shadow: false,
-    };
-    const presetButtonStyle = {
-        scaleX: 0.88,
-        scaleY: 0.88,
-        fontFamily: config.ButtonFont,
-        fontSize: '36px',
-        color: '#ffffcf',
-        stroke: '#000000',
-        strokeThickness: 2,
-        shadow: false,
-    };
-    const smallPresetStyle = presetButtonStyle;
-
-    const finalizeButton = (button, options = {}) => {
-        this.styleConsoleButton(button, options);
-        return button;
-    };
-
-    const btn_fold = finalizeButton(new Button(this, leftX, rowTopY, {
-        texture: assets.blank_button,
-        text: 'Fold', sound: this.oSoundManager.click_sound, ...mainButtonStyle
-    }, () => {
-        this.oSocketManager.emit(emitter.reqFold);
-    }).setVisible(false));
-    this.applyUtilityLabelButton(btn_fold, { scaleX: 0.68, scaleY: 0.68, fontSize: '52px' });
-    this.container_buttons.add(btn_fold);
-
-    const btn_call = finalizeButton(new Button(this, rightX, rowTopY, {
-        texture: assets.blank_button,
-        text: 'Call', sound: this.oSoundManager.click_sound, ...mainButtonStyle
-    }, () => {
-        if (this.oButtons?.btn_call?.bAllInMode) {
-            this.oSocketManager.emit(emitter.reqRaise, { nRaiseAmount: this.getRaiseRequestAmountForAllIn() });
-        } else {
-            this.oSocketManager.emit(emitter.reqCall);
-        }
-    }).setVisible(false));
-    this.applyUtilityLabelButton(btn_call, { scaleX: 0.68, scaleY: 0.68, fontSize: '52px' });
-    btn_call.bAllInMode = false;
-    this.container_buttons.add(btn_call);
-
-    const btn_check = finalizeButton(new Button(this, rightX, rowTopY, {
-        texture: assets.blank_button,
-        text: 'Check', sound: this.oSoundManager.click_sound, ...mainButtonStyle
-    }, () => {
-        this.oSocketManager.emit(emitter.reqCheck);
-    }).setVisible(false));
-    this.applyUtilityLabelButton(btn_check, { scaleX: 0.68, scaleY: 0.68, fontSize: '52px' });
-    this.container_buttons.add(btn_check);
-
-    const btn_raise = finalizeButton(new Button(this, leftX, rowBottomY, {
-        texture: assets.blank_button,
-        text: 'Raise', ...mainButtonStyle
-    }, () => {
-        this.openRaiseBuilder();
-    }).setVisible(false));
-    this.applyUtilityLabelButton(btn_raise, { scaleX: 0.68, scaleY: 0.68, fontSize: '52px' });
-    this.container_buttons.add(btn_raise);
-
-    const btn_doubleDown = finalizeButton(new Button(this, middleX, rowBottomY, {
-        texture: assets.blank_button,
-        text: 'Double Down', ...mainButtonStyle
-    }, () => {
-        this.oSocketManager.emit(emitter.reqDoubleDown);
-    }).setVisible(false));
-    this.applyUtilityLabelButton(btn_doubleDown, { scaleX: 0.68, scaleY: 0.68, fontSize: '48px' });
-    this.container_buttons.add(btn_doubleDown);
-
-    const btn_stand = finalizeButton(new Button(this, rightX, rowBottomY, {
-        texture: assets.blank_button,
-        text: 'Stand', ...mainButtonStyle
-    }, () => {
-        if (this.oButtons?.btn_stand?.bCallStandMode) {
-            this.oSocketManager.emit(emitter.reqCall, { bTakeCard: false });
-        } else {
-            this.oSocketManager.emit(emitter.reqStand);
-        }
-    }).setVisible(false));
-    this.applyUtilityLabelButton(btn_stand, { scaleX: 0.68, scaleY: 0.68, fontSize: '52px' });
-    btn_stand.bCallStandMode = false;
-    this.container_buttons.add(btn_stand);
-
-    const btn_min = finalizeButton(new Button(this, raiseLeftX, rowTopY, {
-        texture: assets.blank_button,
-        text: 'MIN', sound: this.oSoundManager.click_sound, ...presetButtonStyle
-    }, () => {
-        this.openRaiseConfirm(btn_min.nRaiseAmount);
-    }), { compact: true });
-    this.applyUtilityLabelButton(btn_min, { scaleX: 0.56, scaleY: 0.56, fontSize: '34px' });
-    this.container_raise_buttons.add(btn_min);
-
-    const btn_halfPot = finalizeButton(new Button(this, raiseCenterX, rowTopY, {
-        texture: assets.blank_button,
-        text: '1/2 Pot', sound: this.oSoundManager.click_sound, ...smallPresetStyle
-    }, () => {
-        this.openRaiseConfirm(btn_halfPot.nRaiseAmount);
-    }), { compact: true });
-    this.applyUtilityLabelButton(btn_halfPot, { scaleX: 0.56, scaleY: 0.56, fontSize: '34px' });
-    this.container_raise_buttons.add(btn_halfPot);
-
-    const btn_fullPot = finalizeButton(new Button(this, raiseRightX, rowTopY, {
-        texture: assets.blank_button,
-        text: 'Pot', sound: this.oSoundManager.click_sound, ...smallPresetStyle
-    }, () => {
-        this.openRaiseConfirm(btn_fullPot.nRaiseAmount);
-    }), { compact: true });
-    this.applyUtilityLabelButton(btn_fullPot, { scaleX: 0.56, scaleY: 0.56, fontSize: '34px' });
-    this.container_raise_buttons.add(btn_fullPot);
-
-    const btn_allIn = finalizeButton(new Button(this, leftX, rowBottomY, {
-        texture: assets.blank_button,
-        text: 'All In', sound: this.oSoundManager.click_sound, ...mainButtonStyle
-    }, () => {
-        this.oSocketManager.emit(emitter.reqRaise, { nRaiseAmount: this.getRaiseRequestAmountForAllIn() });
-    }).setVisible(false));
-    this.applyUtilityLabelButton(btn_allIn, { tint: 0x902837, scaleX: 0.62, scaleY: 0.62, fontSize: '42px' });
-    this.container_raise_buttons.add(btn_allIn);
-
-    const btn_allInCommon = finalizeButton(new Button(this, leftX, rowBottomY, {
-        texture: assets.blank_button,
-        text: 'All In', sound: this.oSoundManager.click_sound, ...mainButtonStyle
-    }, () => {
-        this.oSocketManager.emit(emitter.reqRaise, { nRaiseAmount: this.getRaiseRequestAmountForAllIn() });
-    }).setVisible(false));
-    this.applyUtilityLabelButton(btn_allInCommon, { tint: 0x902837, scaleX: 0.62, scaleY: 0.62, fontSize: '42px' });
-    this.container_buttons.add(btn_allInCommon);
-
-    const btn_cancel = finalizeButton(new Button(this, rightX, rowBottomY, {
-        texture: assets.blank_button,
-        text: 'Cancel', ...mainButtonStyle
-    }, () => {
-        this.disableContainerButtons(this.container_raise_buttons);
-        this.container_raise_buttons.setVisible(false);
-        this.container_buttons.setVisible(true);
-        this.enableContainerButtons(this.container_buttons);
-        this.setConsolePrompt('');
-        this.layoutActionButtonGroups();
-    }));
-    this.applyUtilityLabelButton(btn_cancel, { scaleX: 0.62, scaleY: 0.62, fontSize: '42px' });
-    this.container_raise_buttons.add(btn_cancel);
-
-    const confirmRowY = slotPositions.confirmY || (trayY + 10);
-    const btn_confirmRaise = finalizeButton(new Button(this, raiseLeftX, confirmRowY, {
-        texture: assets.blank_button,
-        text: 'Confirm', ...presetButtonStyle
-    }, () => {
-        this.submitRaiseRequest({ bTakeCard: true });
-    }), { compact: true });
-    this.applyUtilityLabelButton(btn_confirmRaise, { scaleX: 0.56, scaleY: 0.56, fontSize: '34px' });
-    this.container_confirm_raise.add(btn_confirmRaise);
-
-    const btn_standRaise = finalizeButton(new Button(this, raiseCenterX, confirmRowY, {
-        texture: assets.blank_button,
-        text: 'Stand', ...presetButtonStyle
-    }, () => {
-        this.submitRaiseRequest({ bTakeCard: false });
-    }), { compact: true });
-    this.applyUtilityLabelButton(btn_standRaise, { scaleX: 0.56, scaleY: 0.56, fontSize: '34px' });
-    this.container_confirm_raise.add(btn_standRaise);
-
-    const btn_cancelRaise = finalizeButton(new Button(this, raiseRightX, confirmRowY, {
-        texture: assets.blank_button,
-        text: 'Cancel', ...presetButtonStyle
-    }, () => {
-        this.disableContainerButtons(this.container_confirm_raise);
-        this.container_confirm_raise.setVisible(false);
-        this.container_raise_buttons.setVisible(true);
-        this.enableContainerButtons(this.container_raise_buttons);
-        this.setConsolePrompt('Set your raise');
-        this.layoutActionButtonGroups();
-    }), { compact: true });
-    this.applyUtilityLabelButton(btn_cancelRaise, { scaleX: 0.56, scaleY: 0.56, fontSize: '34px' });
-    this.container_confirm_raise.add(btn_cancelRaise);
+    this.container_buttons.buttonKeys = ['btn_fold', 'btn_call', 'btn_check', 'btn_raise', 'btn_doubleDown', 'btn_stand'];
+    this.container_raise_buttons.buttonKeys = ['btn_min', 'btn_halfPot', 'btn_fullPot', 'btn_cancel'];
+    this.container_confirm_raise.buttonKeys = ['btn_confirmRaise', 'btn_standRaise', 'btn_cancelRaise'];
 
     this.oButtons = {
-        btn_fold, btn_call, btn_check, btn_raise, btn_doubleDown, btn_stand,
-        btn_min, btn_halfPot, btn_fullPot, btn_allIn, btn_allInCommon, btn_cancel,
-        btn_confirmRaise, btn_standRaise, btn_cancelRaise
+        btn_fold: this.createGameActionButtonState('fold', 'Fold', 'secondary'),
+        btn_call: this.createGameActionButtonState('call', 'Call', 'primary'),
+        btn_check: this.createGameActionButtonState('check', 'Check', 'secondary'),
+        btn_raise: this.createGameActionButtonState('raise', 'Raise', 'primary'),
+        btn_doubleDown: this.createGameActionButtonState('doubleDown', 'Double Down', 'primary'),
+        btn_stand: this.createGameActionButtonState('stand', 'Stand', 'secondary'),
+        btn_min: this.createGameActionButtonState('minRaise', 'MIN', 'secondary'),
+        btn_halfPot: this.createGameActionButtonState('halfPotRaise', '1/2 Pot', 'secondary'),
+        btn_fullPot: this.createGameActionButtonState('fullPotRaise', 'Pot', 'secondary'),
+        btn_allIn: this.createGameActionButtonState('allInRaise', 'All In', 'primary'),
+        btn_allInCommon: this.createGameActionButtonState('allIn', 'All In', 'primary'),
+        btn_cancel: this.createGameActionButtonState('cancelRaiseBuilder', 'Cancel', 'secondary'),
+        btn_confirmRaise: this.createGameActionButtonState('confirmRaise', 'Confirm', 'primary'),
+        btn_standRaise: this.createGameActionButtonState('standRaise', 'Stand', 'secondary'),
+        btn_cancelRaise: this.createGameActionButtonState('cancelRaiseConfirm', 'Cancel', 'secondary'),
+        btn_declare: this.createGameActionButtonState('declare', 'Declare', 'primary'),
     };
+
     this.layoutActionButtonGroups();
 }
 
@@ -1639,12 +1669,13 @@ setButtons() {
     }
     editorCreate() {
         const tableImageOffsetY = this.getTableImageOffsetY();
+        const playfieldOffsetY = this.getPlayfieldOffsetY();
         this.container_body = this.add.container(0, 0);
         const bg = this.add.image(config.centerX, config.centerY, assets.game_bg);
         bg.setDisplaySize(config.width, config.height);
         this.container_body.add(bg);
         this.table = this.add.image(config.centerX, config.centerY + 8 + tableImageOffsetY, assets.table);
-        const tableCoverScale = Math.max(config.width / this.table.width, config.height / this.table.height);
+        const tableCoverScale = Math.max(config.width / this.table.width, config.height / this.table.height) * 0.9;
         this.table.setScale(tableCoverScale);
         this.container_body.add(this.table);
         this.container_header = this.add.container(0, 0);
@@ -1661,6 +1692,14 @@ setButtons() {
         this.prompt = new Prompt(this, config.centerX, config.centerY - 40, 'Please wait for other players to join');
         this.prompt.hide();
         this.settings = new Settings(this, -200, 250);
+        this.container_body.setY(playfieldOffsetY);
+        this.container_header.setY(playfieldOffsetY);
+        this.container_pot_amount.setY(playfieldOffsetY);
+        this.container_community_cards.setY(playfieldOffsetY);
+        this.container_table.setY(playfieldOffsetY);
+        this.container_closed_cards.setY(playfieldOffsetY);
+        this.container_player_cards.setY(playfieldOffsetY);
+        this.container_player_profiles.setY(playfieldOffsetY);
         this.ensureGameUiTextures();
         this.setHeader();
         this.gameInfo = new GameInfo(this, config.centerX, config.centerY, this.oGameManager.oGameInfo);
@@ -1745,6 +1784,7 @@ setButtons() {
         this.editorCreate();
         this.initializeGameUILayout();
         this.bindGameUILayoutEvents();
+        this.bindGameActionOverlayEvents();
         this.registerFXOverlayPotAnchor();
         this.scale.on('resize', this.registerFXOverlayPotAnchor, this);
         window.FXOverlay?.enable?.();
@@ -1811,11 +1851,7 @@ setButtons() {
         reorderedPlayers.forEach(player => {
             if (!player?.playerProfile?.container_cards) return;
             if (player?.iUserId == this.iUserId) {
-                if (this.shouldShowPlayerScore(aIncomingHand, nCardScore, player?.playerProfile)) {
-                    player?.playerProfile?.setScore(nCardScore);
-                } else {
-                    player?.playerProfile?.clearScore?.();
-                }
+                this.syncPlayerScoreDisplay(player, nCardScore, aIncomingHand);
             }
             const nRenderedCards = player.playerProfile.container_cards.list.length;
             if (nRenderedCards > aIncomingHand.length) {
@@ -1971,9 +2007,7 @@ setButtons() {
         const playerNewCards = [];
         this.oSoundManager.playSound(this.oSoundManager.doubleDown_sound, false);
         player?.playerProfile?.setAmountIn(oData.nChips);
-        if (Number.isFinite(nUpdatedScore)) {
-            player?.playerProfile?.setScore(nUpdatedScore);
-        }
+        this.syncPlayerScoreDisplay(player, nUpdatedScore, oData.aCardHand || [oData.oCard].filter(Boolean));
         if (oData.iUserId !== this.iUserId && sEventName === 'resDoubledown') {
             player?.playerProfile?.setBettingLabel('DD', oData.nLastBidChips);
         }
@@ -2132,12 +2166,7 @@ setButtons() {
             Object.assign(player, participant);
             player?.playerProfile?.setAmountIn(participant.nChips);
 
-            const nParticipantScore = Number(participant.nCardScore);
-            if (this.shouldShowPlayerScore(participant.aCardHand, nParticipantScore, player?.playerProfile)) {
-                player?.playerProfile?.setScore(nParticipantScore);
-            } else {
-                player?.playerProfile?.clearScore?.();
-            }
+            this.syncPlayerScoreDisplay(player, participant.nCardScore, participant.aCardHand);
 
             if (participant.iUserId === this.iUserId) {
                 this.setMyPlayerData(participant);
@@ -2190,11 +2219,7 @@ setButtons() {
             this.setAmountIn(nChips);
         }
 
-        if (this.shouldShowPlayerScore(myPlayerData?.aCardHand, nCardScore, myPlayer?.playerProfile)) {
-            myPlayer?.playerProfile?.setScore(nCardScore);
-        } else {
-            myPlayer?.playerProfile?.clearScore?.();
-        }
+        this.syncPlayerScoreDisplay(myPlayer, nCardScore, myPlayerData?.aCardHand);
     }
     async setPlayersData(aParticipant) {
         for (let i = 0; i < aParticipant.length; i++) {
@@ -2232,11 +2257,7 @@ setButtons() {
         await player?.playerProfile?.setBlind(iUserId);
         await player?.playerProfile?.setAmountIn(nChips);
         this.syncPlayerHandSnapshot(player, aCardHand);
-        if (this.shouldShowPlayerScore(aCardHand, nCardScore, player?.playerProfile)) {
-            player?.playerProfile?.setScore(Number(nCardScore));
-        } else {
-            player?.playerProfile?.clearScore?.();
-        }
+        this.syncPlayerScoreDisplay(player, nCardScore, aCardHand);
         this.setFoldPlayer(iUserId, eState, undefined, undefined, { playAudio: false });
         if (iUserId === this.iUserId) {
             this.setAmountIn(nChips);
@@ -2382,7 +2403,7 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
             case 'c':
                 this.oButtons.btn_call.setVisible(true);
                 this.oButtons.btn_call.bAllInMode = false;
-                this.setCallButtonLabel('Call');
+                this.setCallButtonLabel(callAmount > 0 ? `Call ${_.formatCurrencyWithComa(callAmount)}` : 'Call');
                 break;
             case 'r':
                 this.oButtons.btn_raise.setVisible(canAffordRaise);
@@ -2429,6 +2450,10 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
     this.oButtons.btn_stand.bCallStandMode = false;
     this.setStandButtonLabel('Stand');
     this.oButtons.btn_check.setVisible(false);
+    this.oButtons.btn_cancel.setVisible(false);
+    this.oButtons.btn_confirmRaise.setVisible(false);
+    this.oButtons.btn_standRaise.setVisible(false);
+    this.oButtons.btn_cancelRaise.setVisible(false);
     this.setConsolePrompt('Waiting for turn');
     this.layoutActionButtonGroups();
 }
@@ -2495,7 +2520,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
     player?.playerProfile?.setAmountIn(participant?.nChips);
     participant.iUserId == this.iUserId && this.setAmountIn(participant?.nChips);
     console.log(participant,"PlayerProfile")
-      player?.playerProfile?.setScore(participant.nCardScore || 0);
+      this.syncPlayerScoreDisplay(player, participant.nCardScore, participant.aCardHand, { forceReveal: true });
     setTimeout(() => {
       player?.playerProfile?.container_cards.removeAll(true);
       participant.aCardHand.forEach(cardData => {
@@ -2585,6 +2610,8 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
         if (this.visibilityChangeHandler) window.removeEventListener('visibilitychange', this.visibilityChangeHandler);
         if (this.popStateHandler) window.removeEventListener('popstate', this.popStateHandler);
         if (this.handleGameUILayoutUpdate) window.removeEventListener(GAME_UI_LAYOUT_EVENT, this.handleGameUILayoutUpdate);
+        if (this.handleGameActionOverlayCommand) window.removeEventListener(GAME_ACTION_OVERLAY_COMMAND_EVENT, this.handleGameActionOverlayCommand);
+        hideGameActionOverlay();
         this.oSocketManager?.destroy?.();
     }
     exitGame() {
