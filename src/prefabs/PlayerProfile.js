@@ -35,6 +35,9 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setScale(nPlayerIndex == 0 ? 0.97 * this.profileScaleBoost : 0.73 * this.profileScaleBoost);
     this.add(this.container_profile);
 
+    this.container_profileImage = scene.add.container(0, 0);
+    this.container_profile.add(this.container_profileImage);
+
     this.container_cards = scene.add.container(0, nPlayerIndex === 0 ? -164 : -108);
     this.container_profile.add(this.container_cards);
 
@@ -109,9 +112,6 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setOrigin(0.5);
     this.container_bettingLabel.add(this.txt_bettingAmount);
 
-    const profile_box = scene.add.image(0, 0, assets.player_profile);
-    this.container_profile.add(profile_box);
-
     const profileSize = nPlayerIndex === 0 ? 180 : 128;
     const profileOffsetY = nPlayerIndex === 0 ? -4 : -2;
     this.profileSize = profileSize;
@@ -121,18 +121,18 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
 
     this.profile = scene.add
       .image(0, profileOffsetY, assets.profile_picture)
-      .setScale(nPlayerIndex === 0 ? 1 : 1);
-    this.container_profile.add(this.profile);
+      .setScale(nPlayerIndex === 0 ? 1 : 1)
+      .setDepth(100); // Ensure avatar is always on top
+    this.container_profileImage.add(this.profile);
+
+    this.profileMaskGraphic = scene.add.graphics().setVisible(false);
+    this.container_profileImage.add(this.profileMaskGraphic);
+    this.redrawProfileMask();
+    this.profile.setMask(this.profileMaskGraphic.createGeometryMask());
     this.applyProfileTextureLayout();
 
-    const profileMask = scene.make.graphics({ add: false });
-    profileMask.fillStyle(0xffffff);
-    profileMask.fillCircle(
-      x,
-      y + profileOffsetY * this.container_profile.scaleY,
-      (profileSize * this.container_profile.scaleX) / 2
-    );
-    this.profile.setMask(profileMask.createGeometryMask());
+    const profile_box = scene.add.image(0, 0, assets.player_profile);
+    this.container_profile.add(profile_box);
 
     this.my_player = scene.add.container(0, 0).setVisible(false);
     this.container_profile.add(this.my_player);
@@ -244,16 +244,25 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
 
     this.container_blind = scene.add.container(0, 0).setVisible(false);
     this.container_profile.add(this.container_blind);
+
     this.blind_bg = scene.add.image(-100, -70, assets.blind_bg);
     this.container_blind.add(this.blind_bg);
 
+    // Blind icons
+    this.icon_dealer = scene.add.image(this.blind_bg.x, this.blind_bg.y, 'icon-info').setScale(0.38).setVisible(false);
+    this.icon_sb = scene.add.image(this.blind_bg.x, this.blind_bg.y, 'raise_icon').setScale(0.38).setVisible(false);
+    this.icon_bb = scene.add.image(this.blind_bg.x, this.blind_bg.y, 'stand_icon').setScale(0.38).setVisible(false);
+    this.container_blind.add(this.icon_dealer);
+    this.container_blind.add(this.icon_sb);
+    this.container_blind.add(this.icon_bb);
+
     this.txt_blind = scene.add
-      .text(this.blind_bg.x, this.blind_bg.y, "D", {
+      .text(this.blind_bg.x, this.blind_bg.y, "", {
         ...style,
         fontSize: "32px",
         fontStyle: "bold",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5).setVisible(false);
     this.container_blind.add(this.txt_blind);
 
     this.raise_arrow = scene.add
@@ -296,18 +305,24 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.txt_score.setVisible(true);
   }
   setBlind(iUserId) {
+    // Hide all icons and text by default
+    this.icon_dealer.setVisible(false);
+    this.icon_sb.setVisible(false);
+    this.icon_bb.setVisible(false);
+    this.txt_blind.setVisible(false);
+
     switch (iUserId) {
       case this.scene.iDealerId:
         this.container_blind.setVisible(true);
-        this.txt_blind.setText("D");
+        this.icon_dealer.setVisible(true);
         break;
       case this.scene.iBigBlindId:
         this.container_blind.setVisible(true);
-        this.txt_blind.setText("BB");
+        this.icon_bb.setVisible(true);
         break;
       case this.scene.iSmallBlindId:
         this.container_blind.setVisible(true);
-        this.txt_blind.setText("SB");
+        this.icon_sb.setVisible(true);
         break;
       default:
         this.container_blind.setVisible(false);
@@ -429,35 +444,28 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       this.applyProfileTextureLayout();
     };
     const resolvedUrl = getAvatarImageSrc(url, name);
+    console.log('[Avatar Debug] setProfileImage called with:', { url, name, resolvedUrl });
     if (resolvedUrl) {
-      const textureKey = `profile_${String(name || "player").replace(/[^a-zA-Z0-9_-]/g, "_")}`;
-      // Only remove if it exists and is not currently being used
-      if (
-        this.scene.textures.exists(textureKey) &&
-        !this.scene.textures.get(textureKey).key
-      ) {
-        this.scene.textures.remove(textureKey);
-      }
+      let textureKey = null;
       try {
-        this.scene.load.image(textureKey, resolvedUrl);
-        this.scene.load.once("complete", () => {
-          if (this.scene.textures.exists(textureKey)) {
-            this.profile.setTexture(textureKey);
-            this.applyProfileTextureLayout();
-          } else {
-            console.error("Texture does not exist after loading:", textureKey);
-            setDefaultProfile();
-          }
-        });
-      } catch (error) {
-        console.error("Error setting texture:", error);
+        let src = resolvedUrl;
+        if (typeof resolvedUrl === 'object' && resolvedUrl.default) {
+          src = resolvedUrl.default;
+        }
+        // Extract the hashed filename from the resolvedUrl (Webpack output)
+        let match = src.match(/\/([A-Za-z0-9_-]+)\.(png|jpe?g|webp)$/i);
+        if (match) {
+          textureKey = match[1];
+        }
+      } catch (e) { console.error('[Avatar Debug] Error extracting textureKey:', e); }
+      console.log('[Avatar Debug] Attempting to use textureKey:', textureKey, 'scene.textures.exists:', textureKey ? this.scene.textures.exists(textureKey) : 'n/a');
+      if (textureKey && this.scene.textures.exists(textureKey)) {
+        this.profile.setTexture(textureKey);
+        this.applyProfileTextureLayout();
+      } else {
+        console.warn('[Avatar Debug] Avatar texture not found for:', resolvedUrl, 'Texture key:', textureKey);
         setDefaultProfile();
       }
-      this.scene.load.once("loaderror", (file) => {
-        console.error("Error loading image:", file.src);
-        setDefaultProfile();
-      });
-      this.scene.load.start();
     } else {
       setDefaultProfile();
     }
@@ -480,6 +488,13 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.profile.setOrigin(0.5, 0.5);
     this.profile.setDisplaySize(sourceWidth * coverScale, sourceHeight * coverScale);
     this.profile.setPosition(0, this.profileOffsetY);
+  }
+  redrawProfileMask() {
+    if (!this.profileMaskGraphic) return;
+
+    this.profileMaskGraphic.clear();
+    this.profileMaskGraphic.fillStyle(0xffffff);
+    this.profileMaskGraphic.fillCircle(0, this.profileOffsetY, this.profileMaskDiameter / 2);
   }
   resTurnTimer = ({ ttl, nTotalTurnTime, nGraceTime, eTurnType, iUserId }) => {
     this.resetTurnTimer();

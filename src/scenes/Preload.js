@@ -271,6 +271,23 @@ export default class Preload extends Phaser.Scene {
     preload() {
         this.editorCreate();
         this.editorPreload();
+        // Dynamically load all avatar images in profile_images/ using hashed filenames as keys
+        const avatarContext = require.context(
+            '../assets/images/player-profile/profile_images',
+            false,
+            /\.(png|jpe?g|webp)$/i
+        );
+        avatarContext.keys().forEach((key) => {
+            // Webpack returns a hashed filename in avatarContext(key)
+            // Example: /static/media/AAF-1Cbbs4M_1733572687393.70795aeb778f22716d36.png
+            const hashedPath = avatarContext(key);
+            // Extract the hashed filename (without extension) as the texture key
+            const match = hashedPath.match(/\/([A-Za-z0-9_-]+)\.(png|jpe?g|webp)$/i);
+            if (match) {
+                const hashedKey = match[1];
+                this.load.image(hashedKey, hashedPath);
+            }
+        });
         const data = {
             sAuthToken: this.sAuthToken,
             iBoardId: this.iBoardId,

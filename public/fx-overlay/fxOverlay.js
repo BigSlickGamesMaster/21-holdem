@@ -321,9 +321,9 @@
     if (!isEnabled()) return false;
 
     dispatchAudioAction('winPot', { amount: amount });
-    chipWinBurst(amountToCount(amount, 6, 9), amount, 96, 520, {
-      target: options && options.source ? options.source : 'potPile',
-      targetAnchor: options && options.sourceAnchor,
+    chipWinBurst(amountToCount(amount, 6, 10), amount, 112, 640, {
+      target: options && options.target ? options.target : 'activePlayer',
+      targetAnchor: options && options.targetAnchor,
       size: 20,
     });
 

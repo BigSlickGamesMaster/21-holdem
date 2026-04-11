@@ -1,11 +1,13 @@
 const { User, PokerBoard, Analytics, Transaction } = require('../../../../../models');
 const { redis } = require('../../../../../utils');
+const systemBots = require('../../../../../utils/lib/system-bots');
 
 class Service {
   constructor(oParticipantData, oBoard) {
     this.iUserId = _.toString(oParticipantData.iUserId);
     this.sUserName = oParticipantData.sUserName;
     this.eUserType = oParticipantData.eUserType ?? 'user';
+    this.oBotProfile = oParticipantData.oBotProfile ?? null;
     this.sTutorialRole = oParticipantData.sTutorialRole ?? '';
     this.nSeat = oParticipantData.nSeat;
     this.aCardHand = oParticipantData.aCardHand ?? [];
@@ -233,7 +235,11 @@ class Service {
   }
 
   isAutomatedPlayer() {
-    return this.isBotUser() && this.oBoard?.isGuestTable?.() === true;
+    return this.isBotUser();
+  }
+
+  getBotStyleProfile() {
+    return systemBots.getBotStyleProfile(this.oBotProfile?.sStyle);
   }
 
   getTutorialActionError(sRequestedAction, oData = {}) {
@@ -267,6 +273,7 @@ class Service {
       'iUserId',
       'sUserName',
       'eUserType',
+      'oBotProfile',
       'sTutorialRole',
       'nSeat',
       'nChips',

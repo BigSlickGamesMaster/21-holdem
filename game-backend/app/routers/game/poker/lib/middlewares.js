@@ -2,6 +2,7 @@ const { default: mongoose } = require('mongoose');
 const boardManager = require('../../../../game/boardManager');
 const { PokerBoard, User, BoardProtoType } = require('../../../../models');
 const { fakeUser, redis } = require('../../../../utils');
+const systemBots = require('../../../../utils/lib/system-bots');
 
 const middleware = {};
 const GUEST_BOT_COUNT = 2;
@@ -41,6 +42,87 @@ function getMissingGuestBotCount({ board, boardProto, guestBotCountOverride, bTu
   const nTargetGuestBotCount = getTargetGuestBotCount({ boardProto, guestBotCountOverride, bTutorialMode });
   const nCurrentGuestBotCount = board.aParticipant.filter(participant => participant.eUserType === 'bot' && participant.eState !== 'leave').length;
   return Math.max(nTargetGuestBotCount - nCurrentGuestBotCount, 0);
+}
+
+function getLiveHumanParticipantCount(board) {
+  return board.aParticipant.filter(participant => participant.eUserType !== 'bot' && participant.eState !== 'leave').length;
+}
+
+function getLiveBotParticipantCount(board) {
+  return board.aParticipant.filter(participant => participant.eUserType === 'bot' && participant.eState !== 'leave').length;
+}
+
+function getTargetLiveBotCount({ board, boardProto }) {
+  const nHumanParticipantCount = getLiveHumanParticipantCount(board);
+  if (nHumanParticipantCount < 1) return 0;
+
+  const nMaxPlayer = Number(boardProto?.nMaxPlayer || board?.nMaxPlayer) || 0;
+  const nBotSeatCap = systemBots.getBotSeatCap(nMaxPlayer);
+  return Math.max(Math.min(nBotSeatCap, Math.max(nMaxPlayer - nHumanParticipantCount, 0)), 0);
+}
+
+function getMissingLiveBotCount({ board, boardProto }) {
+  const nTargetLiveBotCount = getTargetLiveBotCount({ board, boardProto });
+  const nCurrentLiveBotCount = getLiveBotParticipantCount(board);
+  return Math.max(nTargetLiveBotCount - nCurrentLiveBotCount, 0);
+}
+
+function getTargetLiveBotCountForIncomingHuman({ board, boardProto, nIncomingHumans = 1 }) {
+  const nExistingHumanParticipants = getLiveHumanParticipantCount(board);
+  const nHumanParticipantCount = nExistingHumanParticipants + Math.max(Number(nIncomingHumans) || 0, 0);
+  const nMaxPlayer = Number(boardProto?.nMaxPlayer || board?.nMaxPlayer) || 0;
+  const nBotSeatCap = systemBots.getBotSeatCap(nMaxPlayer);
+  return Math.max(Math.min(nBotSeatCap, Math.max(nMaxPlayer - nHumanParticipantCount, 0)), 0);
+}
+
+function getBotEvictionPriority(participant) {
+  const oPriority = {
+    spectator: 0,
+    waiting: 1,
+    winner: 2,
+    fold: 3,
+    bust: 4,
+    initialized: 5,
+    playing: 6,
+  };
+
+  return oPriority[participant?.eState] ?? 10;
+}
+
+async function evictLiveBotForHumanSeat(board) {
+  const aBotParticipants = board.aParticipant
+    .filter(participant => participant.eUserType === 'bot' && participant.eState !== 'leave')
+    .sort((firstParticipant, secondParticipant) => {
+      const nPriorityDiff = getBotEvictionPriority(firstParticipant) - getBotEvictionPriority(secondParticipant);
+      if (nPriorityDiff) return nPriorityDiff;
+      return Number(firstParticipant.nSeat) - Number(secondParticipant.nSeat);
+    });
+
+  const oBotParticipant = aBotParticipants[0];
+  if (!oBotParticipant) return null;
+
+  if (oBotParticipant.eState === 'playing') {
+    await oBotParticipant.foldPlayer({
+      sReason: 'Seat opened for a live player',
+      eBehaviour: 'leave',
+      bShowMessage: false,
+      bGameLostUpdated: true,
+    });
+  }
+
+  await detachBoardParticipant(board, oBotParticipant.iUserId);
+  return oBotParticipant;
+}
+
+async function evictExcessLiveBotsForIncomingHuman({ board, boardProto, nIncomingHumans = 1 }) {
+  const nAllowedBotCount = getTargetLiveBotCountForIncomingHuman({ board, boardProto, nIncomingHumans });
+  let nCurrentLiveBotCount = getLiveBotParticipantCount(board);
+
+  while (nCurrentLiveBotCount > nAllowedBotCount) {
+    const oEvictedBot = await evictLiveBotForHumanSeat(board);
+    if (!oEvictedBot) break;
+    nCurrentLiveBotCount -= 1;
+  }
 }
 
 middleware.getPrototype = async (req, res, next) => {
@@ -95,6 +177,7 @@ middleware.joiningProcess = async (req, res, next) => {
             );
           } else {
             req.board = board;
+            await evictExcessLiveBotsForIncomingHuman({ board: req.board, boardProto: req.boardProto, nIncomingHumans: 1 });
           }
           return next();
         }
@@ -106,6 +189,32 @@ middleware.joiningProcess = async (req, res, next) => {
         ]);
 
         pokerBoard = await PokerBoard.findOneAndUpdate(query, update, options);
+      }
+
+      const candidateBoards = await PokerBoard.find({ iProtoId: req.boardProto._id }).sort({ dUpdatedDate: -1 }).lean();
+      for (const candidateBoard of candidateBoards) {
+        const board = await boardManager.getBoard(candidateBoard.iBoardId.toString());
+        if (!board) {
+          await Promise.all([
+            PokerBoard.deleteOne({ iBoardId: candidateBoard.iBoardId }, session ? { session } : {}),
+            User.updateMany({ aPokerBoard: candidateBoard.iBoardId }, { $pull: { aPokerBoard: candidateBoard.iBoardId } }, session ? { session } : {}),
+          ]);
+          continue;
+        }
+
+        if (board.aParticipant.length < req.boardProto.nMaxPlayer) {
+          await evictExcessLiveBotsForIncomingHuman({ board, boardProto: req.boardProto, nIncomingHumans: 1 });
+          await PokerBoard.updateOne({ iBoardId: board._id }, { $addToSet: { aParticipants: req.user._id } }, session ? { session } : {});
+          req.board = board;
+          return next();
+        }
+
+        const oEvictedBot = await evictLiveBotForHumanSeat(board);
+        if (!oEvictedBot) continue;
+
+        await PokerBoard.updateOne({ iBoardId: board._id }, { $addToSet: { aParticipants: req.user._id } }, session ? { session } : {});
+        req.board = board;
+        return next();
       }
 
       req.board = await boardManager.createBoard(req.boardProto);
@@ -308,6 +417,14 @@ middleware.joinGuestBoard = async (req, res, next) => {
 };
 
 middleware.getMissingGuestBotCount = getMissingGuestBotCount;
+middleware.getMissingLiveBotCount = getMissingLiveBotCount;
+middleware.acquireLiveBotUsers = async ({ count, minBuyIn, excludeUserIds = [] }) => {
+  return await systemBots.getAvailableSystemBots({
+    nCount: count,
+    nMinChips: minBuyIn,
+    aExcludeUserIds: excludeUserIds,
+  });
+};
 
 middleware.createGuestBotUsers = async (count, minBuyIn) => {
   const bots = [];

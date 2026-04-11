@@ -15,14 +15,12 @@ class Participant extends Service {
 
       if (nCallAmount === 0) return await this.check(oData, callback);
 
-      if (this.nChips < nCallAmount) {
-        return callback({ error: "Oh no! You don't have enough chips to play here, Would you like to visit the store to top up your bankroll?" });
-      }
+      if (this.nChips < nCallAmount) return await this.allInShortCall({ bStandMode: bCallStand || this.isDoubleDownLock }, callback);
 
       // Player has acted on their current turn; prevent stale timeout fold on this turn.
       await this.oBoard.deleteScheduler('assignTurnTimeout', this.iUserId);
 
-      await this.updateUser({ $inc: { nChips: -nCallAmount } });
+      await this.updateUser({ $inc: { nChips: -nCallAmount, nTotalBetAmount: nCallAmount } });
       this.nChips -= nCallAmount;
       this.oBoard.nTableChips += nCallAmount;
       this.oBoard.nMaxBet = this.oBoard.nTableChips;
@@ -95,8 +93,8 @@ class Participant extends Service {
 
       if (this.isDoubleDownLock || this.isAllInLock) return callback({ error: 'Locked players cannot raise while standing/doubledown' });
 
-      const bShortAllInCallMode = this.aUserAction.includes('a') && !this.aUserAction.includes('r') && !this.aUserAction.includes('c');
-      if (bShortAllInCallMode) return await this.allInShortCall(callback);
+      const bShortAllInCallMode = this.aUserAction.includes('a') && !this.aUserAction.includes('r');
+      if (bShortAllInCallMode) return await this.allInShortCall({ bStandMode: this.isDoubleDownLock }, callback);
 
       const bRaiseStand = oData?.bTakeCard === false;
       const nRaiseAmount = Number(oData.nRaiseAmount);
@@ -115,7 +113,7 @@ class Participant extends Service {
       // Player has acted on their current turn; prevent stale timeout fold on this turn.
       await this.oBoard.deleteScheduler('assignTurnTimeout', this.iUserId);
 
-      await this.updateUser({ $inc: { nChips: -nTotalDebit } });
+      await this.updateUser({ $inc: { nChips: -nTotalDebit, nTotalBetAmount: nTotalDebit } });
       this.nChips -= nTotalDebit;
       this.oBoard.nMinBet = nNextMinBet;
       this.oBoard.nTableChips += nTotalDebit;
@@ -183,27 +181,114 @@ class Participant extends Service {
     }
   }
 
-  async allInShortCall(callback) {
+  buildParticipantAdjustmentPayload(aParticipants = []) {
+    return aParticipants
+      .filter(Boolean)
+      .map(participant => ({
+        iUserId: participant.iUserId,
+        nChips: participant.nChips,
+        nLastBidChips: participant.nLastBidChips,
+      }));
+  }
+
+  async refundUncalledExcessAfterShortAllIn() {
+    const aActiveParticipants = this.oBoard.aParticipant.filter(participant => participant.eState === 'playing');
+    if (aActiveParticipants.length < 2) return null;
+
+    const aNonAllInParticipants = aActiveParticipants.filter(participant => !participant.isAllInLock);
+    if (aNonAllInParticipants.length > 1) return null;
+
+    const aContributionSummary = aActiveParticipants
+      .map(participant => ({
+        participant,
+        nContribution: Math.max(Number(participant.nLastBidChips) || 0, 0),
+      }))
+      .filter(({ nContribution }) => nContribution > 0)
+      .sort((firstItem, secondItem) => secondItem.nContribution - firstItem.nContribution);
+
+    if (aContributionSummary.length < 2) return null;
+
+    const oHighestContribution = aContributionSummary[0];
+    const nSecondHighestContribution = aContributionSummary[1].nContribution;
+    const aHighestContributors = aContributionSummary.filter(({ nContribution }) => nContribution === oHighestContribution.nContribution);
+    if (aHighestContributors.length !== 1) return null;
+
+    const nRefundAmount = oHighestContribution.nContribution - nSecondHighestContribution;
+    if (!(nRefundAmount > 0)) return null;
+
+    const oRefundParticipant = oHighestContribution.participant;
+    oRefundParticipant.nLastBidChips = Math.max((Number(oRefundParticipant.nLastBidChips) || 0) - nRefundAmount, 0);
+    oRefundParticipant.nTotalBidChips = Math.max((Number(oRefundParticipant.nTotalBidChips) || 0) - nRefundAmount, 0);
+    oRefundParticipant.nChips = (Number(oRefundParticipant.nChips) || 0) + nRefundAmount;
+
+    this.oBoard.nTableChips = Math.max((Number(this.oBoard.nTableChips) || 0) - nRefundAmount, 0);
+    this.oBoard.nMaxBet = this.oBoard.nTableChips;
+    this.oBoard.nMinBet = aActiveParticipants.reduce(
+      (nHighestContribution, participant) => Math.max(nHighestContribution, Math.max(Number(participant.nLastBidChips) || 0, 0)),
+      0
+    );
+
+    await oRefundParticipant.updateUser({ $inc: { nChips: nRefundAmount, nTotalBetAmount: -nRefundAmount } });
+    await oRefundParticipant.recordTransaction({
+      iUserId: oRefundParticipant.iUserId,
+      iBoardId: this.oBoard._id,
+      nAmount: nRefundAmount,
+      eType: 'credit',
+      eMode: 'game',
+      eStatus: 'Success',
+      sDescription: 'Uncalled bet refund',
+      nGameRound: this.oBoard.nGameRound,
+    });
+    await this.oBoard.saveLogs([
+      {
+        sAction: 'uncalled-bet-refund',
+        eLogType: 'game',
+        iUserId: oRefundParticipant.iUserId,
+        nRefundAmount,
+        nAdjustedMinBet: this.oBoard.nMinBet,
+      },
+    ]);
+
+    return {
+      iUserId: oRefundParticipant.iUserId,
+      nRefundAmount,
+      nAdjustedMinBet: this.oBoard.nMinBet,
+      aParticipantAdjustments: this.buildParticipantAdjustmentPayload([oRefundParticipant]),
+    };
+  }
+
+  async allInShortCall(oOptions = {}, callback) {
     try {
+      if (typeof oOptions === 'function') {
+        callback = oOptions;
+        oOptions = {};
+      }
+
+      const fnCallback = typeof callback === 'function' ? callback : () => {};
+      const bStandMode = Boolean(oOptions?.bStandMode);
       const bCheckOpenState = this.aUserAction.includes('ck') && !this.aUserAction.includes('c');
       const nToCallAmount = bCheckOpenState ? 0 : Math.max(this.oBoard.nMinBet - this.nLastBidChips, 0);
       const nAllInAmount = Math.max(Number(this.nChips) || 0, 0);
 
-      if (nToCallAmount <= 0) return callback({ error: 'All-in call is not available in open/check state' });
-      if (nAllInAmount <= 0) return callback({ error: 'No chips available for all-in' });
-      if (nAllInAmount >= nToCallAmount) return callback({ error: 'All-in short-call path is only valid when chips are below call amount' });
+      if (nToCallAmount <= 0) return fnCallback({ error: 'All-in call is not available in open/check state' });
+      if (nAllInAmount <= 0) return fnCallback({ error: 'No chips available for all-in' });
+      if (nAllInAmount >= nToCallAmount) return fnCallback({ error: 'All-in short-call path is only valid when chips are below call amount' });
 
       // Player has acted on their current turn; prevent stale timeout fold on this turn.
       await this.oBoard.deleteScheduler('assignTurnTimeout', this.iUserId);
 
-      await this.updateUser({ $inc: { nChips: -nAllInAmount } });
+      await this.updateUser({ $inc: { nChips: -nAllInAmount, nTotalBetAmount: nAllInAmount } });
       this.nChips = 0;
       this.oBoard.nTableChips += nAllInAmount;
       this.oBoard.nMaxBet = this.oBoard.nTableChips;
       this.nLastBidChips += nAllInAmount;
       this.nTotalBidChips = (this.nTotalBidChips ?? 0) + nAllInAmount;
       this.isAllInLock = true;
-      this.aUserAction = ['f'];
+      if (bStandMode) {
+        this.isDoubleDownLock = true;
+        this.nStandAtRound = this.oBoard.nTableRound;
+      }
+      this.aUserAction = bStandMode ? ['c', 'f'] : ['f'];
 
       await this.recordTransaction({
         iUserId: this.iUserId,
@@ -215,10 +300,13 @@ class Participant extends Service {
         nGameRound: this.oBoard.nGameRound,
       });
 
+      const oRefundAdjustment = await this.refundUncalledExcessAfterShortAllIn();
+
       await this.oBoard.update({
+        nMinBet: this.oBoard.nMinBet,
         nTableChips: this.oBoard.nTableChips,
         nMaxBet: this.oBoard.nMaxBet,
-        aParticipant: [this.toJSON()],
+        aParticipant: oRefundAdjustment ? this.oBoard.aParticipant.map(participant => participant.toJSON()) : [this.toJSON()],
       });
 
       await this.oBoard.emit('resCall', {
@@ -229,7 +317,9 @@ class Participant extends Service {
         nMinBet: this.oBoard.nMinBet,
         bAllIn: true,
         bShortCall: true,
+        bStandMode,
         nShortAmount: Math.max(nToCallAmount - nAllInAmount, 0),
+        aParticipantAdjustments: oRefundAdjustment?.aParticipantAdjustments || [],
       });
       await this.oBoard.saveLogs([
         {
@@ -265,7 +355,7 @@ class Participant extends Service {
       this.isDoubleDownLock = true;
       this.aUserAction = ['c', 'f'];
 
-      await this.updateUser({ $inc: { nChips: -nDoubleDownAmount } });
+      await this.updateUser({ $inc: { nChips: -nDoubleDownAmount, nTotalBetAmount: nDoubleDownAmount } });
       this.nChips -= nDoubleDownAmount;
       this.oBoard.nTableChips += nDoubleDownAmount;
       this.oBoard.nMaxBet = this.oBoard.nTableChips;
@@ -337,9 +427,7 @@ class Participant extends Service {
       const bCheckOpenState = this.aUserAction.includes('ck') && !this.aUserAction.includes('c');
       const nStandAmount = bCheckOpenState ? 0 : Math.max(this.oBoard.nMinBet - this.nLastBidChips, 0);
       const bIsDefendingRaise = nStandAmount > 0;
-      if (this.nChips < nStandAmount) {
-        return callback({ error: "Oh no! You don't have enough chips to play here, Would you like to visit the store to top up your bankroll?" });
-      }
+      if (this.nChips < nStandAmount) return await this.allInShortCall({ bStandMode: true }, callback);
 
       // Player has acted on their current turn; prevent stale timeout fold on this turn.
       await this.oBoard.deleteScheduler('assignTurnTimeout', this.iUserId);
@@ -349,7 +437,7 @@ class Participant extends Service {
       this.aUserAction = bCheckOpenState ? ['ck', 'f'] : ['c', 'f'];
 
       if (nStandAmount > 0) {
-        await this.updateUser({ $inc: { nChips: -nStandAmount } });
+        await this.updateUser({ $inc: { nChips: -nStandAmount, nTotalBetAmount: nStandAmount } });
         this.nChips -= nStandAmount;
         this.oBoard.nTableChips += nStandAmount;
         this.oBoard.nMaxBet = this.oBoard.nTableChips;
@@ -532,11 +620,17 @@ class Participant extends Service {
 
   async playAutomatedTurn({ toCallAmount = 0 } = {}) {
     const noop = () => {};
-    await _.delay(_.randomBetween(1150, 1900));
+    const bExtendedThink = Math.random() <= 0.24;
+    const nDecisionDelay = bExtendedThink
+      ? _.randomBetween(6500, 16000)
+      : _.randomBetween(2200, 6200);
+
+    await _.delay(nDecisionDelay);
     await this.waitForGuestResume();
 
     if (this.oBoard.eState !== 'playing' || this.eState !== 'playing') return false;
     if (!this.hasValidTurn()) return false;
+    if (Math.random() <= 0.03) return false;
 
     const allowedActions = new Set(this.aUserAction);
     const score = Number(this.nCardScore) || 0;
@@ -544,17 +638,51 @@ class Participant extends Service {
     const stack = Math.max(Number(this.nChips) || 0, 0);
     const pressureRatio = callAmount > 0 ? callAmount / Math.max(stack, 1) : 0;
     const raiseAmount = this.getAutomatedRaiseAmount(callAmount);
+    const oBotProfile = this.getBotStyleProfile();
+    const nDecisionRoll = Math.random();
 
-    if (allowedActions.has('a') && pressureRatio >= 0.65) return await this.allInShortCall(noop);
-    if (allowedActions.has('d') && callAmount === 0 && score >= 9 && score <= 11 && stack >= this.oBoard.nMinBet * 2) return await this.doubleDown({}, noop);
-    if (allowedActions.has('s') && score >= 19) return await this.stand({}, noop);
-    if (allowedActions.has('ck') && score >= 17) return await this.check({}, noop);
-    if (allowedActions.has('r') && raiseAmount && callAmount === 0 && score >= 13 && score <= 17) {
+    if (allowedActions.has('a') && pressureRatio >= oBotProfile.nAllInPressure) return await this.allInShortCall(noop);
+    if (
+      allowedActions.has('d') &&
+      callAmount === 0 &&
+      score >= oBotProfile.nDoubleDownMinScore &&
+      score <= oBotProfile.nDoubleDownMaxScore &&
+      stack >= this.oBoard.nMinBet * 2
+    ) {
+      return await this.doubleDown({}, noop);
+    }
+    if (allowedActions.has('s') && score >= oBotProfile.nStandScore) return await this.stand({}, noop);
+    if (allowedActions.has('ck') && score >= oBotProfile.nCheckScore) return await this.check({}, noop);
+    if (
+      allowedActions.has('r') &&
+      raiseAmount &&
+      callAmount === 0 &&
+      score >= oBotProfile.nOpenRaiseMinScore &&
+      score <= oBotProfile.nOpenRaiseMaxScore &&
+      nDecisionRoll <= oBotProfile.nOpenRaiseChance
+    ) {
       return await this.raise({ nRaiseAmount: raiseAmount }, noop);
     }
-    if (allowedActions.has('c') && (score <= 16 || pressureRatio <= 0.22)) return await this.call({}, noop);
+    if (
+      allowedActions.has('r') &&
+      raiseAmount &&
+      callAmount > 0 &&
+      score >= oBotProfile.nCounterRaiseMinScore &&
+      pressureRatio <= oBotProfile.nCounterPressureTolerance &&
+      nDecisionRoll <= oBotProfile.nCounterRaiseChance
+    ) {
+      return await this.raise({ nRaiseAmount: raiseAmount }, noop);
+    }
+    if (
+      allowedActions.has('c') &&
+      score <= oBotProfile.nLooseCallScore &&
+      (score <= oBotProfile.nFallbackStandScore || pressureRatio <= oBotProfile.nPressureTolerance || nDecisionRoll <= oBotProfile.nLooseCallChance)
+    ) {
+      return await this.call({}, noop);
+    }
     if (allowedActions.has('ck')) return await this.check({}, noop);
-    if (allowedActions.has('s') && score >= 15) return await this.stand({}, noop);
+    if (allowedActions.has('s') && score >= oBotProfile.nFallbackStandScore) return await this.stand({}, noop);
+    if (allowedActions.has('c') && pressureRatio <= oBotProfile.nPressureTolerance * 0.75) return await this.call({}, noop);
     if (allowedActions.has('f')) return await this.foldPlayer({ sReason: 'Bot fold', eBehaviour: 'fold' });
     return false;
   }

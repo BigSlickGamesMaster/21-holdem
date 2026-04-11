@@ -41,10 +41,13 @@ const User = new mongoose.Schema(
     nGameWon: { type: Number, default: 0 },
     nGamePlayed: { type: Number, default: 0 },
     nGameLost: { type: Number, default: 0 },
+    nTotalBetAmount: { type: Number, default: 0 },
+    nTotalWinningAmount: { type: Number, default: 0 },
     sGoogleId: String,
     nDailyRewardStreak: { type: Number },
     dLastRewardClaimDate: { type: Date },
     sPrivateCode: String,
+    oBotProfile: { type: Object, default: null },
   },
   { timestamps: { createdAt: 'dCreatedDate', updatedAt: 'dUpdatedDate' } }
 );

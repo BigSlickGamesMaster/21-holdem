@@ -668,7 +668,6 @@
 
     if (options && options.isSelf) {
       showScreenFlash('rgba(92, 208, 255, 0.24)', 640);
-      spawnStreamers({ count: 20 });
       showBanner((options && options.text) || 'You Win!', {
         variant: 'winner',
         isSelf: true,

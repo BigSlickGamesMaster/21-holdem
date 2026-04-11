@@ -4,11 +4,37 @@ const { BoardProtoType, User, PokerBoard } = require('../../../../models');
 const middleware = require('./middlewares');
 
 const controllers = {};
+const LOBBY_SEED_BUY_INS = [1000, 5000];
+const LOBBY_SEED_SEAT_COUNTS = [4, 6, 9];
+const LOBBY_SEED_TARGET_PARTICIPANTS = 3;
 
 async function seedGuestBots({ board, boardProto, count }) {
   if (!count) return;
 
   const bots = await middleware.createGuestBotUsers(count, boardProto.nMinBuyIn);
+  for (const bot of bots) {
+    await PokerBoard.updateOne({ iBoardId: board._id }, { $addToSet: { aParticipants: bot._id } });
+    await User.updateOne({ _id: bot._id }, { $addToSet: { aPokerBoard: board._id } });
+    await boardManager.addParticipant({
+      iBoardId: board._id,
+      oProtoData: boardProto,
+      oUserData: {
+        ...bot.toObject(),
+        nMinBuyIn: boardProto.nMinBuyIn,
+      },
+    });
+  }
+}
+
+async function seedLiveBots({ board, boardProto, count }) {
+  if (!count) return;
+
+  const bots = await middleware.acquireLiveBotUsers({
+    count,
+    minBuyIn: boardProto.nMinBuyIn,
+    excludeUserIds: board.aParticipant.map(participant => participant.iUserId || participant._id),
+  });
+
   for (const bot of bots) {
     await PokerBoard.updateOne({ iBoardId: board._id }, { $addToSet: { aParticipants: bot._id } });
     await User.updateOne({ _id: bot._id }, { $addToSet: { aPokerBoard: board._id } });
@@ -43,6 +69,74 @@ async function ensureGuestBoardCanStart(board) {
   return refreshedBoard;
 }
 
+function getLobbySeedProtoCandidates(aProtoData = []) {
+  const oSelectedByKey = {};
+
+  for (const proto of aProtoData) {
+    const nMinBuyIn = Number(proto?.nMinBuyIn) || 0;
+    const nMaxPlayer = Number(proto?.nMaxPlayer) || 0;
+    if (!LOBBY_SEED_BUY_INS.includes(nMinBuyIn) || !LOBBY_SEED_SEAT_COUNTS.includes(nMaxPlayer)) continue;
+
+    const sKey = `${nMinBuyIn}:${nMaxPlayer}`;
+    if (!oSelectedByKey[sKey]) oSelectedByKey[sKey] = proto;
+  }
+
+  return Object.values(oSelectedByKey).sort((firstProto, secondProto) => {
+    const nBuyInDiff = (Number(firstProto?.nMinBuyIn) || 0) - (Number(secondProto?.nMinBuyIn) || 0);
+    if (nBuyInDiff) return nBuyInDiff;
+    return (Number(firstProto?.nMaxPlayer) || 0) - (Number(secondProto?.nMaxPlayer) || 0);
+  });
+}
+
+async function ensureLiveLobbySeedBoards(aProtoData = []) {
+  const aSeedProtoCandidates = getLobbySeedProtoCandidates(aProtoData);
+  if (!aSeedProtoCandidates.length) return;
+
+  for (const proto of aSeedProtoCandidates) {
+    const aProtoBoards = await PokerBoard.find({ iProtoId: proto._id, eTableMode: 'live' }).sort({ dUpdatedDate: -1 }).lean();
+
+    let nCurrentParticipantCount = 0;
+    let oTargetBoard = null;
+
+    for (const pokerBoard of aProtoBoards) {
+      const board = await boardManager.getBoard(pokerBoard.iBoardId.toString());
+      if (!board) {
+        await Promise.all([
+          PokerBoard.deleteOne({ iBoardId: pokerBoard.iBoardId }),
+          User.updateMany({ aPokerBoard: pokerBoard.iBoardId }, { $pull: { aPokerBoard: pokerBoard.iBoardId } }),
+        ]);
+        continue;
+      }
+
+      const nBoardParticipantCount = board.aParticipant.filter(participant => participant.eState !== 'leave').length;
+      nCurrentParticipantCount += nBoardParticipantCount;
+
+      if (!oTargetBoard && nBoardParticipantCount < Number(board.nMaxPlayer || proto.nMaxPlayer || 0)) {
+        oTargetBoard = board;
+      }
+    }
+
+    const nMissingParticipants = Math.max(LOBBY_SEED_TARGET_PARTICIPANTS - nCurrentParticipantCount, 0);
+    if (!nMissingParticipants) continue;
+
+    if (!oTargetBoard) {
+      oTargetBoard = await boardManager.createBoard(proto);
+      await new PokerBoard({
+        iBoardId: oTargetBoard._id,
+        iProtoId: proto._id,
+        aParticipants: [],
+        eTableMode: 'live',
+      }).save();
+    }
+
+    await seedLiveBots({
+      board: oTargetBoard,
+      boardProto: proto,
+      count: nMissingParticipants,
+    });
+  }
+}
+
 controllers.listBoard = async (req, res) => {
   try {
     const query = { eStatus: 'y' };
@@ -56,15 +150,26 @@ controllers.listBoard = async (req, res) => {
     };
 
     const aProtoData = await BoardProtoType.find(query, project).sort({ nMinBet: 1 }).lean();
+    await ensureLiveLobbySeedBoards(aProtoData);
     const aProtoIds = aProtoData.map(proto => proto._id);
 
     const aLiveBoardStats = aProtoIds.length
       ? await PokerBoard.aggregate([
         { $match: { iProtoId: { $in: aProtoIds } } },
         {
+          $lookup: {
+            from: 'users',
+            localField: 'aParticipants',
+            foreignField: '_id',
+            as: 'aParticipantUsers',
+          },
+        },
+        {
           $project: {
             iProtoId: 1,
-            nParticipantCount: { $size: { $ifNull: ['$aParticipants', []] } },
+            nParticipantCount: {
+              $size: { $ifNull: ['$aParticipantUsers', []] },
+            },
           },
         },
         {
@@ -115,6 +220,25 @@ controllers.joinBoard = async (req, res) => {
     if (!response) return res.reply(messages.not_found('board'));
 
     await User.updateOne({ _id: req.user._id }, { $addToSet: { aPokerBoard: req.board._id } });
+
+    req.board = await boardManager.getBoard(req.board._id.toString());
+    const nMissingLiveBotCount = middleware.getMissingLiveBotCount({
+      board: req.board,
+      boardProto: req.boardProto,
+    });
+    if (nMissingLiveBotCount > 0) {
+      await seedLiveBots({
+        board: req.board,
+        boardProto: req.boardProto,
+        count: nMissingLiveBotCount,
+      });
+    }
+
+    const refreshedBoard = await boardManager.getBoard(req.board._id.toString());
+    if (refreshedBoard) {
+      response.eState = refreshedBoard.eState;
+      response.nTotalParticipant = refreshedBoard.aParticipant.length;
+    }
 
     return res.reply(messages.success(), response);
   } catch (error) {

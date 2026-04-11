@@ -6,14 +6,11 @@ import { getCookie, ReactToastify, removeCookie } from 'shared/utils';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { getProfile } from 'query/profile.query';
 import _ from 'scripts/helper';
-import { Button, Form, Modal, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { joinLeaveTable, joinPrivateTable, joinTable } from 'query/gameTable.query';
-import { io } from 'socket.io-client';
+import { Button, Form, Modal } from 'react-bootstrap';
+import { joinLeaveTable } from 'query/gameTable.query';
 import { getAvatarImageSrc } from 'shared/constants/builtInAvatars';
-import AppWordmark from '../../AppWordmark';
 const HeaderPrivate = () => {
     const [playerData, setPlayerData] = useState(null);
-    const [showUserMenu, setShowUserMenu] = useState(false);
     const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(true);
     const [modalShow, setModalShow] = useState(false);
     const headerRef = useRef(null);
@@ -22,7 +19,7 @@ const HeaderPrivate = () => {
     const currentPath = useLocation().pathname;
 
     // Get profile data
-    const { data: profileData, isLoading: isProfileDataLoading } = useQuery("profileData", getProfile, {
+    useQuery("profileData", getProfile, {
         select: (data) => data?.data?.data,
         onSuccess: (data) => {
             setPlayerData(data);
@@ -62,15 +59,10 @@ const HeaderPrivate = () => {
 
     useEffect(() => {
         setIsNavbarCollapsed(true);
-        setShowUserMenu(false);
     }, [currentPath]);
 
     useEffect(() => {
         const handlePointerDown = (event) => {
-            if (showUserMenu && !event.target.closest('.header-private__menu-user') && !event.target.closest('.header-private__menu-user-dropdown')) {
-                setShowUserMenu(false);
-            }
-
             if (!isNavbarCollapsed && headerRef.current && !headerRef.current.contains(event.target)) {
                 setIsNavbarCollapsed(true);
             }
@@ -78,12 +70,7 @@ const HeaderPrivate = () => {
 
         document.addEventListener('pointerdown', handlePointerDown);
         return () => document.removeEventListener('pointerdown', handlePointerDown);
-    }, [isNavbarCollapsed, showUserMenu]);
-
-    const handleLogout = () => {
-        removeCookie('sAuthToken')
-        navigate('/login');
-    }
+    }, [isNavbarCollapsed]);
 
     const handleLeaveTable = () => {
         mutateLeaveTable();
@@ -91,12 +78,11 @@ const HeaderPrivate = () => {
 
     const closeHeaderMenus = () => {
         setIsNavbarCollapsed(true);
-        setShowUserMenu(false);
     };
 
-    const handleOpenBugPanel = () => {
+    const handleOpenProfileSettings = () => {
         closeHeaderMenus();
-        window.FXOverlayUI?.toggleBugPanel?.();
+        navigate('/profile');
     };
 
     const handleJoinTable = () => {
@@ -116,11 +102,6 @@ const HeaderPrivate = () => {
     return (
         <>
             <nav ref={headerRef} className='header-private navbar navbar-expand-xl'>
-                <div className='header-private__logo'>
-                    <Link to='/lobby' onClick={closeHeaderMenus} className='app-wordmark' aria-label="21 Hold'em home">
-                        <AppWordmark className='app-wordmark__svg' />
-                    </Link>
-                </div>
                 <button className="navbar-toggler" type="button" onClick={() => setIsNavbarCollapsed(!isNavbarCollapsed)}>
                     <span className="navbar-toggler-icon"></span>
                 </button>
@@ -131,22 +112,16 @@ const HeaderPrivate = () => {
                                 <Link className={`nav-link ${currentPath === '/lobby' ? 'active' : ''}`} to='/lobby' onClick={closeHeaderMenus}>LOBBY</Link>
                             </li>
                             <li className="nav-item">
-                                <Link className={`nav-link ${currentPath === '/how-to-play' ? 'active' : ''}`} to={'/how-to-play'} onClick={closeHeaderMenus}>HOW TO PLAY</Link>
-                            </li>
-                            <li className="nav-item">
-                                <Link className={`nav-link ${currentPath === '/contact' ? 'active' : ''}`} to='/contact' onClick={closeHeaderMenus}>CONTACT</Link>
-                            </li>
-                            <li className="nav-item">
-                                <button type='button' className='header-private__bug-link' onClick={handleOpenBugPanel}>REPORT BUG</button>
+                                <Link className={`nav-link ${currentPath === '/profile' ? 'active' : ''}`} to='/profile' onClick={closeHeaderMenus}>PROFILE / SETTINGS</Link>
                             </li>
                         </ul>
                         <div className="header-private__menu-wallet">
                             <span className="header-private__menu-wallet-iconChip"><img src={chip_icon} alt='chips' /></span>
                             <span>{_.formatCurrency(playerData?.nChips)}</span>
-                            <span className="header-private__menu-wallet-iconPlus" onClick={() => { closeHeaderMenus(); navigate('/shop'); }}><img src={btn_plus} alt='plus' /></span>
+                            <span className="header-private__menu-wallet-iconPlus" onClick={() => { closeHeaderMenus(); navigate('/lobby?tab=lobby-shop'); }}><img src={btn_plus} alt='plus' /></span>
                             {/* <div className="full-wallet-amount">{playerData?.nChips.toFixed(2)}</div> */}
                         </div>
-                        <div className='header-private__menu-user' onClick={() => setShowUserMenu(!showUserMenu)}>
+                        <div className='header-private__menu-user' onClick={handleOpenProfileSettings}>
                             <div className='header-private__menu-user-avatar'>
                                 <img
                                     src={getAvatarImageSrc(playerData?.sAvatar, playerData?.sUserName)}
@@ -159,21 +134,6 @@ const HeaderPrivate = () => {
                             <div className='header-private__menu-user-name'>
                                 <span>{_.appendSuffix(playerData?.sUserName)}</span>
                             </div>
-                            <div className='header-private__menu-user-downArrow'>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M7 10L12 15L17 10" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </div>
-                            {showUserMenu && (
-                                <div className="header-private__menu-user-dropdown">
-                                    <ul>
-                                        <li><Link className='link' to='/profile' onClick={closeHeaderMenus}>My Profile</Link></li>
-                                        <li><Link className='link' to='/transactions' onClick={closeHeaderMenus}>My Transactions</Link></li>
-                                        <li><div className='link' onClick={handleOpenBugPanel}>Report Bug</div></li>
-                                        <li><div className='link' onClick={() => { closeHeaderMenus(); handleLogout(); }}>Log Out</div></li>
-                                    </ul>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

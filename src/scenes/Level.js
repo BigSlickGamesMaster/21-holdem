@@ -1499,9 +1499,38 @@ setConsolePrompt(label = 'Waiting for turn') {
     // - Only visuals / copy-to-clipboard UI changes.
 
     setTable() {
+        // Private table overlay container
         const container_private_table = this.add.container(0, 0).setVisible(false);
         this.container_table.add(container_private_table);
-        const txt_privateTableMessage = this.add.text(config.centerX, 260, 'Share this code with your friends to join this table!', { fontSize: '30px', fontFamily: config.CommonFont, color: '#ffffff' }).setAlpha(0.92).setOrigin(0.5);
+
+        // Tint overlay
+        const privateTint = this.add.rectangle(config.centerX, config.centerY, config.width, config.height, 0x000000, 0.38)
+            .setOrigin(0.5)
+            .setVisible(false);
+        container_private_table.add(privateTint);
+
+        // Lock icon
+        const lockIcon = this.add.image(config.centerX, 170, 'privateTable_icon').setScale(0.32).setAlpha(0.92).setVisible(false);
+        container_private_table.add(lockIcon);
+
+        // Banner
+        const banner = this.add.rectangle(config.centerX, 230, 540, 64, 0x1b5e8d, 0.92)
+            .setOrigin(0.5)
+            .setVisible(false);
+        container_private_table.add(banner);
+        const bannerText = this.add.text(config.centerX, 230, 'PRIVATE TABLE', {
+            fontSize: '38px',
+            fontFamily: config.CommonFont,
+            color: '#ffd564',
+            fontStyle: 'bold',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 4,
+        }).setOrigin(0.5).setAlpha(0.98).setVisible(false);
+        container_private_table.add(bannerText);
+
+        // Message and code
+        const txt_privateTableMessage = this.add.text(config.centerX, 300, 'Share this code with your friends to join this table!', { fontSize: '30px', fontFamily: config.CommonFont, color: '#ffffff' }).setAlpha(0.92).setOrigin(0.5);
         txt_privateTableMessage.setWordWrapWidth(760);
         container_private_table.add(txt_privateTableMessage);
         const code_base = this.add.image(config.centerX, txt_privateTableMessage.y + txt_privateTableMessage.displayHeight + 34, assets.black_base).setScale(0.62);
@@ -1509,9 +1538,11 @@ setConsolePrompt(label = 'Waiting for turn') {
         const txt_privateTableCode = this.add.text(code_base.x, code_base.y, '123456', { fontSize: '34px', fontFamily: config.CommonFont, color: '#ffffff' }).setOrigin(0.5);
         container_private_table.add(txt_privateTableCode);
 
+        // Copy code toast
         const tostMessage = this.add.text(code_base.x, code_base.y + code_base.displayHeight * 0.8, 'Code copied!', { fontSize: '28px', fontFamily: config.CommonFont, color: '#ffffff' }).setAlpha(0.92).setOrigin(0.5).setVisible(false);
         container_private_table.add(tostMessage);
 
+        // Copy button
         const btn_copy = new Button(this, txt_privateTableCode.x + code_base.displayWidth / 2 - 35, txt_privateTableCode.y, { texture: assets.copy_icon }, () => {
             _.copyToClipboard(txt_privateTableCode.text);
             btn_copy.btn_image.setInteractive();
@@ -1522,11 +1553,19 @@ setConsolePrompt(label = 'Waiting for turn') {
             }, 2000);
         });
         container_private_table.add(btn_copy);
+
+        // Deck card
         const close_deck_card = this.add.image(config.centerX - 290, config.centerY - 130, assets.card_deck).setScale(0.88);
         this.container_table.add(close_deck_card);
+
+        // Show overlay if private
         if (this.sPrivateCode) {
             txt_privateTableCode.setText(this.sPrivateCode);
             container_private_table.setVisible(true);
+            privateTint.setVisible(true);
+            lockIcon.setVisible(true);
+            banner.setVisible(true);
+            bannerText.setVisible(true);
             this.table.setTexture(assets.private_table);
         }
         this.oTable = {
@@ -1623,16 +1662,30 @@ setButtons() {
     this.layoutActionButtonGroups();
 }
 
+    layoutPotAmount() {
+        if (!this.oPotAmount?.pot_amount_base || !this.oPotAmount?.chip_icon || !this.oPotAmount?.pot_amount_text) return;
+        const gap = 10;
+        const totalWidth = this.oPotAmount.chip_icon.displayWidth + gap + this.oPotAmount.pot_amount_text.displayWidth;
+        const startX = this.oPotAmount.pot_amount_base.x - totalWidth / 2;
+        this.oPotAmount.chip_icon.setX(startX + this.oPotAmount.chip_icon.displayWidth / 2);
+        this.oPotAmount.pot_amount_text.setX(startX + this.oPotAmount.chip_icon.displayWidth + gap + this.oPotAmount.pot_amount_text.displayWidth / 2);
+    }
     setPotAmount() {
-        const pot_amount_base = this.add.image(config.centerX, config.centerY - 540, assets.pot_amount_base).setScale(0.92);
+        const pot_amount_base = this.add.image(config.centerX, config.centerY - 540, assets.pot_amount_base).setScale(0.98);
         this.container_pot_amount.add(pot_amount_base);
-        const chip_icon = this.add.image(pot_amount_base.x - pot_amount_base.displayWidth / 3.6, pot_amount_base.y, assets.chip_icon).setScale(0.9);
+        const chip_icon = this.add.image(pot_amount_base.x - pot_amount_base.displayWidth / 3.6, pot_amount_base.y, assets.chip_icon).setScale(0.98);
         this.container_pot_amount.add(chip_icon);
-        const pot_amount_text = this.add.text(chip_icon.x + chip_icon.displayWidth, chip_icon.y, '0', { fontSize: '38px', fontFamily: config.CommonFont, color: '#ffffff' }).setOrigin(0.5);
-        chip_icon.setX(pot_amount_text.x - chip_icon.displayWidth / 2);
-        pot_amount_text.setX(chip_icon.x + chip_icon.displayWidth / 2 + pot_amount_text.displayWidth / 1.5);
+        const pot_amount_text = this.add.text(chip_icon.x + chip_icon.displayWidth, chip_icon.y, '0', {
+            fontSize: '48px',
+            fontFamily: config.CommonFont,
+            fontStyle: 'bold',
+            color: '#ffffff',
+            stroke: '#06253b',
+            strokeThickness: 5,
+        }).setOrigin(0.5);
         this.container_pot_amount.add(pot_amount_text);
         this.oPotAmount = { pot_amount_base: pot_amount_base, chip_icon: chip_icon, pot_amount_text: pot_amount_text };
+        this.layoutPotAmount();
     }
     createPlayerProfiles() {
         for (let i = 0; i < 9; i++) {
@@ -1645,8 +1698,10 @@ setButtons() {
     }
     arrangeSeats(mySeat = 0) {
         const aSeats = _.getSeats(mySeat);
+        const aSeatProfileOrder = _.getPreferredSeatProfileOrder();
         for (let i = 0; i < aSeats.length; i++) {
-            this.aPlayerProfiles[aSeats[i]] = this.aAllPlayerProfiles[i];
+            const nSeatProfileIndex = aSeatProfileOrder[i] ?? i;
+            this.aPlayerProfiles[aSeats[i]] = this.aAllPlayerProfiles[nSeatProfileIndex];
         }
     }
     setSceneDepths() {
@@ -1993,10 +2048,7 @@ setButtons() {
     updatePotAmount(nTableChips) {
         this.oGameManager.nPotAmount = nTableChips;
         this.oPotAmount.pot_amount_text.setText(`${_.formatCurrencyWithComa(nTableChips)}`);
-        const totalWidth = this.oPotAmount.chip_icon.displayWidth + this.oPotAmount.pot_amount_text.displayWidth;
-        const startX = this.oPotAmount.pot_amount_base.x - totalWidth / 2;
-        this.oPotAmount.chip_icon.setX(startX);
-        this.oPotAmount.pot_amount_text.setX(startX + this.oPotAmount.chip_icon.displayWidth + this.oPotAmount.pot_amount_text.displayWidth / 2);
+        this.layoutPotAmount();
         this.callFXOverlay('setPotAmount', nTableChips);
     }
     handleDoubleDown(oData, sEventName) {
@@ -2050,9 +2102,11 @@ setButtons() {
         if (!player) return;
         const potIncrease = Math.max(0, Number(oData.nTableChips || 0) - Number(this.oGameManager.nPotAmount || 0));
         const isAllInAction = (sEventName === 'resRaise' || sEventName === 'resCall') && Number(oData.nChips) === 0;
+        const aParticipantAdjustments = Array.isArray(oData.aParticipantAdjustments) ? oData.aParticipantAdjustments : [];
 
         player?.playerProfile?.setAmountIn(oData.nChips);
         player?.iUserId == this.iUserId && this.setMyPlayerData(oData);
+        aParticipantAdjustments.forEach((participantData) => this.applyParticipantAdjustment(participantData));
         if (potIncrease > 0) {
             if (isAllInAction) {
                 this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
@@ -2067,6 +2121,7 @@ setButtons() {
         } else if (sEventName === 'resCheck') {
             this.oSoundManager.playSound(this.oSoundManager.check_sound, false);
         }
+        this.oGameManager.nMinRaiseAmount = oData.nMinBet ?? this.oGameManager.nMinRaiseAmount;
         this.updatePotAmount(oData.nTableChips);
 
         if (this.isGuestTutorial && oData.iUserId === this.iUserId) {
@@ -2090,11 +2145,10 @@ setButtons() {
 
         if (sEventName === 'resCall') {
             const callAmount = oData.nLastBidChips ?? oData.nCurrentChips ?? 0;
-            player?.playerProfile?.setBettingLabel('Call', callAmount);
+            player?.playerProfile?.setBettingLabel(oData.bAllIn ? 'All In' : 'Call', callAmount);
         } else if (sEventName === 'resRaise') {
             const raiseAmount = oData.nLastBidChips ?? oData.nCurrentChips ?? 0;
             player?.playerProfile?.setBettingLabel('Raised', raiseAmount);
-            this.oGameManager.nMinRaiseAmount = oData.nMinBet ?? this.oGameManager.nMinRaiseAmount;
         } else if (sEventName === 'resStand') {
             const logs = this.oGameManager.recentLogs || [];
             const lastRaiseLog = logs.find(log =>
@@ -2220,6 +2274,18 @@ setButtons() {
         }
 
         this.syncPlayerScoreDisplay(myPlayer, nCardScore, myPlayerData?.aCardHand);
+    }
+    applyParticipantAdjustment(participantData) {
+        const iUserId = participantData?.iUserId;
+        if (!iUserId || !this.players.has(iUserId)) return;
+
+        const player = this.players.get(iUserId);
+        Object.assign(player, participantData);
+        player?.playerProfile?.setAmountIn(participantData?.nChips);
+
+        if (iUserId === this.iUserId) {
+            this.setMyPlayerData(participantData);
+        }
     }
     async setPlayersData(aParticipant) {
         for (let i = 0; i < aParticipant.length; i++) {
@@ -2547,10 +2613,13 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       this.oGameManager.aWinnerPlayers.push(participant.iUserId);
       
       setTimeout(() => {
-        player?.playerProfile?.hideWinnerPrompt();
         participant.iUserId == this.iUserId && this.oSoundManager.playSound(this.oSoundManager.winCoin_sound, false);
         this.playWinPotFX(player?.playerProfile, participant.nWinningAmount || 0);
-      }, 5000);
+      }, 4200);
+
+      setTimeout(() => {
+        player?.playerProfile?.hideWinnerPrompt();
+      }, 5200);
     }
   });
 }

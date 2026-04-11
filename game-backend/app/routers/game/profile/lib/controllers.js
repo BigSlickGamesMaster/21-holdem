@@ -22,15 +22,8 @@ controllers.updateProfile = async (req, res) => {
     const query = {};
 
     if (data.sAvatar) query.sAvatar = data.sAvatar;
-    if (data.sUserName) {
-      const existUser = await User.findOne(
-        {
-          sUserName: { $regex: new RegExp(`^${data.sUserName}$`, 'i') }, // Case-insensitive match
-        },
-        { sUserName: 1 }
-      );
-      if (existUser) return res.reply(messages.already_exists('Username'));
-      query.sUserName = data.sUserName;
+    if (data.sUserName && data.sUserName !== req.user.sUserName) {
+      return res.reply(messages.forbiddenCM('Username is locked and cannot be changed'));
     }
 
     await User.updateOne({ _id: req.user._id }, { $set: query });

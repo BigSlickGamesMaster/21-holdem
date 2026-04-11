@@ -11,8 +11,7 @@
         url("../../../images/ui/table_selection_bg.png") repeat top center / 420px auto;
 
     &__backdrop,
-    &__ambient-grid,
-    &__atmosphere {
+    &__ambient-grid {
         position: absolute;
         inset: 0;
         pointer-events: none;
@@ -59,66 +58,6 @@
                 rgba(170, 224, 255, 0) 22px
             );
         animation: guest-grid-drift 18s linear infinite;
-    }
-
-    &__atmosphere {
-        z-index: 0;
-        overflow: hidden;
-    }
-
-    &__orb,
-    &__beam {
-        position: absolute;
-        display: block;
-        border-radius: 999px;
-        filter: blur(14px);
-    }
-
-    &__orb--one {
-        width: 360px;
-        height: 360px;
-        top: 8%;
-        left: -8%;
-        background: radial-gradient(circle, rgba(93, 184, 255, 0.34) 0%, rgba(93, 184, 255, 0.08) 44%, rgba(93, 184, 255, 0) 76%);
-        animation: guest-orb-drift-one 12s ease-in-out infinite;
-    }
-
-    &__orb--two {
-        width: 280px;
-        height: 280px;
-        top: 46%;
-        right: 4%;
-        background: radial-gradient(circle, rgba(125, 255, 205, 0.22) 0%, rgba(125, 255, 205, 0.06) 46%, rgba(125, 255, 205, 0) 76%);
-        animation: guest-orb-drift-two 14s ease-in-out infinite;
-    }
-
-    &__orb--three {
-        width: 260px;
-        height: 260px;
-        bottom: 4%;
-        left: 26%;
-        background: radial-gradient(circle, rgba(255, 193, 93, 0.18) 0%, rgba(255, 193, 93, 0.04) 44%, rgba(255, 193, 93, 0) 78%);
-        animation: guest-orb-drift-three 11s ease-in-out infinite;
-    }
-
-    &__beam {
-        top: 10%;
-        left: 50%;
-        width: min(88vw, 980px);
-        height: 460px;
-        background:
-            conic-gradient(
-                from 140deg at 50% 50%,
-                rgba(98, 188, 255, 0) 0deg,
-                rgba(98, 188, 255, 0.16) 58deg,
-                rgba(122, 255, 209, 0.2) 122deg,
-                rgba(255, 214, 108, 0.14) 176deg,
-                rgba(98, 188, 255, 0) 244deg
-            );
-        transform: translateX(-50%);
-        opacity: 0.3;
-        filter: blur(24px);
-        animation: guest-beam-rotate 14s linear infinite;
     }
 
     &__shell {
@@ -335,30 +274,9 @@
 
 .daily-rewards-page__calendar-shell {
     position: relative;
-    overflow: hidden;
     display: grid;
-    gap: 18px;
-    padding: 18px 16px 20px;
-    border-radius: 30px;
-    border: 1px solid rgba(151, 208, 255, 0.32);
-    background:
-        linear-gradient(180deg, rgba(24, 58, 88, 0.16) 0%, rgba(24, 58, 88, 0) 16%),
-        linear-gradient(180deg, rgba(10, 31, 51, 0.96) 0%, rgba(5, 20, 35, 0.99) 100%);
-    box-shadow:
-        inset 0 1px 0 rgba(233, 246, 255, 0.12),
-        inset 0 0 0 1px rgba(83, 156, 235, 0.06),
-        0 28px 52px rgba(0, 0, 0, 0.32),
-        0 0 26px rgba(73, 151, 228, 0.08);
-
-    &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background:
-            linear-gradient(130deg, rgba(118, 182, 255, 0.16) 0%, rgba(118, 182, 255, 0) 38%),
-            radial-gradient(circle at 100% 0%, rgba(255, 208, 120, 0.1) 0%, rgba(255, 208, 120, 0) 36%);
-        pointer-events: none;
-    }
+    gap: 8px;
+    padding: 0;
 }
 
 .daily-rewards-page__calendar-shell > * {
@@ -368,136 +286,54 @@
 
 .daily-rewards-page__calendar-header {
     display: grid;
-    gap: 14px;
-}
-
-.daily-rewards-page__sign-banner {
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-    min-height: 132px;
-    border-radius: 24px;
-    border: 1px solid rgba(164, 215, 255, 0.36);
-    background:
-        radial-gradient(circle at 50% 0%, rgba(121, 187, 255, 0.2) 0%, rgba(121, 187, 255, 0) 54%),
-        linear-gradient(180deg, rgba(17, 43, 69, 0.94) 0%, rgba(8, 24, 39, 0.98) 100%);
-    box-shadow:
-        inset 0 1px 0 rgba(241, 249, 255, 0.14),
-        0 22px 40px rgba(0, 0, 0, 0.28),
-        0 0 24px rgba(88, 175, 255, 0.12);
-
-    &::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(110deg, transparent 12%, rgba(255, 255, 255, 0.18) 46%, transparent 68%);
-        transform: translateX(-120%);
-        animation: dailyRewardsBannerSheen 6.2s ease-in-out infinite;
-        pointer-events: none;
-    }
-
-    display: grid;
-    grid-template-columns: 48px minmax(0, 1fr) 48px;
-    align-items: center;
-    gap: 10px;
-    padding: 18px 18px 20px;
-}
-
-.daily-rewards-page__sign-side {
-    position: relative;
-    width: 100%;
-    height: 84px;
-    border-radius: 18px;
-    border: 1px solid rgba(160, 214, 255, 0.28);
-    background:
-        linear-gradient(180deg, rgba(27, 63, 98, 0.92) 0%, rgba(10, 28, 45, 0.96) 100%);
-    box-shadow:
-        inset 0 1px 0 rgba(238, 248, 255, 0.14),
-        0 16px 28px rgba(0, 0, 0, 0.2);
-
-    &::before,
-    &::after {
-        content: '';
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        border-radius: 999px;
-    }
-
-    &::before {
-        top: 16px;
-        width: 12px;
-        height: 12px;
-        background: #ffd26f;
-        box-shadow:
-            0 0 0 4px rgba(255, 210, 111, 0.12),
-            0 0 18px rgba(255, 210, 111, 0.28);
-    }
-
-    &::after {
-        bottom: 16px;
-        width: 20px;
-        height: 4px;
-        background: rgba(108, 196, 255, 0.88);
-        box-shadow: 0 0 14px rgba(108, 196, 255, 0.3);
-    }
-}
-
-.daily-rewards-page__sign-core {
-    display: grid;
-    gap: 4px;
-    justify-items: center;
-    padding: 14px 18px 16px;
-    border-radius: 22px;
-    border: 1px solid rgba(171, 220, 255, 0.32);
-    background:
-        linear-gradient(180deg, rgba(12, 39, 64, 0.96) 0%, rgba(6, 21, 36, 0.98) 100%);
-    box-shadow:
-        inset 0 1px 0 rgba(245, 251, 255, 0.12),
-        0 18px 34px rgba(0, 0, 0, 0.24);
-}
-
-.daily-rewards-page__sign-kicker {
-    color: rgba(182, 226, 255, 0.82);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-}
-
-.daily-rewards-page__sign-title {
-    color: #f5fbff;
-    font-family: 'TT Commons';
-    font-size: clamp(28px, 8vw, 44px);
-    font-weight: 700;
-    line-height: 0.94;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    text-align: center;
-    text-shadow:
-        0 2px 0 rgba(6, 16, 29, 0.88),
-        0 0 18px rgba(105, 195, 255, 0.16);
-}
-
-.daily-rewards-page__sign-subtitle {
-    color: rgba(224, 241, 255, 0.78);
-    font-size: 13px;
-    line-height: 1.35;
-    text-align: center;
+    gap: 8px;
 }
 
 .daily-rewards-page__calendar-actions {
-    display: flex;
+    display: grid;
+    gap: 8px;
 }
 
 .daily-rewards-page__calendar-actions .daily-rewards-page__claim {
     width: 100%;
 }
 
-.daily-rewards-calendar {
+.daily-rewards-page__calendar-status {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 4px;
+    padding: 0;
+}
+
+.daily-rewards-page__calendar-status-amount {
+    color: #ffd672;
+    font-family: 'Neue Plak Condensed';
+    font-size: clamp(34px, 9vw, 56px);
+    font-weight: 700;
+    line-height: 0.88;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(255, 214, 108, 0.18);
+}
+
+.daily-rewards-page__calendar-status-message {
+    margin: 0;
+    color: rgba(233, 244, 252, 0.88);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.daily-rewards-calendar-board {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0;
+    border-radius: 24px;
+    border: 1px solid rgba(156, 212, 255, 0.24);
+    background: linear-gradient(180deg, rgba(10, 30, 50, 0.94) 0%, rgba(6, 20, 35, 0.98) 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(241, 249, 255, 0.08),
+        0 18px 30px rgba(4, 16, 32, 0.22);
 }
 
 .daily-rewards-calendar__day {
@@ -509,27 +345,22 @@
     position: relative;
     overflow: hidden;
     display: grid;
-    gap: 6px;
+    gap: 2px;
     align-content: start;
-    min-height: 72px;
-    padding: 10px 10px 8px;
-    border-radius: 20px;
-    border: 1px solid rgba(156, 212, 255, 0.38);
+    min-height: 0;
+    padding: 6px 4px 5px;
+    border-right: 1px solid rgba(156, 212, 255, 0.16);
+    border-bottom: 1px solid rgba(156, 212, 255, 0.16);
     background:
-        radial-gradient(circle at var(--daily-reward-tilt-glow-x) var(--daily-reward-tilt-glow-y), rgba(186, 245, 255, 0.34) 0%, rgba(82, 166, 255, 0.18) 20%, rgba(82, 166, 255, 0) 48%),
-        conic-gradient(from var(--daily-reward-tilt-rotate) at 50% 50%, rgba(143, 239, 255, 0.28) 0deg, rgba(53, 114, 216, 0.12) 122deg, rgba(255, 217, 115, 0.18) 232deg, rgba(143, 239, 255, 0.26) 360deg),
-        linear-gradient(180deg, rgba(53, 116, 186, 0.28) 0%, rgba(9, 31, 56, 0.94) 100%);
+        radial-gradient(circle at var(--daily-reward-tilt-glow-x) var(--daily-reward-tilt-glow-y), rgba(186, 245, 255, 0.16) 0%, rgba(82, 166, 255, 0.08) 20%, rgba(82, 166, 255, 0) 48%),
+        linear-gradient(180deg, rgba(22, 56, 86, 0.24) 0%, rgba(9, 31, 56, 0.74) 100%);
     background-repeat: no-repeat, no-repeat, no-repeat;
-    background-size: 160% 180%, 188% 188%, 100% 100%;
+    background-size: 160% 180%, 100% 100%;
     background-position:
         calc(50% + var(--daily-reward-tilt-shift-x)) calc(44% + var(--daily-reward-tilt-shift-y)),
-        calc(50% - var(--daily-reward-tilt-shift-x)) calc(50% - var(--daily-reward-tilt-shift-y)),
         center;
     box-shadow:
-        inset 0 1px 0 rgba(240, 250, 255, 0.16),
-        0 0 0 1px rgba(72, 147, 220, 0.16),
-        0 18px 30px rgba(4, 16, 32, 0.3),
-        0 0 28px rgba(88, 182, 255, 0.18);
+        inset 0 1px 0 rgba(240, 250, 255, 0.08);
     transition:
         transform 0.24s ease,
         opacity 0.24s ease,
@@ -538,7 +369,9 @@
         filter 0.24s ease,
         background-position 0.24s ease-out,
         background 0.24s ease;
-    animation: dailyRewardsLiquidGlow 3.2s ease-in-out infinite;
+    animation: none;
+    justify-items: center;
+    text-align: center;
 
     &::before {
         content: '';
@@ -551,41 +384,36 @@
     &.is-completed {
         opacity: 0.42;
         filter: saturate(0.55);
-        border-color: rgba(108, 141, 173, 0.24);
-        background:
-            linear-gradient(180deg, rgba(39, 67, 93, 0.26) 0%, rgba(8, 21, 37, 0.94) 100%),
-            radial-gradient(circle at 50% 0%, rgba(154, 223, 255, 0.1) 0%, rgba(154, 223, 255, 0) 48%);
-        background-repeat: no-repeat, no-repeat;
-        background-size: 100% 100%, 100% 100%;
-        background-position: center, center;
-        box-shadow:
-            inset 0 1px 0 rgba(225, 239, 249, 0.06),
-            0 12px 20px rgba(4, 16, 32, 0.16);
+        background: linear-gradient(180deg, rgba(39, 67, 93, 0.18) 0%, rgba(8, 21, 37, 0.58) 100%);
+        box-shadow: inset 0 1px 0 rgba(225, 239, 249, 0.04);
         animation: none;
     }
 
     &.is-today {
-        border-color: rgba(202, 239, 255, 0.72);
         background:
-            radial-gradient(circle at var(--daily-reward-tilt-glow-x) var(--daily-reward-tilt-glow-y), rgba(194, 246, 255, 0.46) 0%, rgba(92, 182, 255, 0.24) 18%, rgba(92, 182, 255, 0) 46%),
-            conic-gradient(from var(--daily-reward-tilt-rotate) at 50% 50%, rgba(151, 242, 255, 0.34) 0deg, rgba(38, 103, 211, 0.16) 120deg, rgba(255, 219, 118, 0.22) 228deg, rgba(151, 242, 255, 0.32) 360deg),
-            linear-gradient(180deg, rgba(88, 170, 255, 0.42) 0%, rgba(9, 31, 56, 0.96) 100%);
-        background-repeat: no-repeat, no-repeat, no-repeat;
-        background-size: 162% 182%, 188% 188%, 100% 100%;
+            radial-gradient(circle at var(--daily-reward-tilt-glow-x) var(--daily-reward-tilt-glow-y), rgba(194, 246, 255, 0.26) 0%, rgba(92, 182, 255, 0.14) 18%, rgba(92, 182, 255, 0) 46%),
+            linear-gradient(180deg, rgba(88, 170, 255, 0.28) 0%, rgba(9, 31, 56, 0.84) 100%);
+        background-repeat: no-repeat, no-repeat;
+        background-size: 162% 182%, 100% 100%;
         background-position:
             calc(50% + var(--daily-reward-tilt-shift-x)) calc(44% + var(--daily-reward-tilt-shift-y)),
-            calc(50% - var(--daily-reward-tilt-shift-x)) calc(50% - var(--daily-reward-tilt-shift-y)),
             center;
         box-shadow:
-            inset 0 1px 0 rgba(248, 253, 255, 0.24),
-            0 20px 32px rgba(4, 16, 32, 0.36),
-            0 0 18px rgba(84, 176, 255, 0.22),
-            0 0 42px rgba(110, 200, 255, 0.34);
+            inset 0 1px 0 rgba(248, 253, 255, 0.16),
+            0 0 0 1px rgba(202, 239, 255, 0.12);
     }
 
     &.is-celebrating {
         animation: dailyRewardsCalendarPulse 0.75s ease-in-out infinite alternate;
     }
+}
+
+.daily-rewards-calendar__day:nth-child(7n) {
+    border-right: 0;
+}
+
+.daily-rewards-calendar__day:nth-last-child(-n + 7) {
+    border-bottom: 0;
 }
 
 .daily-rewards-calendar__label,
@@ -597,9 +425,10 @@
 
 .daily-rewards-calendar__label {
     color: rgba(205, 234, 255, 0.74);
-    font-size: 10px;
+    font-size: 7px;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
 }
 
 .daily-rewards-calendar__amount {
@@ -607,18 +436,19 @@
     z-index: 1;
     color: #f8fcff;
     font-family: 'Neue Plak Condensed';
-    font-size: clamp(18px, 5vw, 24px);
-    line-height: 0.92;
+    font-size: clamp(11px, 3.2vw, 24px);
+    line-height: 0.9;
     letter-spacing: 0.03em;
     text-transform: uppercase;
 }
 
 .daily-rewards-calendar__state {
     color: #b9f3d4;
-    font-size: 9px;
+    font-size: 6px;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.08em;
     min-height: 1em;
+    line-height: 1;
 }
 
 .daily-rewards-calendar__state:empty {
@@ -631,6 +461,14 @@
 
 .daily-rewards-calendar__day.is-completed .daily-rewards-calendar__state {
     color: rgba(214, 231, 245, 0.68);
+}
+
+.daily-rewards-calendar__day.is-jackpot {
+    background:
+        radial-gradient(circle at var(--daily-reward-tilt-glow-x) var(--daily-reward-tilt-glow-y), rgba(255, 234, 170, 0.22) 0%, rgba(255, 192, 76, 0.12) 18%, rgba(255, 192, 76, 0) 46%),
+        linear-gradient(180deg, rgba(48, 52, 40, 0.34) 0%, rgba(11, 27, 43, 0.86) 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 247, 224, 0.16);
 }
 
 .daily-rewards-calendar__day:not(.is-completed) {
@@ -668,15 +506,6 @@
 
 .daily-rewards-page--embedded .daily-rewards-page__calendar-shell {
     max-width: 100%;
-    border-radius: 24px;
-}
-
-.daily-rewards-page--embedded .daily-rewards-page__calendar-shell {
-    padding: 18px 14px;
-}
-
-.daily-rewards-page--embedded .daily-rewards-calendar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .daily-bonus-lockup {
@@ -893,46 +722,37 @@
         font-size: 48px;
     }
 
-    .daily-rewards-page__calendar-shell {
-        padding: 22px 24px 24px;
-    }
-
-    .daily-rewards-page__sign-banner {
-        min-height: 176px;
-        border-radius: 28px;
-    }
-
     .daily-rewards-page__calendar-header {
-        grid-template-columns: minmax(220px, auto) minmax(0, 1fr);
-        align-items: start;
-        column-gap: 22px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        column-gap: 18px;
     }
 
     .daily-rewards-page__calendar-actions {
-        justify-content: flex-end;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
     }
 
     .daily-rewards-page__calendar-actions .daily-rewards-page__claim {
         width: auto;
     }
 
-    .daily-rewards-calendar {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 14px;
-    }
-
     .daily-rewards-calendar__day {
-        min-height: 86px;
-        padding: 12px 12px 10px;
+        padding: 8px 5px 7px;
     }
 
     .daily-rewards-calendar__amount {
-        font-size: 24px;
+        font-size: clamp(12px, 2.5vw, 24px);
     }
 
-    .daily-rewards-page--embedded .daily-rewards-page__calendar-shell {
-        padding: 20px;
+    .daily-rewards-calendar__label {
+        font-size: 8px;
     }
+
+    .daily-rewards-calendar__state {
+        font-size: 7px;
+    }
+
 }
 
 @include media-min(lg) {
@@ -963,21 +783,15 @@
         height: 92px;
     }
 
-    .daily-rewards-calendar {
-        grid-template-columns: repeat(7, minmax(0, 1fr));
-    }
-
-    .daily-rewards-page--embedded .daily-rewards-calendar {
-        grid-template-columns: repeat(7, minmax(0, 1fr));
+    .daily-rewards-calendar-board__header,
+    .daily-rewards-calendar-board__row {
+        grid-template-columns: 92px repeat(7, minmax(0, 1fr));
     }
 
     .daily-rewards-calendar__day {
-        min-height: 92px;
+        padding: 10px 8px 8px;
     }
 
-    .daily-rewards-page__sign-banner {
-        min-height: 208px;
-    }
 }
 
 @keyframes dailyRewardsBannerSheen {

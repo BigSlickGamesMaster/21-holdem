@@ -5,9 +5,8 @@ import { useMutation } from 'react-query';
 import { register as registerAPI } from 'query/login.query';
 import { Link, useNavigate } from 'react-router-dom';
 import { ReactToastify } from 'shared/utils';
-import { Col, Form, Row, Tooltip } from 'react-bootstrap';
+import { Button, Col, Form, Row, Tooltip } from 'react-bootstrap';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
-import logo from '../../../assets/images/splash/logo.png';
 import eye from '../../../assets/images/icons/eye_icon.svg';
 import eye_slash_icon from '../../../assets/images/icons/eye_slash_icon.svg';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -47,20 +46,31 @@ const Register = () => {
         mutate(payload);
     };
 
+    const renderGuestPanel = () => (
+        <div className='auth-guest-panel'>
+            <div className='auth-guest-actions'>
+                <Button type='button' className='guest-entry-btn' onClick={() => navigate('/guest')}>
+                    Guest
+                </Button>
+            </div>
+        </div>
+    );
+
     return (
         <div className='sign-in-container'>
             <div className='login-container'>
-                <div className="auth-container">
-                    <Row>
-                        <Col xl={6} lg={6} md={5} sm={12}>
-                            <div className="auth-logo">
-                                {/* <h3>Logo</h3> */}
-                                <img src={logo} alt="logo" />
-                            </div>
-                        </Col>
-                        <Col xl={6} lg={6} md={7} sm={12}>
-                            <div className="auth-box">
+                <div className="auth-container auth-shell">
+                    <Row className='justify-content-center'>
+                        <Col xl={7} lg={8} md={10} sm={12}>
+                            <div className="auth-box auth-box--centered">
                                 <div className="auth-form-container">
+                                    <div className='auth-login-brand'>
+                                        <div className='auth-login-brand__title'>
+                                            <span className='auth-login-brand__title-number'>21</span>
+                                            <span className='auth-login-brand__title-word'>Hold&apos;em</span>
+                                        </div>
+                                    </div>
+
                                     <h2 className="auth-title">REGISTER</h2>
                                     <div className='auth-form'>
                                         <form onSubmit={handleSubmit(onSubmit)} className="form">
@@ -175,6 +185,7 @@ const Register = () => {
                                             </button>
                                         </form>
                                     </div>
+                                    {renderGuestPanel()}
                                 </div>
                             </div>
                         </Col>

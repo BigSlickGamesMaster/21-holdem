@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Spinner } from 'react-bootstrap';
-import { joinGuestTutorialTable } from 'query/guest.query';
+import { joinGuestTable } from 'query/guest.query';
 import roundOneTutorial from '../../../assets/images/bg/round_1_tutorial.png';
 import sceneOne from '../../../assets/images/bg/scene_1.png';
 import communityCards from '../../../assets/images/bg/community.png';
@@ -176,21 +176,20 @@ function GuestTutorialLanding() {
 
         try {
             const sAuthToken = await loginGuestWithDeviceId(guestDeviceId);
-            const joinResponse = await joinGuestTutorialTable({ sAuthToken });
+            const joinResponse = await joinGuestTable({ sAuthToken });
             const iBoardId = joinResponse?.data?.data?.iBoardId;
-            if (!iBoardId) throw new Error('Tutorial table was not created');
+            if (!iBoardId) throw new Error('Guest table was not created');
 
-            navigate('/guest/tutorial/game', {
+            navigate('/guest/game', {
                 state: {
                     sAuthToken,
                     iBoardId,
-                    fallbackPath: '/guest/tutorial',
+                    fallbackPath: '/guest',
                     isGuest: true,
-                    isGuestTutorial: true,
                 },
             });
         } catch (requestError) {
-            const message = requestError?.response?.data?.message || requestError?.message || 'Unable to open guided tutorial';
+            const message = requestError?.response?.data?.message || requestError?.message || 'Unable to open guest table';
             setError(message);
         } finally {
             setIsLoading(false);
@@ -388,7 +387,7 @@ function GuestTutorialLanding() {
             {isLoading ? (
                 <div className='guest-landing__loading'>
                     <Spinner animation='border' />
-                    <span>Opening your tutorial table...</span>
+                    <span>Opening your guest seat...</span>
                 </div>
             ) : null}
         </div>

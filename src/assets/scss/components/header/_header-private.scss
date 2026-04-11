@@ -82,6 +82,26 @@
             }
         }
 
+        .header-private__menu-meta {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 0 8px;
+        }
+
+        .header-private__menu-meta-link {
+            color: rgba(5, 31, 52, 0.82);
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.2;
+            text-decoration: none;
+
+            &.active,
+            &:hover {
+                color: #FBFA36;
+            }
+        }
+
         .header-private__menu-wallet {
             display: flex;
             // gap: 30px;
@@ -247,6 +267,15 @@
                 }
             }
 
+            .header-private__menu-meta {
+                gap: 10px;
+                padding: 0;
+            }
+
+            .header-private__menu-meta-link {
+                font-size: 13px;
+            }
+
             .header-private__menu-wallet {
                 font-size: 16px;
 
@@ -306,6 +335,18 @@
                         padding: 0;
                     }
                 }
+            }
+
+            .header-private__menu-meta {
+                flex-direction: column;
+                gap: 8px;
+                width: 100%;
+                padding: 4px 0 2px;
+            }
+
+            .header-private__menu-meta-link {
+                font-size: 14px;
+                text-align: center;
             }
 
             .header-private__menu-wallet {

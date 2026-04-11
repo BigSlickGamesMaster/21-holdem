@@ -4,7 +4,6 @@ import PropTypes from 'prop-types'
 import useMediaQuery from '../../shared/hooks/useMediaQuery'
 import { Spinner } from 'react-bootstrap'
 import HeaderPrivate from 'shared/components/Header/Private'
-import Footer from 'shared/components/Footer'
 import { GamePlayContext } from 'context/gamePlayContext'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getCookie, ReactToastify } from 'shared/utils'
@@ -70,8 +69,6 @@ function MainLayout({ children }) {
                     </Suspense>
                 </div>
             </div>
-            {!isGamePlay && <Footer />}
-
         </div>
     )
 }

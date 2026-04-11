@@ -31,5 +31,8 @@ yarn-error.log*
 .backend-square-shim.cjs
 game-backend/.codex-mailbox/
 game-backend/.git.nested-backup-20260223/
-game-backend/{
 Admin-Backend/.pm2/
+.startup-logs/
+docs/backups/
+debug.log
+*.code-workspace

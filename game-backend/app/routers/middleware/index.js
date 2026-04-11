@@ -25,11 +25,14 @@ const authProject = {
   nGameWon: true,
   nGamePlayed: true,
   nGameLost: true,
+  nTotalBetAmount: true,
+  nTotalWinningAmount: true,
   sGoogleId: true,
   nDailyRewardStreak: true,
   dLastRewardClaimDate: true,
   aPokerBoard: true,
   sPrivateCode: true,
+  oBotProfile: true,
 };
 
 async function getAuthenticatedUserFromRequest(req, res) {

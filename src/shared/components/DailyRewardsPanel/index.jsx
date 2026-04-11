@@ -5,7 +5,23 @@ import { getDailyRewards, updateDailyRewards } from 'query/dailyRewards.query';
 import _ from 'scripts/helper';
 import { ReactToastify } from 'shared/utils';
 
-const FALLBACK_REWARDS = [0, 0, 0, 0, 0, 0, 0];
+const WEEKLY_BASE_REWARDS = [100, 200, 300, 400, 500, 600];
+const WEEKLY_JACKPOTS = [1000, 2000, 3000, 5000];
+
+const REWARD_WEEKS = WEEKLY_JACKPOTS.map((nJackpot, nWeekIndex) => ({
+    weekNumber: nWeekIndex + 1,
+    days: [...WEEKLY_BASE_REWARDS, nJackpot].map((amount, nDayIndex) => ({
+        amount,
+        absoluteDay: (nWeekIndex * 7) + nDayIndex + 1,
+        dayNumber: nDayIndex + 1,
+        isJackpot: nDayIndex === 6,
+        weekNumber: nWeekIndex + 1,
+    })),
+}));
+
+const REWARD_DAYS = REWARD_WEEKS.flatMap((week) => week.days);
+
+const TOTAL_REWARD_DAYS = REWARD_WEEKS.length * 7;
 
 function formatAmount(amount) {
     return _.formatCurrencyWithComa(Number(amount) || 0);
@@ -58,54 +74,42 @@ function DailyRewardsPanel({ embedded }) {
         },
     });
 
-    const aRewards = dataDailyRewards?.rewards?.length ? dataDailyRewards.rewards : FALLBACK_REWARDS;
-    const nEligibleDay = Number(dataDailyRewards?.eligibleDay) || 1;
+    const nEligibleDay = Math.max(1, Math.min(Number(dataDailyRewards?.eligibleDay) || 1, TOTAL_REWARD_DAYS));
     const bTodayRewardClaimed = Boolean(dataDailyRewards?.bTodayRewardClaimed);
-    const nCurrentStreakDay = bTodayRewardClaimed ? (nEligibleDay === 1 ? aRewards.length : nEligibleDay - 1) : nEligibleDay;
+    const nCurrentStreakDay = bTodayRewardClaimed ? (nEligibleDay === 1 ? TOTAL_REWARD_DAYS : nEligibleDay - 1) : nEligibleDay;
     const nClaimedDays = bTodayRewardClaimed ? nCurrentStreakDay : Math.max(nEligibleDay - 1, 0);
 
-    const aRewardDays = useMemo(() => aRewards.map((item, index) => {
-        const nDayNumber = index + 1;
-        const bCompletedReward = nClaimedDays >= nDayNumber;
-        const bClaimableReward = !bTodayRewardClaimed && nEligibleDay === nDayNumber;
-        const bCelebrateReward = bPulseEligibleReward && nEligibleDay === nDayNumber;
+    const aRewardDays = useMemo(() => REWARD_DAYS.map((reward) => {
+        const bCompletedReward = nClaimedDays >= reward.absoluteDay;
+        const bClaimableReward = !bTodayRewardClaimed && nEligibleDay === reward.absoluteDay;
+        const bCelebrateReward = bPulseEligibleReward && nEligibleDay === reward.absoluteDay;
 
         return {
-            amount: item,
-            dayNumber: nDayNumber,
-            completed: bCompletedReward,
-            claimable: bClaimableReward,
+            ...reward,
             celebrate: bCelebrateReward,
+            claimable: bClaimableReward,
+            completed: bCompletedReward,
         };
-    }), [aRewards, bPulseEligibleReward, bTodayRewardClaimed, nClaimedDays, nEligibleDay]);
+    }), [bPulseEligibleReward, bTodayRewardClaimed, nClaimedDays, nEligibleDay]);
+
+    const oStatusReward = aRewardDays.find((reward) => reward.absoluteDay === (bTodayRewardClaimed ? nCurrentStreakDay : nEligibleDay)) || aRewardDays[0];
+    const sStatusMessage = bTodayRewardClaimed
+        ? 'Claimed! Come back tomorrow and keep the streak alive!'
+        : 'Claim it now and keep the streak alive!';
 
     return (
         <div className={`daily-rewards-page${embedded ? ' daily-rewards-page--embedded' : ''}`}>
             {!embedded ? <div className='daily-rewards-page__backdrop' aria-hidden='true' /> : null}
             {!embedded ? <div className='daily-rewards-page__ambient-grid' aria-hidden='true' /> : null}
-            {!embedded ? (
-                <div className='daily-rewards-page__atmosphere' aria-hidden='true'>
-                    <span className='daily-rewards-page__orb daily-rewards-page__orb--one' />
-                    <span className='daily-rewards-page__orb daily-rewards-page__orb--two' />
-                    <span className='daily-rewards-page__orb daily-rewards-page__orb--three' />
-                    <span className='daily-rewards-page__beam' />
-                </div>
-            ) : null}
 
             <div className='daily-rewards-page__shell'>
                 <section className='daily-rewards-page__calendar-shell'>
-                    <div className='daily-rewards-page__sign-banner'>
-                        <span className='daily-rewards-page__sign-side daily-rewards-page__sign-side--left' aria-hidden='true' />
-                        <div className='daily-rewards-page__sign-core'>
-                            <span className='daily-rewards-page__sign-kicker'>7 Day Bonus</span>
-                            <strong className='daily-rewards-page__sign-title'>Daily Rewards</strong>
-                            <span className='daily-rewards-page__sign-subtitle'>Collect your chips and keep the streak alive</span>
-                        </div>
-                        <span className='daily-rewards-page__sign-side daily-rewards-page__sign-side--right' aria-hidden='true' />
-                    </div>
-
                     <header className='daily-rewards-page__calendar-header'>
                         <div className='daily-rewards-page__calendar-actions'>
+                            <div className='daily-rewards-page__calendar-status'>
+                                <strong className='daily-rewards-page__calendar-status-amount'>{formatAmount(oStatusReward?.amount)}</strong>
+                                <p className='daily-rewards-page__calendar-status-message'>{sStatusMessage}</p>
+                            </div>
                             <button
                                 type='button'
                                 className={`daily-rewards-page__claim ${bTodayRewardClaimed ? 'is-disabled' : ''}`}
@@ -121,13 +125,13 @@ function DailyRewardsPanel({ embedded }) {
                         </div>
                     </header>
 
-                    <div className='daily-rewards-calendar' aria-label='Daily bonus calendar'>
+                    <div className='daily-rewards-calendar-board' aria-label='Daily rewards list'>
                         {aRewardDays.map((reward) => (
                             <article
-                                key={reward.dayNumber}
-                                className={`daily-rewards-calendar__day${reward.completed ? ' is-completed' : ''}${reward.claimable ? ' is-today' : ''}${reward.celebrate ? ' is-celebrating' : ''}`}
+                                key={reward.absoluteDay}
+                                className={`daily-rewards-calendar__day${reward.completed ? ' is-completed' : ''}${reward.claimable ? ' is-today' : ''}${reward.celebrate ? ' is-celebrating' : ''}${reward.isJackpot ? ' is-jackpot' : ''}`}
                             >
-                                <span className='daily-rewards-calendar__label'>Day {reward.dayNumber}</span>
+                                <span className='daily-rewards-calendar__label'>Day {reward.absoluteDay}</span>
                                 <strong className='daily-rewards-calendar__amount'>{formatAmount(reward.amount)}</strong>
                                 <span className='daily-rewards-calendar__state'>{getRewardStateLabel(reward)}</span>
                             </article>

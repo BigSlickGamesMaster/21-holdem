@@ -1,6 +1,7 @@
 const Service = require('./lib/Service');
 const { redis, deck, mongodb } = require('../../../../utils');
 const { PokerFinishGame, PokerBoard, BoardProtoType, Transaction, User, Setting, Analytics } = require('../../../../models');
+const systemBots = require('../../../../utils/lib/system-bots');
 
 const MAX_COMMUNITY_CARDS = 5;
 
@@ -36,7 +37,7 @@ class Board extends Service {
         if (multiplier) {
           const betAmount = this.nMinBet * multiplier;
 
-          await participant.updateUser({ $inc: { nChips: -betAmount } });
+          await participant.updateUser({ $inc: { nChips: -betAmount, nTotalBetAmount: betAmount } });
           this.nTableChips += betAmount;
           participant.nChips -= betAmount;
           participant.nLastBidChips = betAmount;
@@ -155,14 +156,6 @@ class Board extends Service {
 
       await this.update({ aCommunityCard: this.aCommunityCard, aParticipant: this.aParticipant.map(p => p.toJSON()) });
       await this.emit('resCommunityCard', { aCommunityCard: this.aCommunityCard, aParticipant: this.aParticipant });
-
-      const aPerfectScoreWinners = this.aParticipant.filter(participant => {
-        const nParticipantScore = Number(participant.nCardScore) || 0;
-        return participant.eState === 'playing' && nParticipantScore === 21;
-      });
-      if (aPerfectScoreWinners.length) {
-        return await this.declareResult(aPerfectScoreWinners, 'dealCommunityCard: exact 21 winner');
-      }
 
       let allParticipantsAreBust = true;
       for (const participant of this.aParticipant) {
@@ -352,7 +345,7 @@ class Board extends Service {
           participant.nChips += nPayoutAmount;
           participant.nWinningAmount += nPayoutAmount;
 
-          await participant.updateUser({ $inc: { nChips: nPayoutAmount, nGameWon: 1 } });
+          await participant.updateUser({ $inc: { nChips: nPayoutAmount, nGameWon: 1, nTotalWinningAmount: nPayoutAmount } });
           aTransactionData.push({
             iUserId: participant.iUserId,
             iBoardId: this._id,
@@ -449,6 +442,18 @@ class Board extends Service {
         if (participant.bNextTurnLeave) {
           participant.eState = 'leave';
         } else if (participant.nChips < proto.nMinBet * 2) {
+          if (participant.isBotUser() && this.isLiveTable()) {
+            await systemBots.topUpBotBankroll({
+              iUserId: participant.iUserId,
+              nMinRequiredChips: proto.nMinBuyIn,
+              sReason: `System bot auto top-up for board ${this._id}`,
+            });
+            participant.nChips = proto.nMinBuyIn;
+            participant.eState = 'waiting';
+            aAutoTopUp.push({ iUserId: participant.iUserId, nTopUpTo: proto.nMinBuyIn, bShopAutoTopUp: true });
+            await this.update({ aParticipant: [participant.toJSON()] });
+            continue;
+          }
           if (this.isGuestTable()) {
             participant.nChips = proto.nMinBuyIn;
             participant.eState = 'waiting';
@@ -475,6 +480,19 @@ class Board extends Service {
       if (aLeftPlayers.length) await this.handleLeftPlayers(aLeftPlayers);
 
       this.aParticipant = this.aParticipant.filter(p => p.eState === 'waiting');
+      if (this.isLiveTable()) {
+        const aHumanParticipants = this.aParticipant.filter(participant => participant.eUserType !== 'bot');
+        if (!aHumanParticipants.length) {
+          const aBotParticipants = this.aParticipant.filter(participant => participant.eUserType === 'bot');
+          if (aBotParticipants.length) {
+            aBotParticipants.forEach(participant => {
+              participant.eState = 'leave';
+            });
+            await this.handleLeftPlayers(aBotParticipants);
+          }
+          this.aParticipant = [];
+        }
+      }
       this.aCommunityCard = [];
       this.aDeck = deck.getDeck(1);
       this.nTableChips = 0;

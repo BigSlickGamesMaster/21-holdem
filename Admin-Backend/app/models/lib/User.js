@@ -44,6 +44,7 @@ const User = new mongoose.Schema(
     sGoogleId: String,
     nDailyRewardStreak: { type: Number },
     dLastRewardClaimDate: { type: Date },
+    oBotProfile: { type: Object, default: null },
   },
   { timestamps: { createdAt: 'dCreatedDate', updatedAt: 'dUpdatedDate' } }
 );

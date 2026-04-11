@@ -1,0 +1,21 @@
+.common-layout {
+    position: relative;
+    min-height: 100dvh;
+    background: transparent;
+
+    &::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at 50% -12%, rgba(120, 176, 235, 0.18) 0%, rgba(120, 176, 235, 0) 28%),
+            linear-gradient(180deg, rgba(2, 17, 33, 0.98) 0%, rgba(4, 20, 39, 1) 100%);
+    }
+
+    .container-fluid {
+        min-height: 100dvh;
+        background: transparent;
+    }
+}

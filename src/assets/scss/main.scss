@@ -27,10 +27,11 @@
 @import './views/transactions/transactions';
 @import './views/cms/cms';
 @import './views/dailyRewards/dailyRewards';
-@import './views/shop/shop';
 
 // Layouts
 @import './layouts/auth-layout/auth-layout';
+@import './layouts/common-layout/common-layout';
+@import './layouts/main-layout/main-layout';
 
 
 html,

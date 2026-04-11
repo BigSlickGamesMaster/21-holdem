@@ -167,20 +167,6 @@ const Login = () => {
         forgotPWDReset();
     };
 
-    const renderGuestPanel = () => (
-        <div className='auth-guest-panel'>
-            <p>Want to test the table first? Jump into Guest Mode instantly.</p>
-            <div className='auth-guest-actions'>
-                <Button type='button' className='guest-entry-btn' onClick={() => navigate('/guest')}>
-                    Play as Guest
-                </Button>
-                <Button type='button' className='about-entry-btn' onClick={() => navigate('/about-us')}>
-                    About 21 Hold&apos;em
-                </Button>
-            </div>
-        </div>
-    );
-
     return (
         <div className='sign-in-container'>
             <div className='login-container'>
@@ -316,6 +302,13 @@ const Login = () => {
                             {!showForgotPassword && !showResetFields ? (
                                 <div className='auth-box auth-box--centered'>
                                     <div className='auth-form-container'>
+                                        <div className='auth-login-brand'>
+                                            <div className='auth-login-brand__title'>
+                                                <span className='auth-login-brand__title-number'>21</span>
+                                                <span className='auth-login-brand__title-word'>Hold&apos;em</span>
+                                            </div>
+                                        </div>
+
                                         <div className='auth-form'>
                                             {handoffCode ? (
                                                 <div className='forgot-password-msg'>
@@ -386,7 +379,6 @@ const Login = () => {
                                                 </Button>
                                             </Form>
                                         </div>
-                                        {renderGuestPanel()}
                                     </div>
                                 </div>
                             ) : null}

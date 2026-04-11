@@ -66,6 +66,7 @@ controllers.list = async (req, res) => {
           eStatus: true,
           nChips: true,
           eUserType: true,
+          oBotProfile: true,
         },
       },
       {
