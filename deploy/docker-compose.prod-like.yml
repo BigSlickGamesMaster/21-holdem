@@ -1,0 +1,78 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: holdem-mongo-prod-like
+    restart: unless-stopped
+    ports:
+      - "192.168.0.205:27019:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: holdem-redis-prod-like
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "192.168.0.205:6382:6379"
+    volumes:
+      - redis_data:/data
+
+  game-backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.game-backend
+    container_name: holdem-game-backend-prod-like
+    restart: unless-stopped
+    env_file:
+      - ./env/game-backend.local.env
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "192.168.0.205:4100:4000"
+
+  admin-backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.admin-backend
+    container_name: holdem-admin-backend-prod-like
+    restart: unless-stopped
+    env_file:
+      - ./env/admin-backend.local.env
+    depends_on:
+      - mongo
+      - redis
+    ports:
+      - "192.168.0.205:4151:3051"
+
+  player-frontend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.player-frontend
+      args:
+        REACT_APP_API_ENDPOINT: http://192.168.0.205:4100
+        REACT_APP_ENVIRONMENT: "1"
+    container_name: holdem-player-frontend-prod-like
+    restart: unless-stopped
+    depends_on:
+      - game-backend
+    ports:
+      - "192.168.0.205:3101:80"
+
+  admin-frontend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.admin-frontend
+      args:
+        REACT_APP_API_ENDPOINT: http://192.168.0.205:4151/api/v1/admin
+    container_name: holdem-admin-frontend-prod-like
+    restart: unless-stopped
+    depends_on:
+      - admin-backend
+    ports:
+      - "192.168.0.205:3102:80"
+
+volumes:
+  mongo_data:
+  redis_data:

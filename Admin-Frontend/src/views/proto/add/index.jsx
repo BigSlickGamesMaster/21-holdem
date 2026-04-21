@@ -15,8 +15,6 @@ import { getDirtyFormValues } from 'helper/helper'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSpinner } from '@fortawesome/free-solid-svg-icons'
 
-const maxPlayerList = [{ name: 9, value: 9 }]
-
 const opponentTypeList = [
   { name: 'Bot', value: 'bot' },
   { name: 'User', value: 'user' },
@@ -73,7 +71,7 @@ export default function AddProtoPage() {
       reset({
         sName: response.sName,
         nTurnTime: response?.nTurnTime,
-        nMaxPlayer: 9,
+        nMaxPlayer: response?.nMaxPlayer,
         nMinBuyIn: response?.nMinBuyIn,
         eStatus: response?.eStatus,
         nMinBet: response?.nMinBet,
@@ -108,7 +106,7 @@ export default function AddProtoPage() {
     if (type === 'edit') {
       const isDirtyFields = {
         sName: watch('sName'),
-        nMaxPlayer: 9,
+        nMaxPlayer: +watch('nMaxPlayer'),
         nTurnTime: +watch('nTurnTime'),
         nMinBuyIn: +watch('nMinBuyIn'),
         nMinBet: +watch('nMinBet'),
@@ -123,6 +121,7 @@ export default function AddProtoPage() {
     if (formType === 'Edit') {
       const updateData = {
         ...(payload?.sName && { sName: data?.sName }),
+        ...(payload?.nMaxPlayer && { nMaxPlayer: +data?.nMaxPlayer }),
         nMinBuyIn: +data?.nMinBuyIn,
         nMinBet: +data?.nMinBet,
       }
@@ -135,7 +134,7 @@ export default function AddProtoPage() {
     } else {
       mutate({
         sName: data?.sName,
-        nMaxPlayer: data?.nMaxPlayer || 9,
+        nMaxPlayer: +data?.nMaxPlayer,
         nTurnTime: +data?.nTurnTime,
         nMinBuyIn: +data?.nMinBuyIn,
         nMinBet: data?.nMinBet,
@@ -183,6 +182,41 @@ export default function AddProtoPage() {
                             minLength: {
                               value: 2,
                               message: validationErrors.rangeLength(2, 20),
+                            },
+                          }}
+                        />
+                      )}
+                    </Col>
+
+                    <Col sm={6}>
+                      {formType === 'View' ? (
+                        <CommonViewInput type="text" label="Max. Player" value={viewAdminData?.nMaxPlayer} disabled />
+                      ) : (
+                        <CommonInput
+                          type="text"
+                          register={register}
+                          errors={errors}
+                          name="nMaxPlayer"
+                          label="Max. Player"
+                          required
+                          placeholder="Enter Max Player"
+                          className={`form-control ${errors?.nMaxPlayer && 'error'}`}
+                          validation={{
+                            pattern: {
+                              value: /^[0-9]+$/,
+                              message: 'Only numbers are allowed',
+                            },
+                            required: {
+                              value: true,
+                              message: 'Max player is required',
+                            },
+                            min: {
+                              value: 2,
+                              message: 'Max player must be at least 2',
+                            },
+                            max: {
+                              value: 9,
+                              message: 'Max player must be 9 or less',
                             },
                           }}
                         />

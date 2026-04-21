@@ -1,10 +1,17 @@
 import axios from 'axios'
 import { removeToken } from '../src/helper/helper'
 
+function withAdminApiPrefix(url = '') {
+  const normalizedUrl = url.replace(/\/+$/, '')
+  if (!normalizedUrl) return '/api/v1/admin'
+  if (normalizedUrl.endsWith('/api/v1/admin')) return normalizedUrl
+  return `${normalizedUrl}/api/v1/admin`
+}
+
 export function setUrl(url = process.env.REACT_APP_API_ENDPOINT, options = { prod: false }) {
-  if (options.prod) return process.env.REACT_APP_API_ENDPOINT
-  if (process.env.NODE_ENV === 'development') return url
-  return process.env.REACT_APP_API_ENDPOINT
+  if (options.prod) return withAdminApiPrefix(process.env.REACT_APP_API_ENDPOINT)
+  if (process.env.NODE_ENV === 'development') return withAdminApiPrefix(url)
+  return withAdminApiPrefix(process.env.REACT_APP_API_ENDPOINT)
 }
 const Axios = axios.create({
   // just set prod to true for using production server
