@@ -7,6 +7,7 @@ const tablesProtoRoute = require('./table-prototype');
 const transactionRoute = require('./transaction');
 const gameLogsRoute = require('./gameLogs');
 const settingRoute = require('./setting');
+const changeRequestsRoute = require('./changeRequests');
 
 router.use('/auth', authRoute);
 router.use('/profile', profileRoute);
@@ -16,5 +17,6 @@ router.use('/table-prototype', tablesProtoRoute);
 router.use('/transaction', transactionRoute);
 router.use('/game-logs', gameLogsRoute);
 router.use('/setting', settingRoute);
+router.use('/change-requests', changeRequestsRoute);
 
 module.exports = router;

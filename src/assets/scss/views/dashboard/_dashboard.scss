@@ -6439,6 +6439,17 @@
             height: 132px;
         }
     }
+
+    &--force-mobile {
+        .dashboard-hub__hero,
+        .dashboard-hub__viewport {
+            display: block;
+        }
+
+        .dashboard-hub__desktop-stage {
+            display: none;
+        }
+    }
 }
 
 @keyframes dashboardHubPanelSwap {

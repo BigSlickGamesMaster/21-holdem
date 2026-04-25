@@ -2,6 +2,11 @@
 
 Last verified: 2026-03-29
 
+Safe data note:
+
+- Do not point local services at Atlas.
+- If you need fresh data, use the dump workflow in [docs/LOCAL_DUMP_WORKFLOW.md](d:/BIGSLICKGAMES/games/Bigslickgames/docs/LOCAL_DUMP_WORKFLOW.md).
+
 This is the safe local bring-up procedure for this workspace after a PC restart.
 
 Workspace root:

@@ -388,6 +388,19 @@
                                                 }
                                             }
                                         }
+
+                                        &.auth-remember-check {
+                                            max-width: none;
+                                            align-items: center;
+                                            gap: 0 10px;
+
+                                            .form-check-label {
+                                                color: #f4fbff;
+                                                font-family: "Neue Plak Condensed";
+                                                font-size: 16px !important;
+                                                font-weight: 600;
+                                            }
+                                        }
                                     }
 
                                     .forgot-password,
@@ -408,6 +421,11 @@
                                             opacity: 1;
                                         }
 
+                                    }
+
+                                    &.auth-login-links {
+                                        margin-left: auto;
+                                        margin-right: 18px;
                                     }
                                 }
 

@@ -1,4 +1,4 @@
-import { iconGamePad, iconHome, iconTV, iconUser, topic, iconLayers, gear } from 'assets/images/icons'
+import { iconGamePad, iconHome, iconTV, iconUser, topic, iconLayers, gear, iconChartColumn } from 'assets/images/icons'
 
 import { route } from 'shared/constants/AllRoutes'
 
@@ -32,6 +32,11 @@ export const sidebarConfig = [
         path: route.financeManagement,
         icon: topic,
         title: 'Transactions List',
+      },
+      {
+        path: route.changeRequests,
+        icon: iconChartColumn,
+        title: 'Change Requests',
       },
     ],
   },

@@ -122,7 +122,11 @@ class RedisClient {
       this.pubClient = createClient(this.options);
       await Promise.all([this.client.connect(), this.pubClient.connect(), this.subClient.connect()]);
       await this._ensureJsonSupport();
-      if (process.env.NODE_ENV !== 'prod') await this.subClient.CONFIG_SET('notify-keyspace-events', 'Ex');
+      try {
+        await this.subClient.CONFIG_SET('notify-keyspace-events', 'Ex');
+      } catch (configError) {
+        log.yellow(`Unable to enable Redis keyspace notifications automatically: ${configError.message}`);
+      }
       await this.subClient.subscribe(['__keyevent@0__:expired', 'redisEvent'], this.onMessage, false);
 
       this.client.on('error', log.error);

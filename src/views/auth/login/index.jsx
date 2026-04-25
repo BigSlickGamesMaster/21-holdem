@@ -8,6 +8,9 @@ import { ReactToastify, setCookie } from 'shared/utils';
 import eye from '../../../assets/images/icons/eye_icon.svg';
 import eye_slash_icon from '../../../assets/images/icons/eye_slash_icon.svg';
 
+const LOGIN_REMEMBER_ME_KEY = 'bsg:remember-me';
+const LOGIN_REMEMBERED_IDENTIFIER_KEY = 'bsg:remembered-login';
+
 const Login = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -21,8 +24,12 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        return window.localStorage.getItem(LOGIN_REMEMBER_ME_KEY) === 'true';
+    });
 
-    const { register, handleSubmit, formState: { errors }, reset } = useForm({ mode: 'onSubmit' });
+    const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm({ mode: 'onSubmit' });
     const {
         register: forgotPwdRegister,
         handleSubmit: forgotPwdHandleSubmit,
@@ -33,7 +40,7 @@ const Login = () => {
     const { mutate, isLoading } = useMutation(login, {
         onSuccess: (data) => {
             if (data.status === 200) {
-                setCookie('sAuthToken', data.data.data.authorization, 14);
+                setCookie('sAuthToken', data.data.data.authorization, rememberMe ? 14 : undefined);
                 navigate('/lobby');
             } else {
                 ReactToastify(data.data.message, 'error', 'login');
@@ -139,7 +146,26 @@ const Login = () => {
         setSearchParams(nextSearchParams, { replace: true });
     }, [searchParams, setSearchParams, verificationStatus, verifiedUserName]);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const rememberedIdentifier = window.localStorage.getItem(LOGIN_REMEMBERED_IDENTIFIER_KEY);
+        if (rememberedIdentifier) {
+            setValue('email', rememberedIdentifier);
+        }
+    }, [setValue]);
+
     function onLogin(data) {
+        if (typeof window !== 'undefined') {
+            if (rememberMe) {
+                window.localStorage.setItem(LOGIN_REMEMBER_ME_KEY, 'true');
+                window.localStorage.setItem(LOGIN_REMEMBERED_IDENTIFIER_KEY, data.email);
+            } else {
+                window.localStorage.removeItem(LOGIN_REMEMBER_ME_KEY);
+                window.localStorage.removeItem(LOGIN_REMEMBERED_IDENTIFIER_KEY);
+            }
+        }
+
         mutate({
             sEmail: data.email,
             sPassword: data.password,
@@ -367,7 +393,19 @@ const Login = () => {
                                                     </div>
                                                 </Form.Group>
                                                 <div className='form-group d-flex justify-content-between align-items-center'>
-                                                    <div className='back-to-login'>
+                                                    <div className="form-check auth-remember-check">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="form-check-input"
+                                                            id="remember-me"
+                                                            checked={rememberMe}
+                                                            onChange={(event) => setRememberMe(event.target.checked)}
+                                                        />
+                                                        <label className="form-check-label" htmlFor="remember-me">
+                                                            Remember Me
+                                                        </label>
+                                                    </div>
+                                                    <div className='back-to-login auth-login-links'>
                                                         Don&apos;t have an account? <a onClick={() => navigate('/register')}>Register</a>
                                                     </div>
                                                     <div className='forgot-password'>
@@ -378,6 +416,13 @@ const Login = () => {
                                                     {isHandoffLoading ? 'Connecting...' : isLoading ? 'Signing in...' : 'Sign In'}
                                                 </Button>
                                             </Form>
+                                        </div>
+                                    </div>
+                                    <div className='auth-guest-panel'>
+                                        <div className='auth-guest-actions'>
+                                            <Button type='button' className='guest-entry-btn' onClick={() => navigate('/guest/login')}>
+                                                Guest
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>

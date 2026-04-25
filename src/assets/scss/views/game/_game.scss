@@ -46,6 +46,7 @@ body,
     width: 100%;
     max-width: 100%;
     overflow-x: clip;
+    --game-frame-width: min(100vw, calc((var(--vh, 1vh) * 100) * 0.5625));
 }
 
 #game-stage {
@@ -60,7 +61,7 @@ body,
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    padding: 0 18px calc(env(safe-area-inset-bottom, 0px) + 24px);
+    padding: 0;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.18s ease;
@@ -71,11 +72,143 @@ body,
 }
 
 .game-action-overlay__shell {
-    width: min(100%, 940px);
+    width: 100%;
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 0 calc(env(safe-area-inset-bottom, 0px) + 8px);
+    pointer-events: none;
+}
+
+.game-action-overlay__tray {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 214px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 18px);
+    border-radius: 26px 26px 0 0;
+    border: 1px solid rgba(137, 213, 255, 0.28);
+    border-bottom: 0;
+    background: linear-gradient(180deg, rgba(8, 31, 47, 0.92) 0%, rgba(5, 15, 25, 0.97) 100%);
+    box-shadow: 0 -18px 36px rgba(0, 0, 0, 0.34);
+    backdrop-filter: blur(14px);
+}
+
+.game-action-overlay__bankroll {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: flex-start;
+    gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(137, 213, 255, 0.18);
+    pointer-events: none;
+}
+
+.game-action-overlay__bankroll-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.game-action-overlay__bankroll-slot--left {
+    align-items: flex-start;
+    text-align: left;
+}
+
+.game-action-overlay__bankroll-slot--center {
+    align-items: center;
+    text-align: center;
+}
+
+.game-action-overlay__bankroll-slot--right {
+    align-items: flex-end;
+    pointer-events: auto;
+}
+
+.game-action-overlay__exit-btn {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 100, 100, 0.5);
+    border-radius: 999px;
+    color: rgba(255, 160, 160, 0.95);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 14px 5px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    white-space: nowrap;
+    pointer-events: auto;
+
+    &:hover {
+        background: rgba(255, 80, 80, 0.18);
+        border-color: rgba(255, 100, 100, 0.85);
+        color: #fff;
+    }
+}
+
+.game-action-overlay__bankroll-label {
+    color: rgba(137, 213, 255, 0.86);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.game-action-overlay__bankroll-value {
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1;
+    font-family: "Neue Plak Condensed";
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.game-action-overlay__rows {
+    margin-top: auto;
     display: flex;
     flex-direction: column;
     gap: 12px;
+    width: 100%;
+}
+
+.game-action-overlay__rows--interactive,
+.game-action-overlay__row,
+.game-action-overlay__row .guest-entry-btn,
+.game-action-overlay__row .about-entry-btn {
     pointer-events: auto;
+}
+
+.game-action-overlay__commentary {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    min-height: 110px;
+    max-height: 110px;
+    overflow: hidden;
+}
+
+.game-action-overlay__commentary-entry {
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 10px 12px 8px;
+    font-size: 14px;
+    line-height: 1.2;
+    font-family: "TT Commons";
+    font-weight: 600;
+}
+
+.game-action-overlay__commentary-entry--empty {
+    color: rgba(137, 213, 255, 0.84);
 }
 
 .game-action-overlay__message {
@@ -94,6 +227,7 @@ body,
     text-align: center;
     text-transform: uppercase;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+    pointer-events: auto;
 }
 
 .game-action-overlay__row {
@@ -102,6 +236,7 @@ body,
     justify-content: center;
     gap: 12px;
     margin-top: 0;
+    width: 100%;
 
     .guest-entry-btn,
     .about-entry-btn {
@@ -175,7 +310,7 @@ body,
 
 .game-shell--mobile #game-stage,
 .game-stage--mobile {
-    width: min(100%, calc((var(--vh, 1vh) * 100) * 0.5625));
+    width: min(100%, var(--game-frame-width));
     aspect-ratio: 9 / 16;
     max-width: 1080px;
     max-height: calc(var(--vh, 1vh) * 100);
@@ -194,12 +329,74 @@ body,
 @media (max-width: 1280px) {
     .game-shell--mobile #game-stage,
     .game-stage--mobile {
-        width: min(100%, calc((var(--vh, 1vh) * 100) * 0.5625));
+        width: min(100%, var(--game-frame-width));
         max-height: calc(var(--vh, 1vh) * 100);
     }
+}
 
+@media (max-width: 767px) {
     .game-action-overlay__shell {
-        width: min(100%, 760px);
+        gap: 8px;
+        padding-bottom: 0;
+    }
+
+    .game-action-overlay__tray {
+        border-left: 0;
+        border-right: 0;
+        border-radius: 22px 22px 0 0;
+        min-height: 196px;
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .game-action-overlay__bankroll {
+        padding-bottom: 6px;
+    }
+
+    .game-action-overlay__bankroll {
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .game-action-overlay__bankroll-label {
+        font-size: 10px;
+    }
+
+    .game-action-overlay__bankroll-value {
+        font-size: 20px;
+    }
+
+    .game-action-overlay__commentary {
+        min-height: 96px;
+        max-height: 96px;
+    }
+
+    .game-action-overlay__commentary-entry {
+        font-size: 12px;
+        padding: 8px 10px 7px;
+    }
+
+    .game-action-overlay__message {
+        max-width: calc(100% - 28px);
+    }
+
+    .game-action-overlay__row {
+        gap: 8px;
+
+        .guest-entry-btn,
+        .about-entry-btn {
+            padding: 10px 10px 9px;
+            font-size: 16px;
+            letter-spacing: 0.02em;
+        }
+    }
+
+    .game-action-overlay__row--preset {
+        .guest-entry-btn,
+        .about-entry-btn {
+            padding: 9px 8px 8px;
+            font-size: 14px;
+        }
     }
 }
 

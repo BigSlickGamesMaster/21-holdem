@@ -2,8 +2,7 @@ import Phaser from "phaser";
 import assets from "../scripts/assets";
 import config from "../scripts/config";
 import _ from "../scripts/helper";
-import Card from "../prefabs/Card";
-import { getAvatarImageSrc } from "../shared/constants/builtInAvatars";
+import ProfileRenderer from "./ProfileRenderer";
 
 export default class PlayerProfile extends Phaser.GameObjects.Container {
   constructor(scene, x, y, nPlayerIndex) {
@@ -12,7 +11,8 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.scene = scene;
     this.isLocalSeat = nPlayerIndex === 0;
     this.isRightSideSeat = !this.isLocalSeat && x > (config.centerX + 32);
-    this.profileScaleBoost = 1.3;
+    this.profileScaleBoost = 1.18;
+    this.baseProfileScale = this.isLocalSeat ? 0.84 : 0.552;
     const style = {
       fontSize: "20px",
       fontFamily: config.playerFont,
@@ -32,14 +32,14 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.container_profile = scene.add
       .container(0, 0)
       .setVisible(false)
-      .setScale(nPlayerIndex == 0 ? 0.97 * this.profileScaleBoost : 0.73 * this.profileScaleBoost);
+      .setScale(this.baseProfileScale * this.profileScaleBoost);
     this.add(this.container_profile);
+
+    this.container_cards = scene.add.container(0, -44);
+    this.container_profile.add(this.container_cards);
 
     this.container_profileImage = scene.add.container(0, 0);
     this.container_profile.add(this.container_profileImage);
-
-    this.container_cards = scene.add.container(0, nPlayerIndex === 0 ? -164 : -108);
-    this.container_profile.add(this.container_cards);
 
     const createPromptContainer = (type) => {
       const container = scene.add.container(0, 0).setScale(0);
@@ -112,113 +112,82 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setOrigin(0.5);
     this.container_bettingLabel.add(this.txt_bettingAmount);
 
-    const profileSize = nPlayerIndex === 0 ? 180 : 128;
-    const profileOffsetY = nPlayerIndex === 0 ? -4 : -2;
+    const profileSize = 156;
+    const profileOffsetY = -6;
     this.profileSize = profileSize;
-    this.profileCoverScale = nPlayerIndex === 0 ? 1.34 : 1.52;
     this.profileOffsetY = profileOffsetY;
-    this.profileMaskDiameter = profileSize;
+    this.profileRenderer = new ProfileRenderer(scene, 0, 0, {
+      isLocalSeat: this.isLocalSeat,
+      profileSize,
+      profileOffsetY,
+    });
+    this.container_profileImage.add(this.profileRenderer);
+    this.container_profileImage.setVisible(true);
+    this.profileBackdrop = this.profileRenderer.backdrop;
+    this.profile = this.profileRenderer.avatar;
 
-    this.profile = scene.add
-      .image(0, profileOffsetY, assets.profile_picture)
-      .setScale(nPlayerIndex === 0 ? 1 : 1)
-      .setDepth(100); // Ensure avatar is always on top
-    this.container_profileImage.add(this.profile);
+    const identityPanelY = this.isLocalSeat ? 126 : 130;
+    const identityPanelWidth = 194;
+    const identityPanelHeight = this.isLocalSeat ? 56 : 76;
+    const nameY = this.isLocalSeat ? -2 : -16;
+    const bankrollY = 18;
+    this.container_identity = scene.add.container(0, identityPanelY);
+    this.container_profile.add(this.container_identity);
 
-    this.profileMaskGraphic = scene.add.graphics().setVisible(false);
-    this.container_profileImage.add(this.profileMaskGraphic);
-    this.redrawProfileMask();
-    this.profile.setMask(this.profileMaskGraphic.createGeometryMask());
-    this.applyProfileTextureLayout();
-
-    const profile_box = scene.add.image(0, 0, assets.player_profile);
-    this.container_profile.add(profile_box);
-
-    this.my_player = scene.add.container(0, 0).setVisible(false);
-    this.container_profile.add(this.my_player);
-    this.other_player = scene.add.container(0, 0).setVisible(false);
-    this.container_profile.add(this.other_player);
-    nPlayerIndex == 0
-      ? this.my_player.setVisible(true)
-      : this.other_player.setVisible(true);
-
-    const other_player_name_bar = scene.add
-      .image(0, 130, assets.other_player_name_bar)
-      .setScale(1);
-    this.other_player.add(other_player_name_bar);
+    this.identity_panel = scene.add
+      .rectangle(0, 0, identityPanelWidth, identityPanelHeight, 0x030507, 0.94)
+      .setStrokeStyle(2, 0x223342, 0.96);
+    this.container_identity.add(this.identity_panel);
 
     this.txt_name = scene.add
-      .text(
-        other_player_name_bar.x,
-        other_player_name_bar.y - 20,
-        "waiting...",
-        { ...style, color: "#f6e900", fontSize: "32px" }
-      )
-      .setOrigin(0.5);
-    this.other_player.add(this.txt_name);
-
-    this.txt_waiting = scene.add
-      .text(other_player_name_bar.x, other_player_name_bar.y, "waiting...", {
+      .text(0, nameY, "waiting...", {
         ...style,
         color: "#f6e900",
-        fontSize: "32px",
+        fontSize: "28px",
+        fontStyle: "bold",
       })
       .setOrigin(0.5);
-    this.other_player.add(this.txt_waiting);
+    this.container_identity.add(this.txt_name);
 
-    this.chip_icon = scene.add.image(
-      other_player_name_bar.x - 50,
-      other_player_name_bar.y + 20,
-      assets.chip_icon
-    );
-    this.other_player.add(this.chip_icon);
+    this.txt_waiting = scene.add
+      .text(0, nameY, "waiting...", {
+        ...style,
+        color: "#f6e900",
+        fontSize: "28px",
+        fontStyle: "bold",
+      })
+      .setOrigin(0.5)
+      .setVisible(false);
+    this.container_identity.add(this.txt_waiting);
+
+    this.chip_icon = scene.add
+      .image(-70, bankrollY, assets.chip_icon)
+      .setScale(0.82)
+      .setVisible(!this.isLocalSeat);
+    this.container_identity.add(this.chip_icon);
+
     this.txt_price = scene.add
-      .text(
-        this.chip_icon.x + this.chip_icon.displayWidth,
-        this.chip_icon.y,
-        "0",
-        {
-          ...style,
-          fontSize: "30px",
-          fontStyle: "bold",
-          fontFamily: config.playerFontBold,
-        }
-      )
-      .setOrigin(0.5);
-    this.chip_icon.setX(this.txt_price.x - this.txt_price.displayWidth / 2);
-    this.txt_price.setX(
-      this.chip_icon.x +
-        this.chip_icon.displayWidth / 2 +
-        this.txt_price.displayWidth / 1.5
-    );
-    this.other_player.add(this.txt_price);
-
-    this.self_bankroll_base = scene.add
-      .rectangle(0, 126, 194, 56, 0x030507, 0.94)
-      .setStrokeStyle(2, 0x223342, 0.96);
-    this.my_player.add(this.self_bankroll_base);
-
-    this.self_chip_icon = scene.add.image(-70, this.self_bankroll_base.y + 1, assets.chip_icon).setScale(0.82);
-    this.my_player.add(this.self_chip_icon);
-
-    this.self_txt_price = scene.add
-      .text(-42, this.self_chip_icon.y, "0", {
+      .text(-42, bankrollY, "0", {
         ...style,
         fontSize: "32px",
         fontStyle: "bold",
         fontFamily: config.playerFontBold,
         color: "#ffffff",
       })
-      .setOrigin(0, 0.5);
-    this.my_player.add(this.self_txt_price);
+      .setOrigin(0, 0.5)
+      .setVisible(!this.isLocalSeat);
+    this.container_identity.add(this.txt_price);
 
-    this.turn_timer = scene.add.image(0, 0, assets.timer).setVisible(false);
-    this.container_profile.add(this.turn_timer);
+    this.self_bankroll_base = this.identity_panel;
+    this.self_chip_icon = this.chip_icon;
+    this.self_txt_price = this.txt_price;
+
+    this.turn_timer = this.profileRenderer.timer;
 
     this.dd_highlighter = scene.add
       .image(0, 0, assets.dd_highlighter)
       .setVisible(false);
-    this.other_player.add(this.dd_highlighter);
+    this.container_profile.add(this.dd_highlighter);
 
     // this.score_bg = scene.add.image(100, -70, assets.score_bg);
     // this.my_player.add(this.score_bg);
@@ -228,6 +197,25 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setScale(1.12)
       .setVisible(false);
     this.container_profile.add(this.score_bg);
+
+    // Split score badge — shown below main score when player has split
+    this.split_score_bg = scene.add
+      .image(100, -35, assets.score_bg)
+      .setScale(0.95)
+      .setTint(0x1a8040)
+      .setVisible(false);
+    this.container_profile.add(this.split_score_bg);
+
+    this.txt_splitScore = scene.add
+      .text(100, -35, 'SP', {
+        ...style,
+        fontSize: '26px',
+        fontStyle: 'bold',
+        color: '#aaffaa',
+      })
+      .setOrigin(0.5)
+      .setVisible(false);
+    this.container_profile.add(this.txt_splitScore);
 
     this.txt_score = scene.add
       .text(this.score_bg.x, this.score_bg.y, "0", {
@@ -249,9 +237,9 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.container_blind.add(this.blind_bg);
 
     // Blind icons
-    this.icon_dealer = scene.add.image(this.blind_bg.x, this.blind_bg.y, 'icon-info').setScale(0.38).setVisible(false);
-    this.icon_sb = scene.add.image(this.blind_bg.x, this.blind_bg.y, 'raise_icon').setScale(0.38).setVisible(false);
-    this.icon_bb = scene.add.image(this.blind_bg.x, this.blind_bg.y, 'stand_icon').setScale(0.38).setVisible(false);
+    this.icon_dealer = scene.add.image(this.blind_bg.x, this.blind_bg.y, 'copy_icon').setScale(0.01).setVisible(false);
+    this.icon_sb = scene.add.image(this.blind_bg.x, this.blind_bg.y, 'copy_icon').setScale(0.01).setVisible(false);
+    this.icon_bb = scene.add.image(this.blind_bg.x, this.blind_bg.y, 'copy_icon').setScale(0.01).setVisible(false);
     this.container_blind.add(this.icon_dealer);
     this.container_blind.add(this.icon_sb);
     this.container_blind.add(this.icon_bb);
@@ -270,13 +258,13 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setFlipY(true)
       .setScale(0.7)
       .setVisible(false);
-    this.other_player.add(this.raise_arrow);
+    this.container_profile.add(this.raise_arrow);
 
     this.updateBettingLabelLayout();
   }
-  setProfile({ sUserName, sAvatar }) {
+  setProfile({ sUserName, sAvatar, eUserType }) {
     this.txt_name.setText(_.appendSuffix(_.getFirstCapital(sUserName)));
-    this.setProfileImage(sAvatar, sUserName);
+    this.setProfileImage(sAvatar, sUserName, eUserType);
     // this.container_blind.setVisible(oBlind.isDealer || oBlind.isSmallBlind || oBlind.isBigBlind);
     // this.txt_blind.setText(oBlind.isSmallBlind ? 'SB' : oBlind.isBigBlind ? 'BB' : 'D');
     this.container_profile.setVisible(true);
@@ -292,6 +280,19 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.txt_score.setText("");
     this.score_bg.setVisible(false);
     this.txt_score.setVisible(false);
+    this.clearSplitHand();
+  }
+  clearSplitHand() {
+    if (this.split_score_bg) this.split_score_bg.setVisible(false);
+    if (this.txt_splitScore) this.txt_splitScore.setVisible(false);
+  }
+  setSplitHand(aSplitHand, nSplitCardScore) {
+    const score = Number(nSplitCardScore);
+    if (!Number.isFinite(score) || score <= 0) return;
+    const label = score > 21 ? `SP:BUST` : `SP:${score}`;
+    this.txt_splitScore.setText(label);
+    this.split_score_bg.setVisible(true);
+    this.txt_splitScore.setVisible(true);
   }
   setScore(nScore) {
     const parsedScore = Number(nScore);
@@ -310,19 +311,20 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.icon_sb.setVisible(false);
     this.icon_bb.setVisible(false);
     this.txt_blind.setVisible(false);
+    this.txt_blind.setText("");
 
     switch (iUserId) {
       case this.scene.iDealerId:
         this.container_blind.setVisible(true);
-        this.icon_dealer.setVisible(true);
+        this.txt_blind.setText("D").setVisible(true);
         break;
       case this.scene.iBigBlindId:
         this.container_blind.setVisible(true);
-        this.icon_bb.setVisible(true);
+        this.txt_blind.setText("BB").setVisible(true);
         break;
       case this.scene.iSmallBlindId:
         this.container_blind.setVisible(true);
-        this.icon_sb.setVisible(true);
+        this.txt_blind.setText("SB").setVisible(true);
         break;
       default:
         this.container_blind.setVisible(false);
@@ -384,185 +386,34 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
   }
   hideWaiting() {
     this.txt_name.setVisible(true);
-    this.chip_icon.setVisible(true);
-    this.txt_price.setVisible(true);
+    this.chip_icon.setVisible(!this.isLocalSeat);
+    this.txt_price.setVisible(!this.isLocalSeat);
     this.txt_waiting.setVisible(false);
   }
   setAmountIn(nAmountIn) {
-    if (this.isLocalSeat && this.self_chip_icon && this.self_txt_price) {
-      this.self_chip_icon.setX(-70);
-      this.self_txt_price.setX(-42);
-      this.self_txt_price.setText(
-        nAmountIn < 9999
-          ? _.formatCurrencyWithComa(nAmountIn)
-          : _.formatCurrency(nAmountIn)
-      );
-      return;
-    }
-
-    this.chip_icon.setX(-50);
-    this.txt_price.setX(this.chip_icon.x + this.chip_icon.displayWidth);
+    this.chip_icon.setX(-70);
+    this.txt_price.setX(-42);
     this.txt_price.setText(
       nAmountIn < 9999
         ? _.formatCurrencyWithComa(nAmountIn)
         : _.formatCurrency(nAmountIn)
     );
-    this.chip_icon.setX(this.txt_price.x - this.txt_price.displayWidth / 2);
-    this.txt_price.setX(
-      this.chip_icon.x +
-        this.chip_icon.displayWidth / 2 +
-        this.txt_price.displayWidth / 1.5
-    );
   }
-  createCard(cardData) {
-    const cardWidth = 100;
-    const cardSpacing = 25;
-    const cardTiltAngle = 15;
-    const cardCount = this.container_cards?.list?.length;
-    const { eSuit, nLabel, nValue, _id } = cardData;
-
-    const card = new Card(this.scene, 0, 0, eSuit, nLabel, nValue, _id);
-
-    if (cardCount > 0) {
-      const totalWidth = (cardCount + 1) * cardSpacing;
-      const startX = -totalWidth / 2;
-      card.setX(startX + cardCount * cardSpacing);
-      card.setAngle(cardTiltAngle * (cardCount - cardCount / 2));
-
-      this.container_cards.list.forEach((existingCard, index) => {
-        existingCard.setX(startX + index * cardSpacing);
-        existingCard.setAngle(cardTiltAngle * (index - cardCount / 2));
-      });
-    }
-    this.container_cards.setVisible(true);
-    this.container_cards.add(card);
-    return card;
+  createCard() {
+    return null;
   }
-  setProfileImage(url, name) {
-    const setDefaultProfile = () => {
-      this.profile.setTexture(assets.profile_picture);
-      this.applyProfileTextureLayout();
-    };
-    const resolvedUrl = getAvatarImageSrc(url, name);
-    console.log('[Avatar Debug] setProfileImage called with:', { url, name, resolvedUrl });
-    if (resolvedUrl) {
-      let textureKey = null;
-      try {
-        let src = resolvedUrl;
-        if (typeof resolvedUrl === 'object' && resolvedUrl.default) {
-          src = resolvedUrl.default;
-        }
-        // Extract the hashed filename from the resolvedUrl (Webpack output)
-        let match = src.match(/\/([A-Za-z0-9_-]+)\.(png|jpe?g|webp)$/i);
-        if (match) {
-          textureKey = match[1];
-        }
-      } catch (e) { console.error('[Avatar Debug] Error extracting textureKey:', e); }
-      console.log('[Avatar Debug] Attempting to use textureKey:', textureKey, 'scene.textures.exists:', textureKey ? this.scene.textures.exists(textureKey) : 'n/a');
-      if (textureKey && this.scene.textures.exists(textureKey)) {
-        this.profile.setTexture(textureKey);
-        this.applyProfileTextureLayout();
-      } else {
-        console.warn('[Avatar Debug] Avatar texture not found for:', resolvedUrl, 'Texture key:', textureKey);
-        setDefaultProfile();
-      }
-    } else {
-      setDefaultProfile();
-    }
+  setProfileImage(url, name, eUserType = "user") {
+    this.profileRenderer.setProfileImage(url, name, { showImage: true });
   }
-  applyProfileTextureLayout() {
-    const frame = this.profile?.frame;
-    const sourceWidth =
-      Number(frame?.realWidth) ||
-      Number(frame?.width) ||
-      Number(this.profile?.width) ||
-      this.profileMaskDiameter;
-    const sourceHeight =
-      Number(frame?.realHeight) ||
-      Number(frame?.height) ||
-      Number(this.profile?.height) ||
-      this.profileMaskDiameter;
-    const targetDiameter = this.profileMaskDiameter * this.profileCoverScale;
-    const coverScale = Math.max(targetDiameter / sourceWidth, targetDiameter / sourceHeight);
-
-    this.profile.setOrigin(0.5, 0.5);
-    this.profile.setDisplaySize(sourceWidth * coverScale, sourceHeight * coverScale);
-    this.profile.setPosition(0, this.profileOffsetY);
+  resTurnTimer = () => this.profileRenderer.resTurnTimer();
+  startTurnTimer(ttl, totalTime) {
+    this.profileRenderer.startTurnTimer(ttl, totalTime);
   }
-  redrawProfileMask() {
-    if (!this.profileMaskGraphic) return;
-
-    this.profileMaskGraphic.clear();
-    this.profileMaskGraphic.fillStyle(0xffffff);
-    this.profileMaskGraphic.fillCircle(0, this.profileOffsetY, this.profileMaskDiameter / 2);
-  }
-  resTurnTimer = ({ ttl, nTotalTurnTime, nGraceTime, eTurnType, iUserId }) => {
-    this.resetTurnTimer();
-    const shape = this.scene.make.graphics();
-    const mask = shape.createGeometryMask();
-    this.turn_timer.setMask(mask);
-    this.turn_timer.setVisible(true);
-
-    const totalTime = eTurnType === "graceTime" ? nGraceTime : nTotalTurnTime;
-    let remainingTime = ttl;
-    const interval = 50;
-    let lastBeepTime = 0;
-
-    const drawSlice = () => {
-      const elapsedTime = totalTime - remainingTime;
-      const progress = elapsedTime / totalTime;
-      const start = -90;
-      const end = -90 + progress * 360;
-      shape.clear();
-      shape.slice(
-        this.x + this.turn_timer.x,
-        this.y + this.turn_timer.y,
-        this.turn_timer.displayWidth,
-        Phaser.Math.DegToRad(start),
-        Phaser.Math.DegToRad(end),
-        true
-      );
-      shape.fillPath();
-    };
-    drawSlice();
-    eTurnType === "graceTime" && this.setTimerTint(0xffff00);
-    this.turnInterval = setInterval(() => {
-      if (remainingTime <= 200) {
-        this.resetTurnTimer();
-      } else {
-        remainingTime -= interval;
-        // this.txt_timer.setText(Math.round(remainingTime / 1000));
-        drawSlice();
-        if (remainingTime <= totalTime / 6) {
-          this.setTimerTint(0xff0000);
-          const currentTime = Date.now();
-          if (currentTime - lastBeepTime >= 1000) {
-            if (iUserId == this.scene.iUserId) {
-              this.scene.oSoundManager.playSound(
-                this.scene.oSoundManager.timer_sound,
-                false
-              );
-            }
-            lastBeepTime = currentTime;
-          }
-        } else if (eTurnType === "general") {
-          this.turn_timer.clearTint();
-        }
-      }
-    }, interval);
-  };
-  setTimerTint(color) {
-    this.turn_timer.tintFill = true;
-    this.turn_timer.tintBottomLeft = color;
-    this.turn_timer.tintBottomRight = color;
-    this.turn_timer.tintTopLeft = color;
-    this.turn_timer.tintTopRight = color;
+  setTimerTint() {
+    this.profileRenderer.setTimerTint();
   }
   resetTurnTimer() {
-    clearInterval(this.turnInterval);
-    this.scene.oSoundManager.stopSound(this.scene.oSoundManager.timer_sound);
-    this.turn_timer.clearTint();
-    this.turn_timer.setVisible(false);
+    this.profileRenderer.resetTurnTimer();
   }
   showWinnerPrompt() {
     this.container_bettingLabel.setVisible(false);

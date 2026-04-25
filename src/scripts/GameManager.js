@@ -57,7 +57,6 @@ export default class GameManager {
             // Total time allowed for a turn (may include buffers).
             "nTurnTime": 30000,
             "nTurnBuffer": 1000,
-            "nRoundStartsIn": 25000,
             // How long results/winner screens remain visible.
             "nDeclareTTL": 20000,
             "nFinishTTL": 30000,
@@ -116,15 +115,15 @@ export default class GameManager {
                 { x: 1320, y: 760 }, // 8
             ]
             : [
-                { x: 540, y: 1460 }, // 0
-                { x: 282, y: 1350 }, // 1
-                { x: 116, y: 1092 }, // 2
-                { x: 112, y: 804 }, // 3
-                { x: 284, y: 540 }, // 4
-                { x: 796, y: 540 }, // 5
-                { x: 968, y: 804 }, // 6
-                { x: 964, y: 1092 }, // 7
-                { x: 798, y: 1350 }, // 8
+                { x: 540, y: 1200 }, // 0
+                { x: 332, y: 1142 }, // 1
+                { x: 280, y: 944 },  // 2
+                { x: 298, y: 734 },  // 3
+                { x: 348, y: 594 },  // 4
+                { x: 732, y: 594 },  // 5
+                { x: 782, y: 734 },  // 6
+                { x: 800, y: 944 },  // 7
+                { x: 748, y: 1142 }, // 8
             ];
         return aPlayerProfile[nPlayer];
     }

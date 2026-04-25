@@ -1,18 +1,12 @@
-# Use the official Node.js image
-FROM node
+FROM node:22-alpine
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and install dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy the application code
 COPY . .
 
-# Expose the application port
-EXPOSE 3050
+EXPOSE 4000
 
-# Start the application
-CMD ["node", "index.js"]
+CMD ["npm", "start"]

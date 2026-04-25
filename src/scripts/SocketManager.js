@@ -190,6 +190,11 @@ export default class SocketManager {
                 this.oScene.handleDoubleDown(data.oData, data.sEventName);
                 break;
 
+            case 'resSplit':
+                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
+                this.oScene.handleSplit(data.oData);
+                break;
+
             case 'resStand':
                 console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.handlePlayerBet(data.oData, data.sEventName);

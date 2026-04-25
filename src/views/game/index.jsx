@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import Phaser from "phaser";
 import Preload from "../../scenes/Preload";
 import Level from "../../scenes/Level";
 import config from "../../scripts/config";
-import { clearSavedGameUiLayout } from "../../scripts/gameUiLayout";
 import { useLocation, useNavigate } from "react-router-dom";
 import game_bg from '../../assets/images/bg/game_bg.png';
 import portrait_table from '../../assets/images/gameplay/portrate_table.png';
@@ -18,6 +17,7 @@ class Boot extends Phaser.Scene {
         this.iBoardId = data.iBoardId;
         this.sPrivateCode = data.sPrivateCode;
         this.isGuestTutorial = Boolean(data.isGuestTutorial);
+        this.fallbackPath = data.fallbackPath;
     }
     preload() {
         const data = {
@@ -25,6 +25,7 @@ class Boot extends Phaser.Scene {
             iBoardId: this.iBoardId,
             sPrivateCode: this.sPrivateCode,
             isGuestTutorial: this.isGuestTutorial,
+            fallbackPath: this.fallbackPath,
         }
         this.load.image('game_bg', game_bg);
         this.load.image('preload_table', portrait_table);
@@ -36,22 +37,13 @@ function Game({ isPausedExternally = false }) {
     const navigate = useNavigate();
     const gameRef = useRef(null);
     const phaserGameRef = useRef(null);
-    const [layoutMode, setLayoutMode] = useState(() => (typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'desktop' : 'mobile'));
+    const layoutMode = 'mobile';
 
     useEffect(() => {
-        const updateLayoutMode = () => {
-            const nextLayoutMode = window.innerWidth >= 1024 ? 'desktop' : 'mobile';
-            setLayoutMode(previousLayoutMode => (previousLayoutMode === nextLayoutMode ? previousLayoutMode : nextLayoutMode));
-        };
+        if (typeof document === 'undefined') return;
 
-        updateLayoutMode();
-        window.addEventListener('resize', updateLayoutMode);
-        window.addEventListener('orientationchange', updateLayoutMode);
-
-        return () => {
-            window.removeEventListener('resize', updateLayoutMode);
-            window.removeEventListener('orientationchange', updateLayoutMode);
-        };
+        window.FXOverlayUI?.closeBugPanel?.();
+        document.querySelector('#fx-overlay-ui-root .fxui-bug-panel')?.remove();
     }, []);
 
     useEffect(() => {
@@ -59,7 +51,6 @@ function Game({ isPausedExternally = false }) {
             navigate(fallbackPath);
             return;
         }
-        clearSavedGameUiLayout();
         config.setLayout('mobile');
         const gameConfig = {
             type: Phaser.AUTO,
@@ -80,6 +71,7 @@ function Game({ isPausedExternally = false }) {
             iBoardId: iBoardId,
             sPrivateCode: sPrivateCode,
             isGuestTutorial,
+            fallbackPath,
         }
         game.scene.add('Level', Level);
         game.scene.add('Preload', Preload);
@@ -91,7 +83,7 @@ function Game({ isPausedExternally = false }) {
             game.destroy(true);
         };
 
-    }, [fallbackPath, iBoardId, isGuestTutorial, layoutMode, navigate, sAuthToken]);
+    }, [fallbackPath, iBoardId, isGuestTutorial, navigate, sAuthToken, sPrivateCode]);
 
     useEffect(() => {
         const game = phaserGameRef.current;

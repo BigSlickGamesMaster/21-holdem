@@ -1,6 +1,11 @@
 import axios from 'axios'
 import { removeToken } from '../src/helper/helper'
 
+function getDefaultAdminApiOrigin() {
+  if (typeof window === 'undefined') return ''
+  return `${window.location.protocol}//localhost:3051`
+}
+
 function withAdminApiPrefix(url = '') {
   const normalizedUrl = url.replace(/\/+$/, '')
   if (!normalizedUrl) return '/api/v1/admin'
@@ -8,14 +13,12 @@ function withAdminApiPrefix(url = '') {
   return `${normalizedUrl}/api/v1/admin`
 }
 
-export function setUrl(url = process.env.REACT_APP_API_ENDPOINT, options = { prod: false }) {
-  if (options.prod) return withAdminApiPrefix(process.env.REACT_APP_API_ENDPOINT)
-  if (process.env.NODE_ENV === 'development') return withAdminApiPrefix(url)
-  return withAdminApiPrefix(process.env.REACT_APP_API_ENDPOINT)
+export function setUrl(url = process.env.REACT_APP_API_ENDPOINT || getDefaultAdminApiOrigin()) {
+  return withAdminApiPrefix(String(url || '').trim())
 }
+
 const Axios = axios.create({
-  // just set prod to true for using production server
-  baseURL: setUrl('if you have ip then paste it here', { prod: true }),
+  baseURL: setUrl(process.env.REACT_APP_API_ENDPOINT),
 })
 
 Axios.interceptors.request.use(

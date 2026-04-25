@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Spinner } from 'react-bootstrap';
-import { joinGuestTable } from 'query/guest.query';
+import { joinGuestTutorialTable } from 'query/guest.query';
 import roundOneTutorial from '../../../assets/images/bg/round_1_tutorial.png';
 import sceneOne from '../../../assets/images/bg/scene_1.png';
 import communityCards from '../../../assets/images/bg/community.png';
@@ -176,16 +176,17 @@ function GuestTutorialLanding() {
 
         try {
             const sAuthToken = await loginGuestWithDeviceId(guestDeviceId);
-            const joinResponse = await joinGuestTable({ sAuthToken });
+            const joinResponse = await joinGuestTutorialTable({ sAuthToken });
             const iBoardId = joinResponse?.data?.data?.iBoardId;
             if (!iBoardId) throw new Error('Guest table was not created');
 
-            navigate('/guest/game', {
+            navigate('/guest/tutorial/game', {
                 state: {
                     sAuthToken,
                     iBoardId,
-                    fallbackPath: '/guest',
+                    fallbackPath: '/guest/tutorial',
                     isGuest: true,
+                    isGuestTutorial: true,
                 },
             });
         } catch (requestError) {

@@ -10,10 +10,12 @@ import Prompt from '../prefabs/Prompt';
 import PlayerProfile from '../prefabs/PlayerProfile';
 import Button from '../prefabs/Button';
 import Popup from '../prefabs/Popup';
+import PotDisplay from '../prefabs/PotDisplay';
 import Settings from '../prefabs/Settings';
 import SoundManager from '../scripts/SoundManager';
 import Services from '../scripts/Services';
 import Animations from '../scripts/Animations';
+import ChipAnimationController from '../scripts/ChipAnimationController';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -74,7 +76,7 @@ export default class Level extends Phaser.Scene {
     }
 
     getPlayfieldOffsetY() {
-        return -50;
+        return config.isDesktopLayout() ? -50 : -180;
     }
 
     getTableImageOffsetY() {
@@ -92,6 +94,30 @@ export default class Level extends Phaser.Scene {
             buttonsY: this.container_buttons?.y || 0,
             raiseButtonsY: this.container_raise_buttons?.y || 0,
             confirmRaiseY: this.container_confirm_raise?.y || 0,
+            uiNodes: [
+                this.container_header,
+                this.container_pot_amount,
+                this.container_community_cards,
+                this.container_table,
+                this.container_bet_staging,
+                this.container_closed_cards,
+                this.container_player_cards,
+                this.container_player_profiles,
+                this.container_footer,
+                this.container_buttons,
+                this.container_raise_buttons,
+                this.container_confirm_raise,
+                this.prompt,
+                this.settings,
+                this.gameInfo,
+                this.popup,
+            ].filter(Boolean).map(node => ({
+                node,
+                x: node.x || 0,
+                y: node.y || 0,
+                scaleX: node.scaleX || 1,
+                scaleY: node.scaleY || 1,
+            })),
             playerProfiles: this.aAllPlayerProfiles.map(playerProfile => ({
                 playerProfile,
                 x: playerProfile.x,
@@ -115,6 +141,17 @@ export default class Level extends Phaser.Scene {
 
         const layout = this.oGameUILayout;
         const base = this.oGameUILayoutBase;
+        const uiScale = config.isDesktopLayout() ? 1 : (layout.uiScale || 1);
+
+        base.uiNodes?.forEach(({ node, x, y, scaleX, scaleY }) => {
+            if (!node) return;
+
+            node.setScale(scaleX * uiScale, scaleY * uiScale);
+            node.setPosition(
+                config.centerX + ((x || 0) - config.centerX) * uiScale,
+                config.centerY + ((y || 0) - config.centerY) * uiScale
+            );
+        });
 
         if (this.table) {
             this.table.setY(base.tableY + layout.tableOffsetY);
@@ -314,18 +351,18 @@ callFXOverlay(effectName, ...args) {
 registerFXOverlayPotAnchor() {
     try {
         const overlay = this.getFXOverlay();
-        if (!overlay || typeof overlay.setAnchor !== 'function' || !this.table || !this.oPotAmount?.pot_amount_base) return false;
+        if (!overlay || typeof overlay.setAnchor !== 'function' || !this.table || !this.oPotAmount?.getAnchorBounds) return false;
 
-        const potBase = this.oPotAmount.pot_amount_base;
+        const potBounds = this.oPotAmount.getAnchorBounds();
 
         overlay.setAnchor('table', () => this.getFXOverlayScreenAnchor(this.table, {
             width: this.table.displayWidth * 0.52,
             height: this.table.displayHeight * 0.30,
             offsetY: this.table.displayHeight * 0.02,
         }));
-        overlay.setAnchor('pot', () => this.getFXOverlayScreenAnchor(potBase, {
-            width: potBase.displayWidth,
-            height: potBase.displayHeight,
+        overlay.setAnchor('pot', () => this.getFXOverlayScreenAnchor(this.oPotAmount, {
+            width: potBounds.width,
+            height: potBounds.height,
         }));
         overlay.setAnchor('mySeat', () => {
             const myPlayer = this.players && this.players.get ? this.players.get(this.iUserId) : null;
@@ -335,11 +372,10 @@ registerFXOverlayPotAnchor() {
             const myPlayer = this.findPlayerByUserId(this.iUserId);
             return this.getFXOverlayProfileImageAnchor(myPlayer && myPlayer.playerProfile);
         });
-        overlay.setAnchor('potPile', () => this.getFXOverlayScreenAnchor(potBase, {
-            width: 126,
-            height: 96,
-            offsetX: potBase.displayWidth * 0.48,
-            offsetY: -2,
+        overlay.setAnchor('potPile', () => this.getFXOverlayScreenAnchor(this.oPotAmount, {
+            width: Math.max(126, potBounds.width * 0.6),
+            height: Math.max(84, potBounds.height * 0.7),
+            offsetY: Math.round(potBounds.height * 0.82),
         }));
         overlay.setPotAmount && overlay.setPotAmount(this.oGameManager?.nPotAmount || 0);
 
@@ -361,8 +397,9 @@ getFXOverlayScreenAnchor(gameObject, options = {}) {
 
         const scaleX = rect.width / sceneWidth;
         const scaleY = rect.height / sceneHeight;
-        const x = Number(gameObject.x || 0) + Number(options.offsetX || 0);
-        const y = Number(gameObject.y || 0) + Number(options.offsetY || 0);
+    const worldPoint = this.getGameObjectScenePoint(gameObject);
+    const x = Number(worldPoint?.x ?? gameObject.x ?? 0) + Number(options.offsetX || 0);
+    const y = Number(worldPoint?.y ?? gameObject.y ?? 0) + Number(options.offsetY || 0);
         const width = Number(options.width ?? gameObject.displayWidth ?? 0);
         const height = Number(options.height ?? gameObject.displayHeight ?? 0);
 
@@ -484,6 +521,25 @@ createGameActionOverlayRow(id, buttonKeys = [], className = '') {
     };
 }
 
+getOverlayCommentaryPlayerName(iUserId) {
+    const player = this.players?.get?.(iUserId);
+    const rawName = player?.sUserName || player?.name || '';
+    if (rawName) return _.appendSuffix(_.getFirstCapital(rawName), 10, '..');
+    return String(iUserId) === String(this.iUserId) ? 'You' : 'Player';
+}
+
+pushOverlayCommentary(message = '') {
+    const nextMessage = String(message || '').trim();
+    if (!nextMessage) return;
+
+    const nextEntries = Array.isArray(this.aOverlayCommentary) ? [...this.aOverlayCommentary] : [];
+    if (nextEntries[0] === nextMessage) return;
+
+    nextEntries.unshift(nextMessage);
+    this.aOverlayCommentary = nextEntries.slice(0, 6);
+    this.syncGameActionOverlay();
+}
+
     syncGameActionOverlay() {
         if (!this.oButtons) {
             hideGameActionOverlay();
@@ -499,26 +555,35 @@ createGameActionOverlayRow(id, buttonKeys = [], className = '') {
         } else if (this.sRaiseUiMode === 'builder') {
             rows.push(
                 this.createGameActionOverlayRow('raise-top', ['btn_min', 'btn_halfPot', 'btn_fullPot'], 'game-action-overlay__row--three game-action-overlay__row--preset'),
-                this.createGameActionOverlayRow('raise-bottom', ['btn_cancel'], 'game-action-overlay__row--single'),
+                this.createGameActionOverlayRow('raise-bottom', ['btn_doubleDown', 'btn_cancel'], 'game-action-overlay__row--two'),
             );
         } else if (this.container_buttons?.visible) {
             rows.push(
                 this.createGameActionOverlayRow('main-top', ['btn_fold', 'btn_call', 'btn_check'], 'game-action-overlay__row--three'),
-                this.createGameActionOverlayRow('main-bottom', ['btn_raise', 'btn_doubleDown', 'btn_stand'], 'game-action-overlay__row--three'),
+                this.createGameActionOverlayRow('main-bottom', ['btn_raise', 'btn_stand'], 'game-action-overlay__row--two'),
             );
         }
 
         const aVisibleRows = rows.filter(Boolean);
+        const tableBankroll = Number.isFinite(Number(this.nOverlayTableBankroll))
+            ? Number(this.nOverlayTableBankroll)
+            : Number(this.oGameManager?.nMyPlayerChips);
+        const commentary = this.isMyTurn
+            ? []
+            : (Array.isArray(this.aOverlayCommentary) ? this.aOverlayCommentary.slice(0, 6) : []);
+        const shouldShowTray = Boolean(this.isOverlayReady && (aVisibleRows.length > 0 || commentary.length > 0 || Number.isFinite(tableBankroll)));
 
         emitGameActionOverlayState({
-            visible: aVisibleRows.length > 0,
-            mode: this.sRaiseUiMode || (aVisibleRows.length > 0 ? 'main' : 'hidden'),
+            visible: shouldShowTray,
+            mode: this.sRaiseUiMode || (shouldShowTray ? 'main' : 'hidden'),
             message: this.sRaiseUiMode === 'builder'
                 ? ''
                 : (this.sRaiseUiMode === 'confirm'
                     ? `Raise ${this.formatRaiseAmountLabel(this.oGameManager?.tempRaiseAmount)}`
                     : ''),
             rows: aVisibleRows,
+            tableBankroll: Number.isFinite(tableBankroll) ? tableBankroll : null,
+            commentary,
         });
     }
 
@@ -546,8 +611,18 @@ bindGameActionOverlayEvents() {
             case 'raise':
                 this.openRaiseBuilder();
                 break;
+            case 'exitTable':
+                this.popup.showConfirm({ title: 'EXIT', message: this.oGameManager.exitMessage, callback: () => {
+                    this.reqLeaveGame();
+                }});
+                break;
             case 'doubleDown':
+                this.hideAllButtons();
                 this.oSocketManager.emit(emitter.reqDoubleDown);
+                break;
+            case 'split':
+                this.hideAllButtons();
+                this.oSocketManager.emit(emitter.reqSplit);
                 break;
             case 'stand':
                 if (this.oButtons?.btn_stand?.bCallStandMode) {
@@ -667,6 +742,159 @@ getFXOverlayProfileImageAnchor(playerProfile) {
     };
 }
 
+getGameObjectScenePoint(gameObject) {
+    if (!gameObject?.getWorldTransformMatrix) return null;
+    const matrix = gameObject.getWorldTransformMatrix();
+    return { x: matrix.tx, y: matrix.ty };
+}
+
+getPlayerChipAnchor(playerProfile) {
+    if (!playerProfile) return { x: config.centerX, y: config.centerY };
+    return this.getGameObjectScenePoint(playerProfile)
+        || { x: playerProfile.x, y: playerProfile.y };
+}
+
+getPotChipAnchor() {
+    const anchor = this.getGameObjectScenePoint(this.oPotAmount) || { x: config.centerX, y: config.centerY };
+    const potBounds = this.oPotAmount?.getAnchorBounds?.() || { height: 80 };
+    return {
+        x: anchor.x,
+        y: anchor.y + (potBounds.height * 0.82),
+    };
+}
+
+getPlayerBetStageAnchor(playerProfile) {
+    const communityBounds = this.getCommunityCardBounds();
+    const stagedY = communityBounds
+        ? communityBounds.bottom + 84
+        : this.getCommunityCardBasePosition().y + 164;
+    const seatIndex = Number(this.aAllPlayerProfiles?.indexOf?.(playerProfile));
+    const spreadBySeat = [-120, -220, -170, -110, -54, 54, 110, 170, 220];
+
+    return {
+        x: config.centerX + (spreadBySeat[seatIndex] || 0),
+        y: stagedY,
+    };
+}
+
+renderStagedBetPile(playerProfile, amount = 0) {
+    return null;
+}
+
+clearStagedBetPiles() {
+    const stagedEntries = Array.from(this.stagedBetPiles?.entries?.() || []);
+    stagedEntries.forEach(([, stagedPile]) => {
+        stagedPile?.container?.destroy?.();
+    });
+    this.stagedBetPiles?.clear?.();
+}
+
+flushStagedBetsToPot() {
+    this.clearStagedBetPiles();
+    return Promise.resolve();
+}
+
+getCommunityCardBounds() {
+    const cards = this.container_community_cards?.list || [];
+    if (!cards.length) return null;
+
+    const aBounds = cards.map((card) => ({
+        left: card.x - (card.displayWidth / 2),
+        right: card.x + (card.displayWidth / 2),
+        top: card.y - (card.displayHeight / 2),
+        bottom: card.y + (card.displayHeight / 2),
+    }));
+
+    return {
+        left: Math.min(...aBounds.map(bound => bound.left)),
+        right: Math.max(...aBounds.map(bound => bound.right)),
+        top: Math.min(...aBounds.map(bound => bound.top)),
+        bottom: Math.max(...aBounds.map(bound => bound.bottom)),
+    };
+}
+
+getCommunityCardLayoutMetrics() {
+    const uiScale = config.isDesktopLayout() ? 1 : (this.oGameUILayout?.uiScale || 1);
+    const normalizedUiScale = Math.max(1, uiScale * 0.92);
+
+    return {
+        scale: 0.82 / normalizedUiScale,
+        gap: 158 / normalizedUiScale,
+    };
+}
+
+getCommunityCardBasePosition() {
+    return {
+        x: config.centerX,
+        y: config.centerY - 30,
+    };
+}
+
+getCommunityCardPosition(index = 0, totalCards = 0) {
+    const { gap } = this.getCommunityCardLayoutMetrics();
+    const safeCount = Math.max(1, Number(totalCards) || 1);
+    const normalizedPos = safeCount > 1 ? (index - (safeCount - 1) / 2) / ((safeCount - 1) / 2) : 0;
+    const offset = normalizedPos * ((safeCount - 1) / 2) * gap;
+    const arcY = normalizedPos * normalizedPos * 10; // parabolic arc: outer cards slightly lower
+    const base = this.getCommunityCardBasePosition();
+
+    return {
+        x: Math.round(base.x + offset),
+        y: Math.round(base.y + arcY),
+        angle: normalizedPos * 4, // tilt: outer cards lean outward
+    };
+}
+
+getDeckCardPosition() {
+    const base = this.getCommunityCardBasePosition();
+
+    return {
+        x: base.x - 322,
+        y: base.y,
+    };
+}
+
+getPotTargetPosition() {
+    const communityBounds = this.getCommunityCardBounds();
+    const deckAnchor = this.getDeckCardPosition();
+    const topGuideY = communityBounds
+        ? communityBounds.top - 220
+        : deckAnchor.y - 240;
+
+    return {
+        x: config.centerX,
+        y: Math.max(240, Math.min(topGuideY, 376)),
+    };
+}
+
+updatePotPosition(options = {}) {
+    if (!this.oPotAmount) return Promise.resolve();
+    const nextPosition = this.getPotTargetPosition();
+    this.oPotAmount.setPosition(nextPosition.x, nextPosition.y);
+    this.registerFXOverlayPotAnchor();
+    return Promise.resolve();
+}
+
+commitPotAmount(nTableChips) {
+    this.oGameManager.nPotAmount = Number(nTableChips) || 0;
+    this.oPotAmount?.setAmount(this.oGameManager.nPotAmount);
+    this.registerFXOverlayPotAnchor();
+    try {
+        const overlay = this.getFXOverlay();
+        overlay?.setPotAmount && overlay.setPotAmount(0);
+    } catch (_error) {}
+}
+
+queuePotUpdate({ amount = 0, targetAmount = 0, playerProfile = null, effectName = 'smallBet' } = {}) {
+    this.commitPotAmount(targetAmount);
+    return Promise.resolve();
+}
+
+queuePotPayout({ amount = 0, targetAmount = 0, playerProfile = null } = {}) {
+    this.commitPotAmount(targetAmount);
+    return Promise.resolve();
+}
+
 findPlayerByUserId(iUserId) {
     if (this.players.has(iUserId)) return this.players.get(iUserId);
 
@@ -680,50 +908,11 @@ findPlayerByUserId(iUserId) {
 }
 
 playPlayerBetFX(playerProfile, effectName, amount, options = {}) {
-    try {
-        const overlay = this.getFXOverlay();
-        if (!overlay || typeof overlay.setAnchor !== 'function') return false;
-        const nPotAmount = Number.isFinite(Number(options.potAmountOverride))
-            ? Number(options.potAmountOverride)
-            : this.oGameManager.nPotAmount + (Number(amount) || 0);
-
-        overlay.setAnchor('betSource', () => this.getFXOverlayPlayerAnchor(playerProfile));
-        const result = this.callFXOverlay(effectName, amount, {
-            source: 'betSource',
-            target: 'potPile',
-            potAmount: nPotAmount,
-            audioAction: options.audioAction,
-        });
-        window.setTimeout(() => {
-            try {
-                overlay.clearAnchor && overlay.clearAnchor('betSource');
-            } catch (_error) {}
-        }, 1200);
-        return result;
-    } catch (_error) {
-        return false;
-    }
+    return Promise.resolve(false);
 }
 
 playWinPotFX(playerProfile, amount) {
-    try {
-        const overlay = this.getFXOverlay();
-        if (!overlay || typeof overlay.setAnchor !== 'function') return false;
-
-        overlay.setAnchor('payoutTarget', () => this.getFXOverlayPlayerAnchor(playerProfile));
-        const result = this.callFXOverlay('winPot', amount, {
-            source: 'potPile',
-            target: 'payoutTarget',
-        });
-        window.setTimeout(() => {
-            try {
-                overlay.clearAnchor && overlay.clearAnchor('payoutTarget');
-            } catch (_error) {}
-        }, 1400);
-        return result;
-    } catch (_error) {
-        return false;
-    }
+    return Promise.resolve(false);
 }
 
 playWinnerCelebrationFX(playerProfile, options = {}) {
@@ -948,6 +1137,14 @@ refreshRaisePresetLabels() {
             visible: false,
             enabled: false,
         });
+    }
+
+    const btnDoubleDown = this.oButtons?.btn_doubleDown;
+    if (btnDoubleDown) {
+        const canDD = this.canShowDoubleDownAction();
+        btnDoubleDown.setVisible(canDD);
+        this.setGameActionButtonEnabled(btnDoubleDown, canDD);
+        btnDoubleDown.setAlpha(canDD ? 1 : 0.45);
     }
 
     return canAffordRaise;
@@ -1555,7 +1752,12 @@ setConsolePrompt(label = 'Waiting for turn') {
         container_private_table.add(btn_copy);
 
         // Deck card
-        const close_deck_card = this.add.image(config.centerX - 290, config.centerY - 130, assets.card_deck).setScale(0.88);
+        const { scale: communityCardScale } = this.getCommunityCardLayoutMetrics();
+        const deckPosition = this.getDeckCardPosition();
+        const close_deck_card = this.add
+            .image(deckPosition.x, deckPosition.y, assets.card_deck)
+            .setScale(communityCardScale)
+            .setVisible(false);
         this.container_table.add(close_deck_card);
 
         // Show overlay if private
@@ -1636,8 +1838,8 @@ setConsolePrompt(label = 'Waiting for turn') {
         this.isFinishGame = true;
     }
 setButtons() {
-    this.container_buttons.buttonKeys = ['btn_fold', 'btn_call', 'btn_check', 'btn_raise', 'btn_doubleDown', 'btn_stand'];
-    this.container_raise_buttons.buttonKeys = ['btn_min', 'btn_halfPot', 'btn_fullPot', 'btn_cancel'];
+    this.container_buttons.buttonKeys = ['btn_fold', 'btn_call', 'btn_check', 'btn_raise', 'btn_split', 'btn_stand'];
+    this.container_raise_buttons.buttonKeys = ['btn_min', 'btn_halfPot', 'btn_fullPot', 'btn_doubleDown', 'btn_cancel'];
     this.container_confirm_raise.buttonKeys = ['btn_confirmRaise', 'btn_standRaise', 'btn_cancelRaise'];
 
     this.oButtons = {
@@ -1646,6 +1848,7 @@ setButtons() {
         btn_check: this.createGameActionButtonState('check', 'Check', 'secondary'),
         btn_raise: this.createGameActionButtonState('raise', 'Raise', 'primary'),
         btn_doubleDown: this.createGameActionButtonState('doubleDown', 'Double Down', 'primary'),
+        btn_split: this.createGameActionButtonState('split', 'Split', 'primary'),
         btn_stand: this.createGameActionButtonState('stand', 'Stand', 'secondary'),
         btn_min: this.createGameActionButtonState('minRaise', 'MIN', 'secondary'),
         btn_halfPot: this.createGameActionButtonState('halfPotRaise', '1/2 Pot', 'secondary'),
@@ -1662,36 +1865,16 @@ setButtons() {
     this.layoutActionButtonGroups();
 }
 
-    layoutPotAmount() {
-        if (!this.oPotAmount?.pot_amount_base || !this.oPotAmount?.chip_icon || !this.oPotAmount?.pot_amount_text) return;
-        const gap = 10;
-        const totalWidth = this.oPotAmount.chip_icon.displayWidth + gap + this.oPotAmount.pot_amount_text.displayWidth;
-        const startX = this.oPotAmount.pot_amount_base.x - totalWidth / 2;
-        this.oPotAmount.chip_icon.setX(startX + this.oPotAmount.chip_icon.displayWidth / 2);
-        this.oPotAmount.pot_amount_text.setX(startX + this.oPotAmount.chip_icon.displayWidth + gap + this.oPotAmount.pot_amount_text.displayWidth / 2);
-    }
     setPotAmount() {
-        const pot_amount_base = this.add.image(config.centerX, config.centerY - 540, assets.pot_amount_base).setScale(0.98);
-        this.container_pot_amount.add(pot_amount_base);
-        const chip_icon = this.add.image(pot_amount_base.x - pot_amount_base.displayWidth / 3.6, pot_amount_base.y, assets.chip_icon).setScale(0.98);
-        this.container_pot_amount.add(chip_icon);
-        const pot_amount_text = this.add.text(chip_icon.x + chip_icon.displayWidth, chip_icon.y, '0', {
-            fontSize: '48px',
-            fontFamily: config.CommonFont,
-            fontStyle: 'bold',
-            color: '#ffffff',
-            stroke: '#06253b',
-            strokeThickness: 5,
-        }).setOrigin(0.5);
-        this.container_pot_amount.add(pot_amount_text);
-        this.oPotAmount = { pot_amount_base: pot_amount_base, chip_icon: chip_icon, pot_amount_text: pot_amount_text };
-        this.layoutPotAmount();
+        const potPosition = this.getPotTargetPosition();
+        this.oPotAmount = new PotDisplay(this, potPosition.x, potPosition.y).setAmount(0);
+        this.container_pot_amount.add(this.oPotAmount);
+        this.updatePotPosition({ animate: false });
     }
     createPlayerProfiles() {
         for (let i = 0; i < 9; i++) {
             const { x, y } = this.oGameManager.getPlayerProfileSpecs(i);
-            const adjustedY = i === 0 ? y : y - 200;
-            const playerProfile = new PlayerProfile(this, x, adjustedY, i)
+            const playerProfile = new PlayerProfile(this, x, y, i)
             this.aAllPlayerProfiles.push(playerProfile);
             this.container_player_profiles.add(playerProfile);
         }
@@ -1709,6 +1892,7 @@ setButtons() {
         this.container_table?.setDepth(20);
         this.container_closed_cards?.setDepth(30);
         this.container_community_cards?.setDepth(40);
+        this.container_bet_staging?.setDepth(45);
         this.container_player_cards?.setDepth(50);
         this.container_pot_amount?.setDepth(60);
         this.container_header?.setDepth(70);
@@ -1725,6 +1909,7 @@ setButtons() {
     editorCreate() {
         const tableImageOffsetY = this.getTableImageOffsetY();
         const playfieldOffsetY = this.getPlayfieldOffsetY();
+        const headerOffsetY = config.isDesktopLayout() ? playfieldOffsetY : 0;
         this.container_body = this.add.container(0, 0);
         const bg = this.add.image(config.centerX, config.centerY, assets.game_bg);
         bg.setDisplaySize(config.width, config.height);
@@ -1737,6 +1922,7 @@ setButtons() {
         this.container_pot_amount = this.add.container(0, 0);
         this.container_community_cards = this.add.container(0, 0);
         this.container_table = this.add.container(0, 0);
+        this.container_bet_staging = this.add.container(0, 0);
         this.container_closed_cards = this.add.container(0, 0);
         this.container_player_cards = this.add.container(0, 0);
         this.container_player_profiles = this.add.container(0, 0);
@@ -1747,14 +1933,22 @@ setButtons() {
         this.prompt = new Prompt(this, config.centerX, config.centerY - 40, 'Please wait for other players to join');
         this.prompt.hide();
         this.settings = new Settings(this, -200, 250);
+        this.oChipAnimationController = null;
+        this.potAnimationQueue = Promise.resolve();
+        this.stagedBetPiles = new Map();
         this.container_body.setY(playfieldOffsetY);
-        this.container_header.setY(playfieldOffsetY);
+        this.container_header.setY(headerOffsetY);
         this.container_pot_amount.setY(playfieldOffsetY);
         this.container_community_cards.setY(playfieldOffsetY);
         this.container_table.setY(playfieldOffsetY);
+        this.container_bet_staging.setY(playfieldOffsetY);
         this.container_closed_cards.setY(playfieldOffsetY);
         this.container_player_cards.setY(playfieldOffsetY);
         this.container_player_profiles.setY(playfieldOffsetY);
+        this.container_footer.setY(playfieldOffsetY);
+        this.container_buttons.setY(playfieldOffsetY);
+        this.container_raise_buttons.setY(playfieldOffsetY);
+        this.container_confirm_raise.setY(playfieldOffsetY);
         this.ensureGameUiTextures();
         this.setHeader();
         this.gameInfo = new GameInfo(this, config.centerX, config.centerY, this.oGameManager.oGameInfo);
@@ -1784,11 +1978,12 @@ setButtons() {
             iBoardId: this.iBoardId,
         });
     }
-    init({ sAuthToken, iBoardId, sPrivateCode, isGuestTutorial = false }) {
+    init({ sAuthToken, iBoardId, sPrivateCode, isGuestTutorial = false, fallbackPath = '/lobby' }) {
         this.sAuthToken = sAuthToken;
         this.iBoardId = iBoardId;
         this.sPrivateCode = sPrivateCode;
         this.isGuestTutorial = Boolean(isGuestTutorial);
+        this.fallbackPath = fallbackPath;
     }
 
     // ==============================================================
@@ -1816,8 +2011,10 @@ setButtons() {
         this.iGameId = '';
         this.isMyTurn = false;
         this.isFinishGame = false;
+        this.isOverlayReady = false;
         this.iSelecetdCardId = '';
         this.oTutorialState = null;
+        this.aOverlayCommentary = ['Waiting for turn'];
 
         this.cards = [];
         this.selectedCards = [];
@@ -1934,34 +2131,38 @@ setButtons() {
         });
     }
     animateCard(cardData, cardIndex, player, playerIndex) {
-        const animatedCard = this.add.image(this.oTable.close_deck_card.x, this.oTable.close_deck_card.y, assets.card_back).setScale(0.7);
-        this.container_closed_cards.add(animatedCard);
-
-        const { x, y } = player?.playerProfile;
-        const targetY = player?.iUserId === this.iUserId ? y - 170 : y - 96;
-
-        this.oSoundManager.playSound(this.oSoundManager.card_sound, false);
-        this.oAnimations.move({
-            aGameObjects: [animatedCard],
-            targetX: x,
-            targetY: targetY,
-            duration: this.oGameManager.nCardDuration,
-            delay: 100 * cardIndex + 100 * playerIndex,
-            onComplete: () => {
-                this.createCard(cardData, player, animatedCard);
-                animatedCard.destroy();
-            }
-        });
+        this.createCard(cardData, player);
     }
     async createCard(cardData, player, animatedCard) {
         if (this.playerHasRenderedCard(player, cardData?._id)) return;
 
-        await player?.playerProfile?.createCard(cardData);
+        const container = player?.playerProfile?.container_cards;
+        if (!container) return;
+
+        const cardSpacing = 25;
+        const cardTiltAngle = 15;
+        const cardCount = container.list.length;
+        const card = new Card(this, 0, 0, cardData.eSuit, cardData.nLabel, cardData.nValue, cardData._id);
+
+        if (cardCount > 0) {
+            const totalWidth = (cardCount + 1) * cardSpacing;
+            const startX = -totalWidth / 2;
+            card.setX(startX + cardCount * cardSpacing);
+            card.setAngle(cardTiltAngle * (cardCount - cardCount / 2));
+
+            container.list.forEach((existingCard, index) => {
+                existingCard.setX(startX + index * cardSpacing);
+                existingCard.setAngle(cardTiltAngle * (index - cardCount / 2));
+            });
+        }
+
+        container.setVisible(true);
+        container.add(card);
         const cardsList = player?.playerProfile?.container_cards.list || [];
         for (let index = 0; index < cardsList.length; index++) {
             const card = cardsList[index];
             if (player?.iUserId === this.iUserId) {
-                cardData._id === card._id && animatedCard ? card.animateCard() : card.openCard();
+                card.openCard();
             } else {
                 card.closeCard();
             }
@@ -2025,6 +2226,7 @@ setButtons() {
     }
     async setGameData({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant, oGameInfo, oTutorial }) {
         try {
+            this.clearStagedBetPiles();
             this.oGameManager.oGameInfo = oGameInfo;
             this.oGameManager.nMaxPlayer = nMaxPlayer;
             this.oGameManager.oSetting = oSetting;
@@ -2040,21 +2242,21 @@ setButtons() {
             this.setCommunityCards(aCommunityCard);
             this.setDealerAndBlind();
             this.syncTutorialState(this.oTutorialState);
+            this.isOverlayReady = true;
+            this.syncGameActionOverlay();
             // eState === 'finished' && 
         } catch (error) {
             console.error("Error while setting game data:", error);
         }
     }
     updatePotAmount(nTableChips) {
-        this.oGameManager.nPotAmount = nTableChips;
-        this.oPotAmount.pot_amount_text.setText(`${_.formatCurrencyWithComa(nTableChips)}`);
-        this.layoutPotAmount();
-        this.callFXOverlay('setPotAmount', nTableChips);
+        this.commitPotAmount(nTableChips);
     }
     handleDoubleDown(oData, sEventName) {
         const player = this.players.get(oData.iUserId);
         const potIncrease = Math.max(0, Number(oData.nTableChips || 0) - Number(this.oGameManager.nPotAmount || 0));
         const nUpdatedScore = Number(oData.nCardScore);
+        const sPlayerName = this.getOverlayCommentaryPlayerName(oData.iUserId);
 
         const playerNewCards = [];
         this.oSoundManager.playSound(this.oSoundManager.doubleDown_sound, false);
@@ -2064,12 +2266,16 @@ setButtons() {
             player?.playerProfile?.setBettingLabel('DD', oData.nLastBidChips);
         }
         if (potIncrease > 0) {
-            Number(oData.nChips) === 0
-                ? this.playPlayerBetFX(player?.playerProfile, 'allIn', potIncrease, { audioAction: null })
-                : this.playPlayerBetFX(player?.playerProfile, 'bigBet', potIncrease, { audioAction: null });
+            this.queuePotUpdate({
+                amount: potIncrease,
+                targetAmount: oData.nTableChips,
+                playerProfile: player?.playerProfile,
+                effectName: Number(oData.nChips) === 0 ? 'allIn' : 'bigBet',
+            });
+        } else {
+            this.updatePotAmount(oData.nTableChips);
         }
         player.iUserId == this.iUserId && this.setAmountIn(oData.nChips);
-        this.updatePotAmount(oData.nTableChips);
         this.playDoubleDownMomentFX(player?.playerProfile, {
             isSelf: oData.iUserId === this.iUserId,
             text: 'DOUBLE DOWN!',
@@ -2089,6 +2295,7 @@ setButtons() {
         playerNewCards.forEach((cardData, index) => {
             this.animateCard(cardData, index, player, index);
         });
+        this.pushOverlayCommentary(`${sPlayerName} doubled down`);
         if (this.isGuestTutorial && oData.iUserId === this.iUserId) {
             this.emitTutorialOverlay({
                 type: 'userAction',
@@ -2096,6 +2303,44 @@ setButtons() {
                 action: 'doubleDown',
             });
         }
+    }
+    handleSplit(oData) {
+        const player = this.players.get(oData.iUserId);
+        if (!player) return;
+        const sPlayerName = this.getOverlayCommentaryPlayerName(oData.iUserId);
+
+        // Update player state with split data
+        if (player.iUserId === this.iUserId) {
+            this.setMyPlayerData(oData);
+        }
+        player?.playerProfile?.setAmountIn(oData.nChips);
+
+        // Animate new main-hand private card
+        if (oData.oMainCard) {
+            this.animateCard(oData.oMainCard, 0, player, 0);
+        }
+
+        // Update pot for split cost
+        const potIncrease = Math.max(0, Number(oData.nTableChips || 0) - Number(this.oGameManager.nPotAmount || 0));
+        if (potIncrease > 0) {
+            this.queuePotUpdate({
+                amount: potIncrease,
+                targetAmount: oData.nTableChips,
+                playerProfile: player?.playerProfile,
+                effectName: 'bigBet',
+            });
+        } else {
+            this.updatePotAmount(oData.nTableChips);
+        }
+
+        // Show split hand on the player profile
+        player?.playerProfile?.setSplitHand?.(oData.aSplitHand, oData.nSplitCardScore);
+
+        // Update score display with new main hand score
+        this.syncPlayerScoreDisplay(player, oData.nCardScore, oData.aCardHand || []);
+
+        this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
+        this.pushOverlayCommentary(`${sPlayerName} split!`);
     }
     handlePlayerBet(oData, sEventName) {
         const player = this.players.get(oData.iUserId);
@@ -2110,19 +2355,37 @@ setButtons() {
         if (potIncrease > 0) {
             if (isAllInAction) {
                 this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
-                this.playPlayerBetFX(player?.playerProfile, 'allIn', potIncrease, { audioAction: null });
+                this.queuePotUpdate({
+                    amount: potIncrease,
+                    targetAmount: oData.nTableChips,
+                    playerProfile: player?.playerProfile,
+                    effectName: 'allIn',
+                });
             } else if (sEventName === 'resRaise') {
                 this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
-                this.playPlayerBetFX(player?.playerProfile, 'bigBet', potIncrease, { audioAction: null });
+                this.queuePotUpdate({
+                    amount: potIncrease,
+                    targetAmount: oData.nTableChips,
+                    playerProfile: player?.playerProfile,
+                    effectName: 'bigBet',
+                });
             } else if (sEventName === 'resCall') {
                 this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
-                this.playPlayerBetFX(player?.playerProfile, 'smallBet', potIncrease, { audioAction: null });
+                this.queuePotUpdate({
+                    amount: potIncrease,
+                    targetAmount: oData.nTableChips,
+                    playerProfile: player?.playerProfile,
+                    effectName: 'smallBet',
+                });
             }
         } else if (sEventName === 'resCheck') {
             this.oSoundManager.playSound(this.oSoundManager.check_sound, false);
+            this.updatePotAmount(oData.nTableChips);
         }
         this.oGameManager.nMinRaiseAmount = oData.nMinBet ?? this.oGameManager.nMinRaiseAmount;
-        this.updatePotAmount(oData.nTableChips);
+        if (potIncrease <= 0 && sEventName !== 'resCheck') {
+            this.updatePotAmount(oData.nTableChips);
+        }
 
         if (this.isGuestTutorial && oData.iUserId === this.iUserId) {
             const sActionMap = {
@@ -2141,14 +2404,20 @@ setButtons() {
             }
         }
 
-        if (oData.iUserId == this.iUserId) return;
+        const sPlayerName = this.getOverlayCommentaryPlayerName(oData.iUserId);
 
         if (sEventName === 'resCall') {
             const callAmount = oData.nLastBidChips ?? oData.nCurrentChips ?? 0;
-            player?.playerProfile?.setBettingLabel(oData.bAllIn ? 'All In' : 'Call', callAmount);
+            if (oData.iUserId != this.iUserId) {
+                player?.playerProfile?.setBettingLabel(oData.bAllIn ? 'All In' : 'Call', callAmount);
+            }
+            this.pushOverlayCommentary(`${sPlayerName} ${oData.bAllIn ? 'went all in' : `called ${_.formatCurrencyWithComa(Number(callAmount) || 0)}`}`);
         } else if (sEventName === 'resRaise') {
             const raiseAmount = oData.nLastBidChips ?? oData.nCurrentChips ?? 0;
-            player?.playerProfile?.setBettingLabel('Raised', raiseAmount);
+            if (oData.iUserId != this.iUserId) {
+                player?.playerProfile?.setBettingLabel('Raised', raiseAmount);
+            }
+            this.pushOverlayCommentary(`${sPlayerName} raised to ${_.formatCurrencyWithComa(Number(raiseAmount) || 0)}`);
         } else if (sEventName === 'resStand') {
             const logs = this.oGameManager.recentLogs || [];
             const lastRaiseLog = logs.find(log =>
@@ -2158,14 +2427,26 @@ setButtons() {
                 log.sAction === 'call+stand' && log.iUserId === oData.iUserId
             );
             if (lastRaiseLog) {
-                player?.playerProfile?.setBettingLabel('Raise+Stand');
+                if (oData.iUserId != this.iUserId) {
+                    player?.playerProfile?.setBettingLabel('Raise+Stand');
+                }
+                this.pushOverlayCommentary(`${sPlayerName} raised and stood`);
             } else if (lastCallStandLog) {
-                player?.playerProfile?.setBettingLabel('Call+Stand');
+                if (oData.iUserId != this.iUserId) {
+                    player?.playerProfile?.setBettingLabel('Call+Stand');
+                }
+                this.pushOverlayCommentary(`${sPlayerName} called and stood`);
             } else {
-                player?.playerProfile?.setBettingLabel('Stand');
+                if (oData.iUserId != this.iUserId) {
+                    player?.playerProfile?.setBettingLabel('Stand');
+                }
+                this.pushOverlayCommentary(`${sPlayerName} stood`);
             }
         } else if (sEventName === 'resCheck') {
-            player?.playerProfile?.setBettingLabel('Check');
+            if (oData.iUserId != this.iUserId) {
+                player?.playerProfile?.setBettingLabel('Check');
+            }
+            this.pushOverlayCommentary(`${sPlayerName} checked`);
         }
     }
     setFoldPlayer(iUserId, eState, sReason, bShowMessage, options = {}) {
@@ -2177,7 +2458,7 @@ setButtons() {
             player?.playerProfile.setVisible(true);
             iUserId !== this.iUserId && player?.playerProfile.setBettingLabel('Fold');
             iUserId == this.iUserId && player?.playerProfile?.container_cards.list.forEach(card => {
-                card.animateCard(false);
+                card.closeCard();
             });
         } else if (eState === 'leave') {
             player?.playerProfile.setLeave();
@@ -2198,11 +2479,6 @@ setButtons() {
             // player?.playerProfile.setAlpha(0.7);
             player?.playerProfile.setVisible(true);
             iUserId !== this.iUserId && player?.playerProfile.setBettingLabel('Bust');
-            this.playBustFX(player?.playerProfile, {
-                isSelf: iUserId === this.iUserId,
-                text: 'Bust!',
-                crowdText: 'Oooohhhhh...',
-            });
         }
     }
     handleCommunityCard(oData) {
@@ -2212,7 +2488,9 @@ setButtons() {
         setTimeout(() => {
         this.clearAllBettingLabels();
         }, 1000);
-        this.setCommunityCards(aCommunityCard, 'communityCard');
+        this.flushStagedBetsToPot().finally(() => {
+            this.setCommunityCards(aCommunityCard, 'communityCard');
+        });
         aUpdatedParticipants.forEach((participant) => {
             if (!participant || !this.players.has(participant.iUserId)) return;
 
@@ -2221,6 +2499,10 @@ setButtons() {
             player?.playerProfile?.setAmountIn(participant.nChips);
 
             this.syncPlayerScoreDisplay(player, participant.nCardScore, participant.aCardHand);
+
+            if (participant.bHasSplit) {
+                player?.playerProfile?.setSplitHand?.(participant.aSplitHand, participant.nSplitCardScore);
+            }
 
             if (participant.iUserId === this.iUserId) {
                 this.setMyPlayerData(participant);
@@ -2231,36 +2513,40 @@ setButtons() {
     this.clearAllBettingLabels();
     }
     setCommunityCards(aCommunityCards, sType) {
+        const { scale: communityCardScale } = this.getCommunityCardLayoutMetrics();
+
         if (sType === 'communityCard') {
-            aCommunityCards.forEach(card => {
+            const nExistingCount = this.container_community_cards.list.length;
+            const aNewCards = aCommunityCards.filter(card =>
+                !this.oGameManager.aCommunityCards.some(existingCard => existingCard._id === card._id)
+            );
+
+            aNewCards.forEach((card, incomingIndex) => {
                 if (!this.oGameManager.aCommunityCards.some(existingCard => existingCard._id === card._id)) {
                     this.oGameManager.aCommunityCards.push(card);
-                    const card_open = new Card(this, this.oTable.close_deck_card.x, this.oTable.close_deck_card.y, card.eSuit, card.nLabel, card.nValue, card._id, card.isJoker);
+                    const nTargetIndex = nExistingCount + incomingIndex;
+                    const nTargetPosition = this.getCommunityCardPosition(nTargetIndex, nExistingCount + aNewCards.length);
+                    const card_open = new Card(this, nTargetPosition.x, nTargetPosition.y, card.eSuit, card.nLabel, card.nValue, card._id, card.isJoker);
+                    card_open.setScale(communityCardScale);
+                    card_open.setAngle(nTargetPosition.angle || 0);
                     card_open.openCard();
-                    this.oAnimations.move({
-                        aGameObjects: [card_open],
-                        targetX: this.oTable.close_deck_card.x + 130 + 132 * this.container_community_cards.list.length,
-                        targetY: this.oTable.close_deck_card.y,
-                        duration: 500,
-                        ease: 'Quint.easeInOut',
-                        yoyo: false,
-                        repeat: 0,
-                        onComplete: () => {
-                            this.container_community_cards.add(card_open);
-                            this.oSoundManager.playSound(this.oSoundManager.card_sound, false);
-                        }
-                    });
+                    this.container_community_cards.add(card_open);
+                    this.updatePotPosition({ animate: false });
                 }
             });
         }
         else {
             this.oGameManager.aCommunityCards = aCommunityCards;
             this.container_community_cards.removeAll(true);
-            aCommunityCards.forEach(card => {
-                const card_open = new Card(this, this.oTable.close_deck_card.x + 130 + 132 * this.container_community_cards.list.length, this.oTable.close_deck_card.y, card.eSuit, card.nLabel, card.nValue, card._id, card.isJoker);
+            aCommunityCards.forEach((card, index) => {
+                const nPosition = this.getCommunityCardPosition(index, aCommunityCards.length);
+                const card_open = new Card(this, nPosition.x, nPosition.y, card.eSuit, card.nLabel, card.nValue, card._id, card.isJoker);
+                card_open.setScale(communityCardScale);
+                card_open.setAngle(nPosition.angle || 0);
                 card_open.openCard();
                 this.container_community_cards.add(card_open);
             });
+            this.updatePotPosition({ animate: false });
         }
     }
     setMyPlayerData(myPlayerData) {
@@ -2313,13 +2599,13 @@ setButtons() {
     }
     async setProfiles(iUserId) {
         const player = await this.players.get(iUserId);
-        const { sUserName, sAvatar, eState, nLastBidChips, aCardHand, nChips, nCardScore } = player;
+        const { sUserName, sAvatar, eUserType, eState, nLastBidChips, aCardHand, nChips, nCardScore } = player;
         if (eState === "leave") {
             player?.playerProfile?.setVisible(false);
             iUserId == this.iUserId && this.exitGame();
             return;
         }
-        await player?.playerProfile?.setProfile({ sUserName, sAvatar });
+        await player?.playerProfile?.setProfile({ sUserName, sAvatar, eUserType });
         await player?.playerProfile?.setBlind(iUserId);
         await player?.playerProfile?.setAmountIn(nChips);
         this.syncPlayerHandSnapshot(player, aCardHand);
@@ -2338,6 +2624,7 @@ setButtons() {
     }
     async setBoardState({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableFee, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant, oTutorial }) {
         try {
+            this.clearStagedBetPiles();
             this.oTutorialState = oTutorial || this.oTutorialState;
             this.iDealerId = iDealerId;
             this.iBigBlindId = iBigBlindId;
@@ -2351,6 +2638,8 @@ setButtons() {
             this.isFinishGame = false;
             this.setDealerAndBlind();
             this.syncTutorialState(this.oTutorialState);
+            this.isOverlayReady = true;
+            this.syncGameActionOverlay();
         } catch (error) {
             console.error("Error while setting board state:", error);
         }
@@ -2370,38 +2659,45 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
             player?.iUserId == this.iUserId && this.setMyPlayerData(participant);
             if (player?.playerProfile && nBlindAmount > 0) {
                 nRunningPot += nBlindAmount;
-                this.playPlayerBetFX(
-                    player.playerProfile,
-                    nBlindAmount >= nBigBlindAmount ? 'bigBet' : 'smallBet',
-                    nBlindAmount,
-                    { audioAction: null, potAmountOverride: nRunningPot }
-                );
+                this.queuePotUpdate({
+                    amount: nBlindAmount,
+                    targetAmount: nRunningPot,
+                    playerProfile: player.playerProfile,
+                    effectName: nBlindAmount >= nBigBlindAmount ? 'bigBet' : 'smallBet',
+                });
             }
         });
         if (Number(nTableChips) > Number(this.oGameManager.nPotAmount || 0)) {
             this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
         }
-        this.updatePotAmount(nTableChips);
+        if (!aParticipant.some(participant => Math.max(Number(participant.nLastBidChips) || 0, 0) > 0)) {
+            this.updatePotAmount(nTableChips);
+        }
     }
     setAmountIn(nAmountIn) {
-        if (this.oFooter?.txt_player_price) {
-            this.oFooter.txt_player_price.setText(nAmountIn < 9999 ? _.formatCurrencyWithComa(nAmountIn) : _.formatCurrency(nAmountIn));
-            this.updateFooterStackLayout();
-        }
+        this.nOverlayTableBankroll = Number(nAmountIn) || 0;
+        this.oGameManager.nMyPlayerChips = this.nOverlayTableBankroll;
+
+        this.oFooter?.player_price_base?.setVisible?.(false);
+        this.oFooter?.txt_player_price?.setVisible?.(false);
+        this.oFooter?.chip_icon?.setVisible?.(false);
+        this.oFooter?.txt_stack_label?.setVisible?.(false);
 
         const myPlayer = this.players?.get?.(this.iUserId);
         myPlayer?.playerProfile?.setAmountIn?.(nAmountIn);
+        this.syncGameActionOverlay();
     }
     async resetTurnTimer() {
         if (this.iLastTurnId === this.iUserId) this.hideAllButtons();
         this.clearFXOverlayFocus();
-        if (!this.iLastTurnId) return;
-        const player = await this.players.get(this.iLastTurnId);
-        player?.playerProfile?.resetTurnTimer();
-        return player;
+        if (!this.iLastTurnId) return undefined;
+        const lastPlayer = await this.players.get(this.iLastTurnId);
+        lastPlayer?.playerProfile?.resetTurnTimer();
+        return lastPlayer;
     }
     async setPlayerTurn({ iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount }) {
         if (nRemainingInitializeTime > 0 || nRemainingRoundStartsIn > 0) {
+            this.clearStagedBetPiles();
             this.aPlayerProfiles.forEach(player => {
                 player.setAlpha(1);
                 player.container_cards.removeAll(true);
@@ -2427,9 +2723,13 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
         this.iLastTurnId = iUserId;
         this.oGameManager.nMinRaiseAmount = nMinBet;
         this.focusFXOverlayPlayer(player?.playerProfile);
-        if (ttl != null && nTotalTurnTime != null) player?.playerProfile?.resTurnTimer({ ttl, nTotalTurnTime, nGraceTime, eTurnType, initialValue, iUserId });
-        else player?.playerProfile?.resetTurnTimer();
+
+        if (player?.playerProfile && ttl > 0) {
+            const total = nTotalTurnTime > 0 ? nTotalTurnTime : ttl;
+            player.playerProfile.startTurnTimer(ttl, total);
+        }
         if (player?.iUserId === this.iUserId) {
+            this.syncGameActionOverlay();
             this.showAllButtons(aUserAction, nMinBet, toCallAmount);
             if (this.isGuestTutorial) {
                 const sExpectedAction = this.getTutorialActionFromState();
@@ -2474,9 +2774,6 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
             case 'r':
                 this.oButtons.btn_raise.setVisible(canAffordRaise);
                 break;
-            case 'd':
-                this.oButtons.btn_doubleDown.setVisible(true);
-                break;
             case 's':
                 this.oButtons.btn_stand.setVisible(true);
                 this.oButtons.btn_stand.bCallStandMode = actions.includes('c') && callAmount > 0;
@@ -2490,9 +2787,43 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
             case 'ck':
                 this.oButtons.btn_check.setVisible(true);
                 break;
+            case 'sp': {
+                const canSplit = this.canShowSplitAction();
+                this.oButtons.btn_split.setVisible(canSplit);
+                break;
+            }
         }
     });
     this.layoutActionButtonGroups();
+}
+canShowDoubleDownAction() {
+    const myPlayer = this.players?.get?.(this.iUserId);
+    const nCardScore = Number(myPlayer?.nCardScore);
+    const communityCardCount = Array.isArray(this.oGameManager?.aCommunityCards)
+        ? this.oGameManager.aCommunityCards.length
+        : 0;
+
+    // Qualify DD at 1 community card when hand total is 9-12:
+    // 9-11 are classic DD spots (likely to land a 10-value card for 19-21);
+    // 12 included as a borderline strong spot in this hybrid game.
+    return communityCardCount === 1 && Number.isFinite(nCardScore) && nCardScore >= 9 && nCardScore <= 12;
+}
+canShowSplitAction() {
+    // Split available when: 1 community card dealt, player not yet split,
+    // and their hole card (nLabel) matches the community card (nLabel).
+    const myPlayer = this.players?.get?.(this.iUserId);
+    if (!myPlayer || myPlayer.bHasSplit) return false;
+
+    const communityCards = Array.isArray(this.oGameManager?.aCommunityCards)
+        ? this.oGameManager.aCommunityCards
+        : [];
+    if (communityCards.length !== 1) return false;
+
+    const holeCard = myPlayer?.aCardHand?.[0];
+    const communityCard = communityCards[0];
+    if (!holeCard || !communityCard) return false;
+
+    return holeCard.nLabel === communityCard.nLabel;
 }
    hideAllButtons() {
     this.sRaiseUiMode = null;
@@ -2511,6 +2842,7 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
     this.setCallButtonLabel('Call');
     this.oButtons.btn_raise.setVisible(false);
     this.oButtons.btn_doubleDown.setVisible(false);
+    this.oButtons.btn_split.setVisible(false);
     this.oButtons.btn_allInCommon.setVisible(false);
     this.oButtons.btn_stand.setVisible(false);
     this.oButtons.btn_stand.bCallStandMode = false;
@@ -2553,8 +2885,10 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
   // Clear everything after showing cards for longer
   setTimeout(() => {
     if (this.sPrivateCode) this.oTable.container_private_table.setVisible(true);
-    this.oTable.close_deck_card.setVisible(true).setX(config.centerX - 290);
+    const deckPosition = this.getDeckCardPosition();
+    this.oTable.close_deck_card.setVisible(false).setPosition(deckPosition.x, deckPosition.y);
     this.setCommunityCards([]); // Clear community cards here
+    this.clearStagedBetPiles();
     this.oGameManager.aWinnerPlayers.forEach(winner => {
       const player = this.players.get(winner);
       player?.playerProfile?.hideWinnerPrompt();
@@ -2579,7 +2913,9 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
   }
 
   this.resetTurnTimer();
-  aParticipant?.forEach(participant => {
+        this.flushStagedBetsToPot();
+    let nRemainingPot = Number(this.oGameManager.nPotAmount || 0);
+    aParticipant?.forEach(participant => {
     if (!this.players.has(participant.iUserId)) return;
     const player = this.players.get(participant.iUserId);
     player?.playerProfile?.setAlpha(1);
@@ -2591,12 +2927,12 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       player?.playerProfile?.container_cards.removeAll(true);
       participant.aCardHand.forEach(cardData => {
         if (!this.playerHasRenderedCard(player, cardData._id)) {
-          player?.playerProfile?.createCard(cardData);
+          this.createCard(cardData, player);
 
         }
       });
       player?.playerProfile?.container_cards.list.forEach(card => {
-        player.iUserId !== this.iUserId ? card.animateCard() : card.openCard();
+        card.openCard();
       });
     }, 700);
     
@@ -2614,7 +2950,12 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       
       setTimeout(() => {
         participant.iUserId == this.iUserId && this.oSoundManager.playSound(this.oSoundManager.winCoin_sound, false);
-        this.playWinPotFX(player?.playerProfile, participant.nWinningAmount || 0);
+                nRemainingPot = Math.max(0, nRemainingPot - Math.max(0, Number(participant.nWinningAmount) || 0));
+                this.queuePotPayout({
+                    amount: participant.nWinningAmount || 0,
+                    targetAmount: nRemainingPot,
+                    playerProfile: player?.playerProfile,
+                });
       }, 4200);
 
       setTimeout(() => {
@@ -2685,7 +3026,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
     }
     exitGame() {
         console.log('%cEXIT GAME CALLED, GAME IS FINISHED', 'color: #CE375C');
-        window.location.href = '/lobby';
+        window.location.href = this.fallbackPath || '/lobby';
     }
     setPing(pingTime) {
         this.oHeader?.txt_ping?.setText(`${pingTime}ms`);

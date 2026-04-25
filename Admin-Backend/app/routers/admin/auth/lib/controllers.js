@@ -34,7 +34,8 @@ controllers.register = async (req, res) => {
 
 controllers.login = async (req, res) => {
   try {
-    const body = _.pick(req.body, ['sEmail', 'sPassword']); // Admin logins with username and password
+    const source = Object.keys(req.body || {}).length ? req.body : req.query;
+    const body = _.pick(source, ['sEmail', 'sPassword']);
     const query = {
       $or: [{ sUserName: body.sEmail }, { sEmail: body.sEmail }],
       eUserType: 'admin',

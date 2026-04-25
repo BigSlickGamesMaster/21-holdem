@@ -54,6 +54,16 @@ export const financeColumns = [
   { name: 'Actions', isSort: false },
 ]
 
+export const changeRequestColumns = [
+  { name: 'ID', isSort: false },
+  { name: 'Title', isSort: false },
+  { name: 'Module', isSort: false },
+  { name: 'Priority', isSort: false },
+  { name: 'Status', isSort: false },
+  { name: 'Target Release', isSort: false },
+  { name: 'Updated', isSort: false },
+]
+
 export const depositColumns = [
   { name: 'Sr No.', isSort: false },
   { name: 'User ID', internalName: 'iUserId', isSort: false },

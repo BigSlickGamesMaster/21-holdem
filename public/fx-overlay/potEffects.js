@@ -311,8 +311,8 @@
   function createPotStackChip() {
     var chip = global.document.createElement('div');
     chip.style.position = 'absolute';
-    chip.style.width = '34px';
-    chip.style.height = '34px';
+    chip.style.width = '24px';
+    chip.style.height = '24px';
     chip.style.pointerEvents = 'none';
     chip.style.opacity = '0';
     chip.style.willChange = 'transform, opacity';
@@ -320,7 +320,7 @@
     chip.style.backgroundRepeat = 'no-repeat';
     chip.style.backgroundPosition = 'center';
     chip.style.backgroundSize = 'contain';
-    chip.style.filter = 'drop-shadow(0 8px 14px rgba(0, 0, 0, 0.28))';
+    chip.style.filter = 'drop-shadow(0 6px 10px rgba(0, 0, 0, 0.28))';
     chip.style.transition = 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out';
     return chip;
   }
@@ -341,14 +341,14 @@
   function positionPotStackChip(chip, anchor, index) {
     var row = Math.floor(index / 3);
     var column = index % 3;
-    var offsetX = (column - 1) * 10 + (row % 2 ? 4 : 0);
-    var offsetY = row * -5 + Math.abs(column - 1) * 1.5;
+    var offsetX = (column - 1) * 7 + (row % 2 ? 3 : 0);
+    var offsetY = row * -4 + Math.abs(column - 1) * 1.2;
     var scale = 0.76 + row * 0.025;
     var x = anchor.x + offsetX;
     var y = anchor.y + offsetY;
 
-    chip.style.left = x - 17 + 'px';
-    chip.style.top = y - 17 + 'px';
+    chip.style.left = x - 12 + 'px';
+    chip.style.top = y - 12 + 'px';
     chip.style.transform = 'translate3d(0,0,0) scale(' + scale + ') rotate(' + ((column - 1) * 3) + 'deg)';
     chip.style.opacity = '1';
   }
@@ -381,10 +381,10 @@
     ensurePotStackChips(count);
 
     if (potStackState.shadow) {
-      potStackState.shadow.style.width = '86px';
-      potStackState.shadow.style.height = '26px';
-      potStackState.shadow.style.left = anchor.x - 43 + 'px';
-      potStackState.shadow.style.top = anchor.y + 7 + 'px';
+      potStackState.shadow.style.width = '60px';
+      potStackState.shadow.style.height = '18px';
+      potStackState.shadow.style.left = anchor.x - 30 + 'px';
+      potStackState.shadow.style.top = anchor.y + 5 + 'px';
       potStackState.shadow.style.opacity = '1';
     }
 

@@ -982,7 +982,7 @@ const Dashboard = () => {
 
     return (
         <div className='dashboard-container'>
-            <section className='dashboard-hub' ref={dashboardRef}>
+            <section className='dashboard-hub dashboard-hub--force-mobile' ref={dashboardRef}>
                 <div className='dashboard-hub__backdrop' aria-hidden='true' />
                 <div className='dashboard-hub__ambient-grid' aria-hidden='true' />
                 <div className='dashboard-hub__lobby-atmosphere' aria-hidden='true'>

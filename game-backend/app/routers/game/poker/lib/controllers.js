@@ -69,6 +69,26 @@ async function ensureGuestBoardCanStart(board) {
   return refreshedBoard;
 }
 
+async function ensureLiveBoardCanStart(board) {
+  const refreshedBoard = await boardManager.getBoard(board._id.toString());
+  if (!refreshedBoard) return board;
+
+  const nReadyParticipants = refreshedBoard.aParticipant.filter(participant => participant.eState !== 'leave').length;
+  if (nReadyParticipants < 3 || refreshedBoard.eState === 'playing') return refreshedBoard;
+
+  const [nRemainingInitializeTime, nRemainingResetTime] = await Promise.all([
+    refreshedBoard.getScheduler('initializeGame'),
+    refreshedBoard.getScheduler('resetTable'),
+  ]);
+
+  if (!nRemainingInitializeTime && !nRemainingResetTime) {
+    await refreshedBoard.deleteScheduler('refundOnLongWait', '');
+    await refreshedBoard.setSchedular('initializeGame', null, refreshedBoard.oSetting.nInitializeTimer);
+  }
+
+  return refreshedBoard;
+}
+
 function getLobbySeedProtoCandidates(aProtoData = []) {
   const oSelectedByKey = {};
 
@@ -234,7 +254,7 @@ controllers.joinBoard = async (req, res) => {
       });
     }
 
-    const refreshedBoard = await boardManager.getBoard(req.board._id.toString());
+    const refreshedBoard = await ensureLiveBoardCanStart(req.board);
     if (refreshedBoard) {
       response.eState = refreshedBoard.eState;
       response.nTotalParticipant = refreshedBoard.aParticipant.length;

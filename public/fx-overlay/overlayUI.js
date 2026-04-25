@@ -8,6 +8,15 @@
   var EFFECT_LAYER_CLASS = 'fxui-effect-layer';
   var BUG_PANEL_CLASS = 'fxui-bug-panel';
 
+  function isGameplayRoute() {
+    try {
+      var path = String(global.location && global.location.pathname || '').toLowerCase();
+      return path.indexOf('/game') !== -1;
+    } catch (_error) {
+      return false;
+    }
+  }
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -135,9 +144,28 @@
     return root;
   }
 
+  function syncBugUiRouteState(root) {
+    if (!root) return false;
+
+    var bugPanel = getBugPanel(root);
+    if (isGameplayRoute()) {
+      removeNode(bugPanel);
+      return false;
+    }
+
+    if (!bugPanel) {
+      buildBugUi(root);
+      return true;
+    }
+
+    return true;
+  }
+
   function getEffectLayer() {
     var root = getRoot();
     if (!root) return null;
+
+    syncBugUiRouteState(root);
 
     var effectLayer = root.querySelector('.' + EFFECT_LAYER_CLASS);
     if (effectLayer) return effectLayer;
@@ -168,6 +196,7 @@
 
   function closeBugPanel() {
     var root = getRoot();
+    syncBugUiRouteState(root);
     var bugPanel = getBugPanel(root);
     if (!bugPanel) return false;
     bugPanel.setAttribute('data-open', 'false');
@@ -176,6 +205,7 @@
 
   function openBugPanel() {
     var root = getRoot();
+    if (!syncBugUiRouteState(root)) return false;
     buildBugUi(root);
     var bugPanel = getBugPanel(root);
     if (!bugPanel) return false;
@@ -185,6 +215,7 @@
 
   function toggleBugPanel() {
     var root = getRoot();
+    if (!syncBugUiRouteState(root)) return false;
     buildBugUi(root);
     var bugPanel = getBugPanel(root);
     if (!bugPanel) return false;
@@ -194,7 +225,7 @@
   }
 
   function buildBugUi(root) {
-    if (!root || getBugPanel(root)) return false;
+    if (!root || getBugPanel(root) || isGameplayRoute()) return false;
 
     var bugPanel = global.document.createElement('div');
     bugPanel.className = BUG_PANEL_CLASS;
@@ -226,13 +257,13 @@
     if (global.document.readyState === 'loading') {
       global.document.addEventListener('DOMContentLoaded', function () {
         var root = getRoot();
-        buildBugUi(root);
+        syncBugUiRouteState(root);
       }, { once: true });
       return true;
     }
 
     var root = getRoot();
-    buildBugUi(root);
+    syncBugUiRouteState(root);
     return !!root;
   }
 

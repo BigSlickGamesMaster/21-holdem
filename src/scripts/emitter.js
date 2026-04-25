@@ -6,6 +6,7 @@ const emitter = {
     reqLeave: 'reqLeave',
     reqStand: 'reqStand',
     reqCheck: 'reqCheck',
+    reqSplit: 'reqSplit',
 }
 
 export default emitter;

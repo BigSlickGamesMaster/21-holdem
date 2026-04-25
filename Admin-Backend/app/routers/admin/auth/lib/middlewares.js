@@ -3,16 +3,19 @@ const { requestLimiter } = require('../../../../utils');
 
 const middlewares = {};
 
-middlewares.apiLimiter = (req, res, next) => {
-  const params = {
-    path: req.path,
-    remoteAddress: req.sRemoteAddress || '127.0.0.1',
-    maxRequestTime: 1000,
-  };
-  requestLimiter.setLimit(params, error => {
+middlewares.apiLimiter = async (req, res, next) => {
+  try {
+    const params = {
+      path: req.path,
+      remoteAddress: req.sRemoteAddress || '127.0.0.1',
+      maxRequestTime: 1000,
+    };
+    const error = await requestLimiter.setLimit(params);
     if (error) return res.reply(messages.too_many_request());
-    next();
-  });
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 };
 
 middlewares.isAuthenticated = async (req, res, next) => {

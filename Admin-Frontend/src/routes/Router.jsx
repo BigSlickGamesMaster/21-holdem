@@ -37,6 +37,9 @@ const ViewGameLogs = lazy(() => import('views/gmeLogs/view/index'))
 const FinanceManagement = lazy(() => import('views/finance/FinanceManagement'))
 // const Withdraw = lazy(() => import('views/finance/withdraw'))
 
+const ChangeRequests = lazy(() => import('views/changeRequests'))
+const AddChangeRequest = lazy(() => import('views/changeRequests/add'))
+
 // Settings
 
 const Settings = lazy(() => import('views/settings'))
@@ -88,6 +91,8 @@ const RoutesDetails = [
       { path: route.gameLogs, Component: GameLogs, exact: true },
       { path: route.viewGameLogs(':id', ':type'), Component: ViewGameLogs, exact: true },
       { path: route.financeManagement, Component: FinanceManagement, exact: true },
+      { path: route.changeRequests, Component: ChangeRequests, exact: true },
+      { path: route.addChangeRequest, Component: AddChangeRequest, exact: true },
       // { path: route.depositManagement, Component: DepositManagement, exact: true },
       // { path: route.withdraw, Component: Withdraw, exact: true },
 

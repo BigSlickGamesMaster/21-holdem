@@ -27,6 +27,8 @@ export const route = {
   financeManagement: '/transactions',
   // depositManagement: '/deposit',
   // withdraw: '/withdraw',
+  changeRequests: '/change-requests',
+  addChangeRequest: '/change-requests/add',
 
   settings: '/settings',
   analytics: '/analytics',

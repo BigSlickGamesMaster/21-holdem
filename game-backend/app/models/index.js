@@ -6,6 +6,7 @@ const PokerFinishGame = require('./lib/PokerFinishGame');
 const Transaction = require('./lib/Transaction');
 const Setting = require('./lib/Setting');
 const Analytics = require('./lib/Analytics');
+const StackemRun = require('./lib/StackemRun');
 
 module.exports = {
   User,
@@ -16,4 +17,5 @@ module.exports = {
   Transaction,
   Setting,
   Analytics,
+  StackemRun,
 };

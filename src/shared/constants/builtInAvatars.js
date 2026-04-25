@@ -17,16 +17,26 @@ function isLegacyBuiltInAvatar(src = '') {
 export const BUILT_IN_AVATARS = avatarContext
   .keys()
   .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
-  .map((key, index) => ({
-    id: `profile-image-${index + 1}`,
-    label: `Profile ${index + 1}`,
-    sPath: avatarContext(key),
-  }));
+  .map((key, index) => {
+    const sPath = avatarContext(key)
+    const sFileName = String(key || '').replace('./', '')
+    const sTextureKey = `built-in-avatar-${sFileName.replace(/\.(png|jpe?g|webp)$/i, '')}`
+
+    return {
+      id: `profile-image-${index + 1}`,
+      label: `Profile ${index + 1}`,
+      sPath,
+      sTextureKey,
+      sFileName,
+    }
+  })
+
+export const DEFAULT_BUILT_IN_AVATARS = BUILT_IN_AVATARS.slice(0, 12)
 
 export const DEFAULT_PROFILE_BANNER = BUILT_IN_AVATARS[0]?.sPath || '';
 
 export function getBuiltInAvatar(seed = '') {
-  if (!BUILT_IN_AVATARS.length) {
+  if (!DEFAULT_BUILT_IN_AVATARS.length) {
     return {
       id: 'profile-image-fallback',
       label: 'Profile',
@@ -34,7 +44,7 @@ export function getBuiltInAvatar(seed = '') {
     };
   }
 
-  return BUILT_IN_AVATARS[Math.abs(hashSeed(seed)) % BUILT_IN_AVATARS.length];
+  return DEFAULT_BUILT_IN_AVATARS[Math.abs(hashSeed(seed)) % DEFAULT_BUILT_IN_AVATARS.length];
 }
 
 export function getAvatarImageSrc(src, seed = '') {
@@ -43,6 +53,15 @@ export function getAvatarImageSrc(src, seed = '') {
   }
 
   return src;
+}
+
+export function getAvatarTextureKey(src, seed = '') {
+  const normalizedSrc = getAvatarImageSrc(src, seed)
+  const matchedAvatar = BUILT_IN_AVATARS.find((avatar) => avatar.sPath === normalizedSrc)
+
+  if (matchedAvatar?.sTextureKey) return matchedAvatar.sTextureKey
+
+  return ''
 }
 
 export function buildAvatarOptions(aAvatarList = [], sAvatar = '') {

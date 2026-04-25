@@ -107,7 +107,85 @@ class Participant extends Service {
       const nTotalDebit = nToCallAmount + nRaiseAmount;
       const nNextMinBet = bCheckOpenState ? nRaiseAmount : this.oBoard.nMinBet + nRaiseAmount;
       if (this.nChips < nTotalDebit) {
-        return callback({ error: "Oh no! You don't have enough chips to play here, Would you like to visit the store to top up your bankroll?" });
+        if (this.nChips <= nToCallAmount) {
+          return await this.allInShortCall({ bStandMode: bRaiseStand }, callback);
+        }
+
+        const nAllInDebit = Math.max(Number(this.nChips) || 0, 0);
+        const nActualRaiseAmount = Math.max(nAllInDebit - nToCallAmount, 0);
+        const nActualTargetBet = (Number(this.nLastBidChips) || 0) + nAllInDebit;
+
+        await this.oBoard.deleteScheduler('assignTurnTimeout', this.iUserId);
+
+        await this.updateUser({ $inc: { nChips: -nAllInDebit, nTotalBetAmount: nAllInDebit } });
+        this.nChips = 0;
+        this.oBoard.nMinBet = Math.max(Number(this.oBoard.nMinBet) || 0, nActualTargetBet);
+        this.oBoard.nTableChips += nAllInDebit;
+        this.oBoard.nMaxBet = this.oBoard.nTableChips;
+        this.nLastBidChips += nAllInDebit;
+        this.nTotalBidChips = (this.nTotalBidChips ?? 0) + nAllInDebit;
+        this.isAllInLock = true;
+        if (bRaiseStand) {
+          this.isDoubleDownLock = true;
+          this.nStandAtRound = this.oBoard.nTableRound;
+          this.aUserAction = ['c', 'f'];
+        } else {
+          this.aUserAction = ['f'];
+        }
+
+        await this.recordTransaction({
+          iUserId: this.iUserId,
+          iBoardId: this.oBoard._id,
+          nAmount: nAllInDebit,
+          eType: 'debit',
+          eMode: 'game',
+          eStatus: 'Success',
+          nGameRound: this.oBoard.nGameRound,
+        });
+
+        this.oBoard.aParticipant.forEach(p => {
+          if (p.eState !== 'playing') return;
+          if (this.oBoard.nTableRound > 1) p.aUserAction = p.aUserAction.map(action => (action === 'ck' ? 'c' : action));
+          if (p.iUserId !== this.iUserId) p.nPlayerTurnCount = 0;
+        });
+
+        const oRefundAdjustment = await this.refundUncalledExcessAfterShortAllIn();
+
+        await this.oBoard.update({
+          nMinBet: this.oBoard.nMinBet,
+          nTableChips: this.oBoard.nTableChips,
+          nMaxBet: this.oBoard.nMaxBet,
+          aParticipant: this.oBoard.aParticipant.map(p => p.toJSON()),
+        });
+
+        if (bRaiseStand) {
+          await this.oBoard.emit('resStand', {
+            iUserId: this.iUserId,
+            nStandAtRound: this.nStandAtRound,
+            nTableChips: this.oBoard.nTableChips,
+            nLastBidChips: nAllInDebit,
+            nChips: this.nChips,
+            nMinBet: this.oBoard.nMinBet,
+            bAllIn: true,
+            bShortRaise: true,
+            aParticipantAdjustments: oRefundAdjustment?.aParticipantAdjustments || [],
+          });
+          await this.oBoard.saveLogs([{ sAction: 'allin-raise+stand', eLogType: 'game', iUserId: this.iUserId, nRaiseAmount, nToCallAmount, nAllInDebit, nActualRaiseAmount }]);
+        } else {
+          await this.oBoard.emit('resRaise', {
+            iUserId: this.iUserId,
+            nTableChips: this.oBoard.nTableChips,
+            nLastBidChips: nAllInDebit,
+            nChips: this.nChips,
+            nMinBet: this.oBoard.nMinBet,
+            bAllIn: true,
+            bShortRaise: true,
+            aParticipantAdjustments: oRefundAdjustment?.aParticipantAdjustments || [],
+          });
+          await this.oBoard.saveLogs([{ sAction: 'allin-raise', eLogType: 'game', iUserId: this.iUserId, nRaiseAmount, nToCallAmount, nAllInDebit, nActualRaiseAmount }]);
+        }
+
+        return await this.passTurn();
       }
 
       // Player has acted on their current turn; prevent stale timeout fold on this turn.
@@ -620,10 +698,7 @@ class Participant extends Service {
 
   async playAutomatedTurn({ toCallAmount = 0 } = {}) {
     const noop = () => {};
-    const bExtendedThink = Math.random() <= 0.24;
-    const nDecisionDelay = bExtendedThink
-      ? _.randomBetween(6500, 16000)
-      : _.randomBetween(2200, 6200);
+    const nDecisionDelay = _.randomBetween(1450, 1900);
 
     await _.delay(nDecisionDelay);
     await this.waitForGuestResume();
@@ -689,7 +764,7 @@ class Participant extends Service {
 
   async playTutorialTurn({ toCallAmount = 0 } = {}) {
     const noop = () => {};
-    await _.delay(_.randomBetween(900, 1300));
+    await _.delay(_.randomBetween(1400, 1800));
     await this.waitForGuestResume();
 
     if (!this.oBoard?.isTutorialTable?.() || this.eState !== 'playing' || !this.hasValidTurn()) return false;

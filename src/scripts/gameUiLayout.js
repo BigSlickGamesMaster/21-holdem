@@ -2,6 +2,7 @@ export const GAME_UI_LAYOUT_STORAGE_KEY = 'bsg:game-ui-layout';
 export const GAME_UI_LAYOUT_EVENT = 'bsg:game-layout-update';
 
 export const DEFAULT_GAME_UI_LAYOUT = Object.freeze({
+    uiScale: 1.5,
     tableOffsetY: -200,
     tableScale: 1,
     headerOffsetY: 0,
@@ -12,6 +13,7 @@ export const DEFAULT_GAME_UI_LAYOUT = Object.freeze({
 });
 
 const GAME_UI_LAYOUT_LIMITS = {
+    uiScale: { min: 1, max: 1.8 },
     tableOffsetY: { min: -500, max: 240 },
     tableScale: { min: 0.7, max: 1.35 },
     headerOffsetY: { min: -220, max: 220 },

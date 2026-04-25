@@ -1,39 +1,27 @@
-version: '3.8'
 services:
   web:
     build: .
     container_name: poker-jack-admin-container
-    command: npm start
+    command: node index.js
+    env_file:
+      - .env
+    environment:
+      DB_URL: mongodb+srv://admin:Ram%401999@bigslick.zojd8mn.mongodb.net/holdem
+      PORT: 3051
+      HOST: 0.0.0.0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      BASE_URL: http://web:3051
+      BASE_API_PATH: http://web:3051/api/v1
+      FRONTEND_URL: http://admin-frontend:3000
     volumes:
       - .:/app
     ports:
       - '3051:3051'
-    # networks:
-    #   - node-network
-    # depends_on:
-    #   - mongodb
-    #   - redis
+    depends_on:
+      - redis
 
-  # mongodb:
-  #   image: mongodb/mongodb-community-server
-  #   container_name: mongodb-1
-  #   ports:
-  #     - '27018:27017' # local port: container port
-  #   volumes:
-  #     - poker-game-db:/data/db
-  #   networks:
-  #     - node-network
-
-  # redis:
-  #   image: redis:latest
-  #   container_name: redis
-  #   ports:
-  #     - '6381:6379' # local port: container port
-  #   networks:
-  #     - node-network
-# volumes:
-#   poker-game-db:
-
-# networks:
-#   node-network:
-#     driver: bridge
+  redis:
+    image: redis:7-alpine
+    container_name: admin-backend-redis
+    restart: unless-stopped

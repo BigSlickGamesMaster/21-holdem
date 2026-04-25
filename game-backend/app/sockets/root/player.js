@@ -2,6 +2,25 @@ const boardManager = require('../../game/boardManager');
 const { User, PokerBoard, Analytics } = require('../../models');
 const PlayerListener = require('./listener');
 
+async function ensureBoardInitializeScheduler(board) {
+  if (!board || board.eState === 'playing') return board;
+
+  const nReadyParticipants = board.aParticipant.filter(participant => participant.eState !== 'leave').length;
+  if (nReadyParticipants < 3) return board;
+
+  const [nRemainingInitializeTime, nRemainingResetTime] = await Promise.all([
+    board.getScheduler('initializeGame'),
+    board.getScheduler('resetTable'),
+  ]);
+
+  if (!nRemainingInitializeTime && !nRemainingResetTime) {
+    await board.deleteScheduler('refundOnLongWait', '');
+    await board.setSchedular('initializeGame', null, board.oSetting.nInitializeTimer);
+  }
+
+  return boardManager.getBoard(board._id.toString()) || board;
+}
+
 class Player {
   constructor(socket) {
     this.socket = socket;
@@ -28,9 +47,9 @@ class Player {
     const board = await boardManager.getBoard(iBoardId);
     if (!board) return callback({ error: null, oData: { messages: 'Table has been Expired/ Completed!', eState: 'finished', bGameIsFinished: true } });
 
-    this.board = board;
+    this.board = await ensureBoardInitializeScheduler(board);
 
-    const participant = board.getParticipant(this.iUserId);
+    const participant = this.board.getParticipant(this.iUserId);
     if (!participant) {
       await Promise.all([
         User.updateOne({ _id: this.iUserId }, { $pull: { aPokerBoard: iBoardId } }),
@@ -39,7 +58,7 @@ class Player {
       return callback({ error: null, oData: { messages: 'Table has been Expired/ Completed!', eState: 'finished', bGameIsFinished: true } });
     }
 
-    const sPreviousSocketId = board?.oSocketId?.[participant.iUserId];
+    const sPreviousSocketId = this.board?.oSocketId?.[participant.iUserId];
 
     // * reconnection flag from BE side
     if (sPreviousSocketId && sPreviousSocketId !== this.socket.id) {
@@ -59,22 +78,22 @@ class Player {
 
     if (isReconnect && participant.eState !== 'leave') {
       participant.dGameStartedAt = Date.now();
-      await board.update({ aParticipant: [participant.toJSON()] });
+      await this.board.update({ aParticipant: [participant.toJSON()] });
     }
 
-    if (!board.oSocketId) board.oSocketId = {};
-    board.oSocketId[participant.iUserId] = this.socket.id;
+    if (!this.board.oSocketId) this.board.oSocketId = {};
+    this.board.oSocketId[participant.iUserId] = this.socket.id;
 
-    await board.update({ oSocketId: board.oSocketId });
+    await this.board.update({ oSocketId: this.board.oSocketId });
 
     callback({ error: null, oData: participant.gameState });
     if (!isReconnect) {
-      await board.emit('resUserJoined', participant.toJSON());
+      await this.board.emit('resUserJoined', participant.toJSON());
 
-      const nRemainingInitializeTime = await board.getScheduler('initializeGame');
-      if (board.aParticipant.length >= 3 && nRemainingInitializeTime > 0) await board.emit('initializeGame', { nInitializeTimer: nRemainingInitializeTime });
+      const nRemainingInitializeTime = await this.board.getScheduler('initializeGame');
+      if (this.board.aParticipant.length >= 3 && nRemainingInitializeTime > 0) await this.board.emit('initializeGame', { nInitializeTimer: nRemainingInitializeTime });
 
-      const bResetTable = await board.getScheduler('resetTable');
+      const bResetTable = await this.board.getScheduler('resetTable');
       if (bResetTable) await participant.emit('initializeGame', { nRoundStartsIn: bResetTable });
     }
 
