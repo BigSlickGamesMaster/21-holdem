@@ -1,0 +1,107 @@
+services:
+  mongodb:
+    image: mongo:7
+    container_name: bigslick-mongodb
+    restart: unless-stopped
+    volumes:
+      - mongodb-data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: bigslick-redis
+    restart: unless-stopped
+
+  game-backend:
+    build:
+      context: ./game-backend
+    container_name: bigslick-game-backend
+    restart: unless-stopped
+    env_file:
+      - ./game-backend/.env
+    environment:
+      PORT: 4000
+      DB_URL: mongodb://mongodb:27017/holdem
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      BASE_API_PATH: http://game-backend:4000/api/v1
+      FRONTEND_URL: http://game-frontend:3000
+    depends_on:
+      - mongodb
+      - redis
+    ports:
+      - "4000:4000"
+
+  admin-backend:
+    build:
+      context: ./Admin-Backend
+    container_name: bigslick-admin-backend
+    restart: unless-stopped
+    env_file:
+      - ./Admin-Backend/.env
+    environment:
+      PORT: 3051
+      HOST: 0.0.0.0
+      DB_URL: mongodb://mongodb:27017/holdem
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      BASE_URL: http://admin-backend:3051
+      BASE_API_PATH: http://admin-backend:3051/api/v1
+      FRONTEND_URL: http://admin-frontend:3000
+    depends_on:
+      - mongodb
+      - redis
+    ports:
+      - "3051:3051"
+
+  game-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bigslick-game-frontend
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      REACT_APP_API_ENDPOINT: ""
+      REACT_APP_PROXY_TARGET: http://game-backend:4000
+    volumes:
+      - ./src:/app/src
+      - /app/node_modules
+    depends_on:
+      - game-backend
+    ports:
+      - "3100:3000"
+
+  admin-frontend:
+    build:
+      context: ./Admin-Frontend
+      dockerfile: Dockerfile
+    container_name: bigslick-admin-frontend
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      DISABLE_ESLINT_PLUGIN: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+      REACT_APP_API_ENDPOINT: ""
+      REACT_APP_PROXY_TARGET: http://admin-backend:3051
+    depends_on:
+      - admin-backend
+
+  admin-gateway:
+    image: nginx:1.27-alpine
+    container_name: bigslick-admin-gateway
+    restart: unless-stopped
+    depends_on:
+      - admin-frontend
+      - admin-backend
+    volumes:
+      - ./nginx/admin-gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "3001:80"
+
+volumes:
+  mongodb-data:

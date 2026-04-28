@@ -877,6 +877,97 @@ class Participant extends Service {
   //     console.log('reachMaxTableAmount', error);
   //   }
   // }
+
+  async split(oData, callback) {
+    try {
+      if (this.bHasSplit) return callback({ error: 'You have already split this hand' });
+
+      const communityCards = this.oBoard.aCommunityCard;
+      if (!communityCards || communityCards.length !== 1) {
+        return callback({ error: 'Split is only available when exactly one community card has been dealt' });
+      }
+
+      const holeCard = this.aCardHand[0];
+      const communityCard = communityCards[0];
+      if (!holeCard || !communityCard || holeCard.nLabel !== communityCard.nLabel) {
+        return callback({ error: 'Split requires your hole card to match the community card' });
+      }
+
+      const nSplitAmount = this.oBoard.nMinBet;
+      if (this.nChips < nSplitAmount) {
+        return callback({ error: "Not enough chips to split" });
+      }
+
+      await this.oBoard.deleteScheduler('assignTurnTimeout', this.iUserId);
+
+      await this.updateUser({ $inc: { nChips: -nSplitAmount, nTotalBetAmount: nSplitAmount } });
+      this.nChips -= nSplitAmount;
+      this.oBoard.nTableChips += nSplitAmount;
+      this.oBoard.nMaxBet = this.oBoard.nTableChips;
+      this.nLastBidChips = (this.nLastBidChips ?? 0) + nSplitAmount;
+      this.nTotalBidChips = (this.nTotalBidChips ?? 0) + nSplitAmount;
+
+      await this.recordTransaction({
+        iUserId: this.iUserId,
+        iBoardId: this.oBoard._id,
+        nAmount: nSplitAmount,
+        eType: 'debit',
+        eMode: 'game',
+        eStatus: 'Success',
+        nGameRound: this.oBoard.nGameRound,
+      });
+
+      // Deal 2 new private cards — one per split hand
+      const oMainCard = this.oBoard.aDeck.pop();
+      const oSplitCard = this.oBoard.aDeck.pop();
+
+      // Main hand: original hole card + new main card
+      this.aCardHand = [holeCard, oMainCard];
+      this.nCardScore = (Number(holeCard.nValue) || 0) + (Number(oMainCard.nValue) || 0);
+      if (this.nCardScore > 21) {
+        const aceInMain = this.aCardHand.find(c => c.nValue === 11);
+        if (aceInMain) { aceInMain.nValue = 1; this.nCardScore -= 10; }
+      }
+
+      // Split hand: copy of the community card + new split card
+      const oCommunityCardCopy = { ...communityCard };
+      this.aSplitHand = [oCommunityCardCopy, oSplitCard];
+      this.nSplitCardScore = (Number(oCommunityCardCopy.nValue) || 0) + (Number(oSplitCard.nValue) || 0);
+      if (this.nSplitCardScore > 21) {
+        const aceInSplit = this.aSplitHand.find(c => c.nValue === 11);
+        if (aceInSplit) { aceInSplit.nValue = 1; this.nSplitCardScore -= 10; }
+      }
+
+      this.bHasSplit = true;
+
+      await this.oBoard.update({
+        aDeck: this.oBoard.aDeck,
+        aParticipant: [this.toJSON()],
+        nTableChips: this.oBoard.nTableChips,
+        nMaxBet: this.oBoard.nMaxBet,
+      });
+
+      await this.oBoard.emit('resSplit', {
+        iUserId: this.iUserId,
+        oMainCard,
+        oSplitCard,
+        oCommunityCard: oCommunityCardCopy,
+        aCardHand: this.aCardHand,
+        nCardScore: this.nCardScore,
+        aSplitHand: this.aSplitHand,
+        nSplitCardScore: this.nSplitCardScore,
+        bHasSplit: true,
+        nTableChips: this.oBoard.nTableChips,
+        nChips: this.nChips,
+        nLastBidChips: this.nLastBidChips,
+      });
+
+      await this.oBoard.saveLogs([{ sAction: 'split', eLogType: 'game', iUserId: this.iUserId, nSplitAmount }]);
+      return await this.passTurn();
+    } catch (error) {
+      console.log('Error in split method:', error);
+    }
+  }
 }
 
 module.exports = Participant;

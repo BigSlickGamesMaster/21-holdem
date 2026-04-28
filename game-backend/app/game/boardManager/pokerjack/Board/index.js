@@ -438,6 +438,9 @@ class Board extends Service {
         participant.nTotalBidChips = 0;
         participant.nWinningAmount = 0;
         participant.nPlayerTurnCount = 0;
+        participant.bHasSplit = false;
+        participant.aSplitHand = [];
+        participant.nSplitCardScore = 0;
 
         if (participant.bNextTurnLeave) {
           participant.eState = 'leave';

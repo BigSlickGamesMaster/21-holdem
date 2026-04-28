@@ -42,7 +42,6 @@ export default class SocketManager {
         this.sRoot = getApiRoot();
         this.sAuthToken = sAuthToken;
         this.iBoardId = iBoardId;
-        console.log(sAuthToken);
         this.socket = io(this.sRoot, {
             transports: ["websocket", "polling"],
             forceNew: true,
@@ -53,16 +52,11 @@ export default class SocketManager {
 
         this.socket.on("connect", () => {
             this.sRootSocket = this.socket.id;
-            console.log("Connected to Socket :: ", this.socket.id);
         });
-        this.socket.on("disconnect", () => {
-            console.log("Disconnected from Socket");
-        });
-        this.socket.on("reconnect", () => {
-            console.log("Reconnected to Socket");
-        });
-        this.socket.on("connect_error", () => {
-            // console.error("Error while connecting to the server:", error);
+        this.socket.on("disconnect", () => {});
+        this.socket.on("reconnect", () => {});
+        this.socket.on("connect_error", (error) => {
+            console.error("Socket connect_error:", error?.message || error);
         });
         this.socket.on(this.iBoardId, (data) => {
             try {
@@ -72,10 +66,8 @@ export default class SocketManager {
             }
         });
 
-        console.log(`%c reqJoinBoard`, 'color: #64C3EB', { iBoardId: this.iBoardId });
         this.socket.emit("reqJoinBoard", { iBoardId: this.iBoardId }, (data) => {
             if (data.error && data.error.code == 404) {
-                console.log(data);
                 this.oScene.exitGame();
             } else {
                 this.onReqJoinBoard(data.oData);
@@ -85,13 +77,11 @@ export default class SocketManager {
         this.pingInterval = setInterval(() => this.reqPingCheck(), 1000);
     }
     emit(sEventName, oData = {}, callback) {
-        console.log(`%c ${sEventName}`, 'color: #64C3EB', oData);
         this.socket.emit(this.iBoardId, { sEventName, oData }, (error, response) => {
             this.onCallBackReceive(sEventName, response, error);
         });
     };
     onReqJoinBoard(callback) {
-        console.log(`%c callback`, 'color: #5BB381', callback);
         if (callback.bGameIsFinished) {
             this.oScene.kickOut({ title: 'LEAVE TABLE', message: callback.messages });
             return;
@@ -102,143 +92,85 @@ export default class SocketManager {
     onReceive(data) {
         switch (data.sEventName) {
             case 'initializeGame':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.waitingForGameStart(data.oData);
                 break;
-
             case 'resUserJoined':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.setUserJoined(data.oData);
                 break;
-
             case 'resBoardState':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.setBoardState(data.oData);
                 break;
-
             case 'resCollectBootAmount':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.setCollectBootAmount(data.oData);
                 break;
-
             case 'resCommunityCard':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.handleCommunityCard(data.oData);
                 break;
-
             case 'resClearBettingLabels':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.handleClearBettingLabels();
                 break;
-
             case 'resCardHand':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.setCardHand(data.oData);
                 break;
-
             case 'resPlayerTurn':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.setPlayerTurn(data.oData);
                 break;
-
             case 'resPlayerLeft':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.setPlayerLeft(data.oData);
                 break;
-
             case 'resTurnMissed':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.resetTurnTimer();
                 break;
-
             case 'resFoldPlayer':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.setFoldPlayer(data.oData.iUserId, data.oData.oLeave.eBehaviour, data.oData.oLeave.sReason, data.oData.oLeave.bShowMessage);
                 break;
-
             case 'resDeclareResult':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.setDeclareResult(data.oData);
                 break;
-
             case 'resKickOut':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.kickOut({ title: 'LEAVE TABLE', message: 'Oops! Not enough players joined.' });
                 break;
-
             case 'resRefundOnLongWait':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.setRefundOnLongWait(data.oData);
                 break;
-
             case 'resCall':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
-                this.oScene.handlePlayerBet(data.oData, data.sEventName);
-                break;
-
             case 'resCheck':
-                this.oScene.handlePlayerBet(data.oData, data.sEventName);
-                break;
-
             case 'resRaise':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
+            case 'resStand':
                 this.oScene.handlePlayerBet(data.oData, data.sEventName);
                 break;
-
             case 'resDoubledown':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.handleDoubleDown(data.oData, data.sEventName);
                 break;
-
             case 'resSplit':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.handleSplit(data.oData);
                 break;
-
-            case 'resStand':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
-                this.oScene.handlePlayerBet(data.oData, data.sEventName);
-                break;
-
             case 'disconnect':
-                console.log(`%c ${data.sEventName}`, 'color: #5BB381', data);
                 this.oScene.exitGame();
                 break;
-
             default:
-                console.log(`%c ${data.sEventName} :: `, 'color: #CE375C', data);
                 break;
         }
     }
     onCallBackReceive(sEventName, response, error) {
         if (response && response.message) {
-            console.log(`%c ${sEventName}`, 'color: #5BB381', response);
             this.oScene.handleActionError?.(sEventName, response.message);
             return;
         }
         switch (sEventName) {
             case 'reqLeave':
-                console.log('%c reqLeave', 'color: #5BB381', response);
                 this.oScene.prompt.showForSeconds(error.error);
                 break;
-
             case 'reqCall':
-                console.log('%c reqCall', 'color: #5BB381', response, error);
                 this.oScene.handleActionError?.('reqCall', error.error);
                 break;
-
             case 'reqRaise':
-                console.log('%c reqRaise', 'color: #5BB381', response, error);
                 this.oScene.handleActionError?.('reqRaise', error.error);
                 break;
-
             case 'reqDoubleDown':
-                console.log('%c reqDoubleDown', 'color: #5BB381', response, error);
                 this.oScene.handleActionError?.('reqDoubleDown', error.error);
                 break;
-
             default:
-                console.log(`%c ${sEventName} callback`, 'color: #CE375C', response, error);
                 break;
         }
     }

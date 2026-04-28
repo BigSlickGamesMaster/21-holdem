@@ -16,6 +16,7 @@ const BUTTON_CLASS_BY_VARIANT = {
 
 function GameActionOverlay({ isPaused = false }) {
     const [overlayState, setOverlayState] = useState(() => createHiddenGameActionOverlayState());
+    const [forcePairActive, setForcePairActive] = useState(false);
     const { data: profileData } = useQuery('profileData', getProfile, {
         select: (data) => data?.data?.data,
         refetchOnWindowFocus: false,
@@ -33,6 +34,12 @@ function GameActionOverlay({ isPaused = false }) {
         return () => window.removeEventListener(GAME_ACTION_OVERLAY_STATE_EVENT, handleStateUpdate);
     }, []);
 
+    useEffect(() => {
+        const handleForcePairChange = (event) => setForcePairActive(Boolean(event?.detail?.active));
+        window.addEventListener('forcePairStateChange', handleForcePairChange);
+        return () => window.removeEventListener('forcePairStateChange', handleForcePairChange);
+    }, []);
+
     const rows = useMemo(() => Array.isArray(overlayState.rows) ? overlayState.rows : [], [overlayState.rows]);
     const hasButtons = useMemo(() => rows.some((row) => {
         const rowButtons = Array.isArray(row?.buttons) ? row.buttons.filter(Boolean) : [];
@@ -48,6 +55,31 @@ function GameActionOverlay({ isPaused = false }) {
 
     return (
         <div className={`game-action-overlay ${isVisible ? 'is-visible' : ''}`.trim()}>
+            {/* DEV: force-pair toggle — floated top-right on the table, outside the tray */}
+            <button
+                type='button'
+                title='DEV: Force first community card to match your hole card rank (for split testing)'
+                style={{
+                    position: 'fixed',
+                    top: 12,
+                    right: 12,
+                    zIndex: 9999,
+                    padding: '4px 10px',
+                    fontSize: '11px',
+                    borderRadius: 20,
+                    border: `1px solid ${forcePairActive ? '#f5c842' : '#666'}`,
+                    background: forcePairActive ? 'rgba(245,200,66,0.15)' : 'rgba(0,0,0,0.45)',
+                    color: forcePairActive ? '#f5c842' : '#aaa',
+                    cursor: 'pointer',
+                    backdropFilter: 'blur(4px)',
+                    lineHeight: 1.4,
+                    pointerEvents: 'auto',
+                }}
+                onClick={() => { setForcePairActive(prev => !prev); emitGameActionOverlayCommand('toggleForcePair'); }}
+                aria-label='Toggle force pair deal'
+            >
+                {forcePairActive ? '♠ Pair ON' : '♠ Pair OFF'}
+            </button>
             <div className='game-action-overlay__shell'>
                 {hasMessage ? (
                     <div className='game-action-overlay__message'>

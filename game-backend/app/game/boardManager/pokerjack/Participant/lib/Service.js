@@ -19,6 +19,9 @@ class Service {
     this.isDoubleDownLock = oParticipantData.isDoubleDownLock ?? false;
     this.isAllInLock = oParticipantData.isAllInLock ?? false;
     this.nCardScore = oParticipantData.nCardScore ?? 0;
+    this.bHasSplit = oParticipantData.bHasSplit ?? false;
+    this.aSplitHand = oParticipantData.aSplitHand ?? [];
+    this.nSplitCardScore = oParticipantData.nSplitCardScore ?? 0;
     this.sAvatar = oParticipantData.sAvatar ?? '';
     this.bHasAceAndBust = oParticipantData.bHasAceAndBust ?? false;
     this.nLastBidChips = oParticipantData.nLastBidChips ?? 0;
@@ -285,6 +288,9 @@ class Service {
       'isDoubleDownLock',
       'isAllInLock',
       'nCardScore',
+      'bHasSplit',
+      'aSplitHand',
+      'nSplitCardScore',
       'sAvatar',
       'bHasAceAndBust',
       'sRootSocket',

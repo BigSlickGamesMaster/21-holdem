@@ -20,16 +20,29 @@ export default class Card extends Phaser.GameObjects.Container {
         this.container_card.add(this.card_front);
         this.setSize(this.card_front.width * this.card_front.scale, this.card_front.height * this.card_front.scale);
 
-        this.top_number = scene.add.text(-(this.card_front.width / 2.7), -(this.card_front.height / 2.3), '10', {
-            fontFamily: config.CardFont, fontSize: '42px', align: 'right', color: '#000000',
+        const _hw = this.card_front.width / 2;
+        const _hh = this.card_front.height / 2;
+        const _pad = 20;
+
+        // Small label — top left
+        this.top_number = scene.add.text(-_hw + _pad, -_hh + _pad, '10', {
+            fontFamily: config.CardFont, fontSize: '42px', align: 'left', color: '#000000',
         }).setOrigin(0, 0);
         this.container_card.add(this.top_number);
 
-        this.main_symbol = scene.add.image(10, 40, 'spades').setScale(1);
-        this.container_card.add(this.main_symbol);
-
-        this.other_symbol = scene.add.image(this.top_number.x + 30, this.top_number.y + 50, 'spades').setOrigin(1, 0).setScale(0.35);
+        // Small suit — to the right of the small label (x updated in setCard after setText)
+        this.other_symbol = scene.add.image(0, -_hh + _pad + 4, 'spades').setOrigin(0, 0).setScale(0.35);
         this.container_card.add(this.other_symbol);
+
+        // Big rank label — centre of card
+        this.center_number = scene.add.text(0, 0, '10', {
+            fontFamily: config.CardFont,
+            fontSize: Math.round(this.card_front.height * 0.28) + 'px',
+            fontStyle: 'bold',
+            align: 'center',
+            color: '#000000',
+        }).setOrigin(0.5, 0.5);
+        this.container_card.add(this.center_number);
 
         this.card_glow = scene.add.image(0, 0, assets.card_glow).setScale(1.3).setVisible(false);
         this.add(this.card_glow);
@@ -47,7 +60,6 @@ export default class Card extends Phaser.GameObjects.Container {
         this.setName(`${eSuit}_${nLabel}_${nValue}_${_id}`);
 
         const suitAsset = this.getSuitAsset(eSuit);
-        this.main_symbol.setTexture(suitAsset);
         this.other_symbol.setTexture(suitAsset);
 
         let labelText = nLabel.toString();
@@ -56,12 +68,14 @@ export default class Card extends Phaser.GameObjects.Container {
         else if (nLabel === 12) labelText = 'Q';
         else if (nLabel === 13) labelText = 'K';
         this.top_number.setText(labelText);
+        this.center_number.setText(labelText);
 
-        if (eSuit === 'd' || eSuit === 'h') {
-            this.top_number.setColor('#b22a0b');
-        } else {
-            this.top_number.setColor('#000000');
-        }
+        // Align small suit to the right of the small label
+        this.other_symbol.setX(this.top_number.x + this.top_number.width + 4);
+
+        const color = (eSuit === 'd' || eSuit === 'h') ? '#b22a0b' : '#000000';
+        this.top_number.setColor(color);
+        this.center_number.setColor(color);
 
         // if (eSuit === 'j') {
         //     this.card_joker.setVisible(true);

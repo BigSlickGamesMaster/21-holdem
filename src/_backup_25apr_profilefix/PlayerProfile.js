@@ -4,18 +4,12 @@ import config from "../scripts/config";
 import _ from "../scripts/helper";
 import ProfileRenderer from "./ProfileRenderer";
 
-// Single neutral theme — warm casino gold
-const NEUTRAL_SEAT_THEME = { accentColor: 0xd4af6a, accentHex: '#d4af6a', suit: '\u2660' };
-const SEAT_THEMES = Array(9).fill(NEUTRAL_SEAT_THEME);
-
 export default class PlayerProfile extends Phaser.GameObjects.Container {
   constructor(scene, x, y, nPlayerIndex) {
     super(scene, x, y);
     scene.add.existing(this);
     this.scene = scene;
-    this.nPlayerIndex = nPlayerIndex;
     this.isLocalSeat = nPlayerIndex === 0;
-    this.seatTheme = SEAT_THEMES[nPlayerIndex % SEAT_THEMES.length];
     this.isRightSideSeat = !this.isLocalSeat && x > (config.centerX + 32);
     this.profileScaleBoost = 1.18;
     this.baseProfileScale = this.isLocalSeat ? 0.84 : 0.552;
@@ -126,79 +120,29 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       isLocalSeat: this.isLocalSeat,
       profileSize,
       profileOffsetY,
-      seatTheme: this.seatTheme,
     });
     this.container_profileImage.add(this.profileRenderer);
     this.container_profileImage.setVisible(true);
     this.profileBackdrop = this.profileRenderer.backdrop;
     this.profile = this.profileRenderer.avatar;
 
-    const identityPanelY = this.isLocalSeat ? 66 : 74;
+    const identityPanelY = this.isLocalSeat ? 126 : 130;
     const identityPanelWidth = 194;
-    const identityPanelHeight = this.isLocalSeat ? 52 : 66;
-    const nameY = this.isLocalSeat ? -2 : -14;
-    const bankrollY = 16;
+    const identityPanelHeight = this.isLocalSeat ? 56 : 76;
+    const nameY = this.isLocalSeat ? -2 : -16;
+    const bankrollY = 18;
     this.container_identity = scene.add.container(0, identityPanelY);
     this.container_profile.add(this.container_identity);
 
-    this.identity_panel = scene.add.graphics();
+    this.identity_panel = scene.add
+      .rectangle(0, 0, identityPanelWidth, identityPanelHeight, 0x030507, 0.94)
+      .setStrokeStyle(2, 0x223342, 0.96);
     this.container_identity.add(this.identity_panel);
-    this._identityPanelState = { fillColor: 0x0d0b08, fillAlpha: 0.72, strokeColor: 0xd4af6a };
-    this._drawIdentityPanel = () => {
-      const { fillColor, fillAlpha, strokeColor } = this._identityPanelState;
-      const r = 10;
-      this.identity_panel.clear();
-      // Glass base fill
-      this.identity_panel.fillStyle(fillColor, fillAlpha);
-      this.identity_panel.fillRoundedRect(-identityPanelWidth / 2, -identityPanelHeight / 2, identityPanelWidth, identityPanelHeight, r);
-      // Subtle accent tint layer
-      this.identity_panel.fillStyle(strokeColor, 0.07);
-      this.identity_panel.fillRoundedRect(-identityPanelWidth / 2, -identityPanelHeight / 2, identityPanelWidth, identityPanelHeight, r);
-      // Accent border
-      this.identity_panel.lineStyle(1.5, strokeColor, 0.80);
-      this.identity_panel.strokeRoundedRect(-identityPanelWidth / 2, -identityPanelHeight / 2, identityPanelWidth, identityPanelHeight, r);
-      // Top accent bar
-      this.identity_panel.fillStyle(strokeColor, 0.55);
-      this.identity_panel.fillRoundedRect(-identityPanelWidth / 2, -identityPanelHeight / 2, identityPanelWidth, 3, { tl: r, tr: r, bl: 0, br: 0 });
-    };
-    this._drawIdentityPanel();
-
-    this.profileBorder = scene.add.graphics();
-    this.container_profile.addAt(this.profileBorder, 0);
-    this._drawProfileBorder = () => {
-      if (!this.profileRenderer || !this.profileBorder) return;
-      const borderPadding = 10;
-      const outerRadius = this.profileRenderer.frameDiameter / 2;
-      const top = -outerRadius - borderPadding;
-      const bottom = identityPanelY + (identityPanelHeight / 2) + borderPadding;
-      const height = bottom - top;
-      const width = Math.max(this.profileRenderer.frameDiameter, identityPanelWidth) + (borderPadding * 2);
-      const x = -width / 2;
-      const y = top;
-      const r = 18;
-      this.profileBorder.clear();
-      // Glassmorphic fill — dark translucent base
-      this.profileBorder.fillStyle(0x0d0b08, 0.60);
-      this.profileBorder.fillRoundedRect(x, y, width, height, r);
-      // Subtle warm accent tint
-      this.profileBorder.fillStyle(this.seatTheme.accentColor, 0.04);
-      this.profileBorder.fillRoundedRect(x, y, width, height, r);
-      // Glass top-edge highlight (simulate refraction)
-      this.profileBorder.fillStyle(0xffffff, 0.07);
-      this.profileBorder.fillRoundedRect(x, y, width, Math.min(height * 0.15, 18), { tl: r, tr: r, bl: 0, br: 0 });
-      // Main accent border
-      this.profileBorder.lineStyle(1.5, this.seatTheme.accentColor, 0.75);
-      this.profileBorder.strokeRoundedRect(x, y, width, height, r);
-      // Inner bright glass edge
-      this.profileBorder.lineStyle(1, 0xffffff, 0.10);
-      this.profileBorder.strokeRoundedRect(x + 2, y + 2, width - 4, height - 4, Math.max(6, r - 2));
-    };
-    this._drawProfileBorder();
 
     this.txt_name = scene.add
       .text(0, nameY, "waiting...", {
         ...style,
-        color: '#f0e0bb',
+        color: "#f6e900",
         fontSize: "28px",
         fontStyle: "bold",
       })
@@ -208,7 +152,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.txt_waiting = scene.add
       .text(0, nameY, "waiting...", {
         ...style,
-        color: '#f0e0bb',
+        color: "#f6e900",
         fontSize: "28px",
         fontStyle: "bold",
       })
@@ -253,25 +197,6 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setScale(1.12)
       .setVisible(false);
     this.container_profile.add(this.score_bg);
-
-    // Split score badge — shown below main score when player has split
-    this.split_score_bg = scene.add
-      .image(100, -35, assets.score_bg)
-      .setScale(0.95)
-      .setTint(0x1a8040)
-      .setVisible(false);
-    this.container_profile.add(this.split_score_bg);
-
-    this.txt_splitScore = scene.add
-      .text(100, -35, 'SP', {
-        ...style,
-        fontSize: '26px',
-        fontStyle: 'bold',
-        color: '#aaffaa',
-      })
-      .setOrigin(0.5)
-      .setVisible(false);
-    this.container_profile.add(this.txt_splitScore);
 
     this.txt_score = scene.add
       .text(this.score_bg.x, this.score_bg.y, "0", {
@@ -326,8 +251,6 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.container_profile.setVisible(true);
     this.container_emptySpot.setVisible(false);
     this.hideWaiting();
-    this.setIdentityState('normal');
-    this.startIdleFloat();
     return {
       name: this.txt_name,
       profile: this.profile,
@@ -338,31 +261,6 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.txt_score.setText("");
     this.score_bg.setVisible(false);
     this.txt_score.setVisible(false);
-    this.clearSplitHand();
-    this.setIdentityState('normal');
-    this.profileRenderer.stopActivePulse();
-    this.profileRenderer.setFrameColor(this.seatTheme.accentColor);
-  }
-  clearSplitHand() {
-    if (this.split_score_bg) { this.split_score_bg.setAlpha(1); this.split_score_bg.setVisible(false); }
-    if (this.txt_splitScore) { this.txt_splitScore.setAlpha(1); this.txt_splitScore.setVisible(false); }
-  }
-  showSplitPreview() {
-    this.txt_splitScore.setText('Split');
-    this.split_score_bg.setAlpha(0.5);
-    this.txt_splitScore.setAlpha(0.5);
-    this.split_score_bg.setVisible(true);
-    this.txt_splitScore.setVisible(true);
-  }
-  setSplitHand(aSplitHand, nSplitCardScore) {
-    const score = Number(nSplitCardScore);
-    if (!Number.isFinite(score) || score <= 0) return;
-    const label = score > 21 ? `SP:BUST` : `SP:${score}`;
-    this.txt_splitScore.setText(label);
-    this.split_score_bg.setAlpha(1);
-    this.txt_splitScore.setAlpha(1);
-    this.split_score_bg.setVisible(true);
-    this.txt_splitScore.setVisible(true);
   }
   setScore(nScore) {
     const parsedScore = Number(nScore);
@@ -403,14 +301,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
   }
   setBettingLabel(sBettingLabel, nAmount = null) {
     this.updateBettingLabelLayout();
-    this.container_bettingLabel.setVisible(true).setScale(0);
-    if (this._bettingLabelTween) this._bettingLabelTween.stop();
-    this._bettingLabelTween = this.scene.tweens.add({
-      targets: this.container_bettingLabel,
-      scaleX: 1, scaleY: 1,
-      duration: 180,
-      ease: 'Back.easeOut',
-    });
+    this.container_bettingLabel.setVisible(true);
     this.txt_bettingLabel.setText(sBettingLabel);
 
     if (nAmount !== null) {
@@ -480,21 +371,16 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     return null;
   }
   setProfileImage(url, name, eUserType = "user") {
-    this.profileRenderer.setProfileImage(url, name, { showImage: true, seatIndex: this.nPlayerIndex });
+    this.profileRenderer.setProfileImage(url, name, { showImage: true });
   }
   resTurnTimer = () => this.profileRenderer.resTurnTimer();
   startTurnTimer(ttl, totalTime) {
-    this.setIdentityState('active');
-    this.profileRenderer.startActivePulse();
     this.profileRenderer.startTurnTimer(ttl, totalTime);
   }
   setTimerTint() {
     this.profileRenderer.setTimerTint();
   }
   resetTurnTimer() {
-    this.setIdentityState('normal');
-    this.profileRenderer.stopActivePulse();
-    this.profileRenderer.setFrameColor(this.seatTheme.accentColor);
     this.profileRenderer.resetTurnTimer();
   }
   showWinnerPrompt() {
@@ -513,9 +399,6 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     });
   }
   showBustPrompt() {
-    this.setIdentityState('bust');
-    this.profileRenderer.setFrameColor(0x882222);
-    this.profileRenderer.stopActivePulse();
     this.container_bust.setVisible(true);
     this.scene.oAnimations.scale({
       aGameObjects: [this.container_bust],
@@ -559,45 +442,8 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     });
   }
   setLeave() {
-    this.stopIdleFloat();
     this.clearScore();
     this.container_profile.setVisible(false);
     this.container_emptySpot.setVisible(false);
-  }
-
-  setIdentityState(state) {
-    if (!this._drawIdentityPanel) return;
-    const states = {
-      normal: { fillColor: 0x060e1a, fillAlpha: 0.55, strokeColor: 0x89d5ff },
-      active: { fillColor: 0x0a2040, fillAlpha: 0.70, strokeColor: 0xe8f6ff },
-      fold:   { fillColor: 0x0a0a0a, fillAlpha: 0.50, strokeColor: 0x334455 },
-      bust:   { fillColor: 0x2a0808, fillAlpha: 0.65, strokeColor: 0x882222 },
-    };
-    this._identityPanelState = states[state] || states.normal;
-    this._drawIdentityPanel();
-  }
-
-  setFolded() {
-    this.setAlpha(0.7);
-    this.setIdentityState('fold');
-    this.profileRenderer.stopActivePulse();
-    this.profileRenderer.setFrameColor(0x444444);
-  }
-
-  startIdleFloat() {
-    this.stopIdleFloat();
-    this._floatTween = this.scene.tweens.add({
-      targets: this.container_profileImage,
-      y: 5,
-      duration: 2200,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
-  }
-
-  stopIdleFloat() {
-    if (this._floatTween) { this._floatTween.stop(); this._floatTween = null; }
-    this.container_profileImage?.setY(0);
   }
 }

@@ -93,7 +93,7 @@ export default class GameManager {
         this.aPlayerCards = [];
         this.aWinnerPlayers = [];
         this.exitMessage = 'Are you sure you want to quit?';
-
+        // this.exitMessage = 'Are you sure you want to quit?\nIf you quit now, your hand will be folded automatically, and you’ll lose your chance to win this round.';
     }
 
     // ==========================================================

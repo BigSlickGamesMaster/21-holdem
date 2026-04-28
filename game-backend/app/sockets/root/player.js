@@ -97,7 +97,9 @@ class Player {
       if (bResetTable) await participant.emit('initializeGame', { nRoundStartsIn: bResetTable });
     }
 
-    if (isReconnect) participant.stateHandler();
+    // Always sync current game state to the joining/reconnecting participant
+    // so they receive turn info, countdowns, or hand-in-progress state.
+    participant.stateHandler();
   }
 
   logError(error, callback = () => {}) {

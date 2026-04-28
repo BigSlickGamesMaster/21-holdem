@@ -57,6 +57,12 @@ class PlayerListener {
       case 'reqReaction':
         this.reaction(oData, participant, callback);
         break;
+      case 'reqForcePair':
+        this.forcePair(oData, participant, callback);
+        break;
+      case 'reqSplit':
+        this.split(oData, participant, callback);
+        break;
       default:
         log.red('Unknown event:: ', sEventName);
         callback({ error: `Unknown event:: ${sEventName}` });
@@ -166,6 +172,52 @@ class PlayerListener {
       callback(null, { success: true });
     } catch (error) {
       console.log('Error in PlayerListener reaction method:', error);
+      this.logError(error, callback);
+    }
+  }
+
+  async split(oData, participant, callback) {
+    try {
+      log.green('## split called from user', this.iUserId);
+      if (!participant.hasValidTurn()) return this.logError(messages.not_found('participant'), callback);
+      participant.split(oData, callback);
+    } catch (error) {
+      console.log('Error in PlayerListener split method:', error);
+      this.logError(error, callback);
+    }
+  }
+
+  async forcePair(oData, participant, callback) {
+    try {
+      const holeCard = participant.aCardHand?.[0];
+      if (!holeCard) return callback({ error: 'No hole card to match' });
+
+      const board = participant.oBoard;
+      const targetLabel = holeCard.nLabel;
+
+      // Find the last matching card in the deck (pop() takes from the end)
+      let matchIndex = -1;
+      for (let i = board.aDeck.length - 1; i >= 0; i--) {
+        if (board.aDeck[i].nLabel === targetLabel) {
+          matchIndex = i;
+          break;
+        }
+      }
+
+      if (matchIndex === -1) {
+        log.red('reqForcePair :: no matching card in deck for nLabel', targetLabel);
+        return callback(null, { success: false, message: 'No matching card remaining in deck' });
+      }
+
+      // Move it to the end so the next pop() returns it
+      const [matchCard] = board.aDeck.splice(matchIndex, 1);
+      board.aDeck.push(matchCard);
+
+      await board.update({ aDeck: board.aDeck });
+      log.green('reqForcePair :: deck reordered, next community card will be nLabel', targetLabel);
+      callback(null, { success: true });
+    } catch (error) {
+      console.log('Error in PlayerListener forcePair method:', error);
       this.logError(error, callback);
     }
   }
