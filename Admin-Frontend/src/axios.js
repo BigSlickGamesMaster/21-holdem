@@ -2,8 +2,7 @@ import axios from 'axios'
 import { removeToken } from '../src/helper/helper'
 
 function getDefaultAdminApiOrigin() {
-  if (typeof window === 'undefined') return ''
-  return `${window.location.protocol}//localhost:3051`
+  return ''
 }
 
 function withAdminApiPrefix(url = '') {

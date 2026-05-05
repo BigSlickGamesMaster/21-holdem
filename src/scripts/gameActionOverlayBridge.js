@@ -6,7 +6,6 @@ export const createHiddenGameActionOverlayState = () => ({
     mode: 'hidden',
     rows: [],
     tableBankroll: null,
-    commentary: [],
 });
 
 export const emitGameActionOverlayState = (detail = {}) => {

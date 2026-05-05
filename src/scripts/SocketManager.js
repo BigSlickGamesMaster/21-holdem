@@ -1,42 +1,16 @@
 /**
- * ======================================================================
- * SocketManager.js - BEGINNER FRIENDLY GUIDE (CLIENT <-> SERVER)
- * ======================================================================
- *
- * This file is the "phone line" to your backend.
- *
- * Two main jobs:
- * 1) SEND requests when the player clicks buttons:
- *    - example: reqCall(), reqRaise(), reqDoubleDown()
- *
- * 2) RECEIVE server updates (socket.on):
- *    - example: server says "player X raised" -> update UI in Level
- *
- * --------------------------------------------------------------
- * How to safely edit as a beginner
- * --------------------------------------------------------------
- * You can:
- * - add console.log inside handlers to see payloads
- * - change which Level method is called (IF you know the method exists)
- *
- * Be careful:
- * - event names MUST match server exactly
- * - payload keys MUST match server (iUserId, nChips, etc.)
- *
- * If you break socket names, the game won't update, but it may not crash -
- * it'll just "feel stuck". That's why this file is important.
- * ======================================================================
+ * SocketManager — WebSocket bridge between client and game server.
+ * - Connects on construction, joins the board, starts a ping loop.
+ * - emit(): sends player actions (fold, call, raise, etc.).
+ * - onReceive(): routes incoming server events to Level scene handlers.
+ * - Event names and payload keys must match the server exactly.
  */
 
 import io from 'socket.io-client';
 import { getApiRoot } from '../axios';
 
 export default class SocketManager {
-    // --------------------------------------------------------------
-    // constructor(scene, options)
-    // - scene: the Level scene (so we can call scene.setX(...) on events)
-    // - options: auth token / board id used to join the correct table
-    // --------------------------------------------------------------
+    // scene: Level instance. options: { sAuthToken, iBoardId }.
     constructor(oScene, { sAuthToken, iBoardId }) {
         this.oScene = oScene;
         this.sRoot = getApiRoot();
@@ -144,6 +118,12 @@ export default class SocketManager {
                 break;
             case 'resSplit':
                 this.oScene.handleSplit(data.oData);
+                break;
+            case 'resReaction':
+                this.oScene.handleResReaction?.(data.oData);
+                break;
+            case 'resSplitAutoFold':
+                this.oScene.handleSplitAutoFold?.(data.oData);
                 break;
             case 'disconnect':
                 this.oScene.exitGame();

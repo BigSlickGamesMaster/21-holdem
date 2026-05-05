@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import { getProfile } from '../../query/profile.query';
 import _ from '../../scripts/helper';
@@ -8,6 +9,7 @@ import {
     emitGameActionOverlayCommand,
     GAME_ACTION_OVERLAY_STATE_EVENT,
 } from '../../scripts/gameActionOverlayBridge';
+import EmojiPicker from './EmojiPicker';
 
 const BUTTON_CLASS_BY_VARIANT = {
     primary: 'guest-entry-btn',
@@ -15,8 +17,8 @@ const BUTTON_CLASS_BY_VARIANT = {
 };
 
 function GameActionOverlay({ isPaused = false }) {
+    const navigate = useNavigate();
     const [overlayState, setOverlayState] = useState(() => createHiddenGameActionOverlayState());
-    const [forcePairActive, setForcePairActive] = useState(false);
     const { data: profileData } = useQuery('profileData', getProfile, {
         select: (data) => data?.data?.data,
         refetchOnWindowFocus: false,
@@ -30,15 +32,18 @@ function GameActionOverlay({ isPaused = false }) {
             });
         };
 
-        window.addEventListener(GAME_ACTION_OVERLAY_STATE_EVENT, handleStateUpdate);
-        return () => window.removeEventListener(GAME_ACTION_OVERLAY_STATE_EVENT, handleStateUpdate);
-    }, []);
+        const handleNavigate = (event) => {
+            const sPath = event?.detail?.path;
+            if (sPath) navigate(sPath);
+        };
 
-    useEffect(() => {
-        const handleForcePairChange = (event) => setForcePairActive(Boolean(event?.detail?.active));
-        window.addEventListener('forcePairStateChange', handleForcePairChange);
-        return () => window.removeEventListener('forcePairStateChange', handleForcePairChange);
-    }, []);
+        window.addEventListener(GAME_ACTION_OVERLAY_STATE_EVENT, handleStateUpdate);
+        window.addEventListener('bsg:navigate', handleNavigate);
+        return () => {
+            window.removeEventListener(GAME_ACTION_OVERLAY_STATE_EVENT, handleStateUpdate);
+            window.removeEventListener('bsg:navigate', handleNavigate);
+        };
+    }, [navigate]);
 
     const rows = useMemo(() => Array.isArray(overlayState.rows) ? overlayState.rows : [], [overlayState.rows]);
     const hasButtons = useMemo(() => rows.some((row) => {
@@ -46,7 +51,6 @@ function GameActionOverlay({ isPaused = false }) {
         return rowButtons.length > 0;
     }), [rows]);
     const hasMessage = Boolean(overlayState.message);
-    const commentary = useMemo(() => Array.isArray(overlayState.commentary) ? overlayState.commentary.filter(Boolean) : [], [overlayState.commentary]);
     const bankrollAmount = typeof profileData?.nChips === 'number' ? _.formatCurrency(profileData.nChips) : '--';
     const tableBankrollAmount = Number.isFinite(Number(overlayState.tableBankroll))
         ? _.formatCurrency(Number(overlayState.tableBankroll))
@@ -54,32 +58,8 @@ function GameActionOverlay({ isPaused = false }) {
     const isVisible = Boolean(overlayState.visible);
 
     return (
+        <>
         <div className={`game-action-overlay ${isVisible ? 'is-visible' : ''}`.trim()}>
-            {/* DEV: force-pair toggle — floated top-right on the table, outside the tray */}
-            <button
-                type='button'
-                title='DEV: Force first community card to match your hole card rank (for split testing)'
-                style={{
-                    position: 'fixed',
-                    top: 12,
-                    right: 12,
-                    zIndex: 9999,
-                    padding: '4px 10px',
-                    fontSize: '11px',
-                    borderRadius: 20,
-                    border: `1px solid ${forcePairActive ? '#f5c842' : '#666'}`,
-                    background: forcePairActive ? 'rgba(245,200,66,0.15)' : 'rgba(0,0,0,0.45)',
-                    color: forcePairActive ? '#f5c842' : '#aaa',
-                    cursor: 'pointer',
-                    backdropFilter: 'blur(4px)',
-                    lineHeight: 1.4,
-                    pointerEvents: 'auto',
-                }}
-                onClick={() => { setForcePairActive(prev => !prev); emitGameActionOverlayCommand('toggleForcePair'); }}
-                aria-label='Toggle force pair deal'
-            >
-                {forcePairActive ? '♠ Pair ON' : '♠ Pair OFF'}
-            </button>
             <div className='game-action-overlay__shell'>
                 {hasMessage ? (
                     <div className='game-action-overlay__message'>
@@ -87,6 +67,7 @@ function GameActionOverlay({ isPaused = false }) {
                     </div>
                 ) : null}
                 <div className='game-action-overlay__tray'>
+                    <EmojiPicker />
                     <div className='game-action-overlay__bankroll'>
                         <div className='game-action-overlay__bankroll-slot game-action-overlay__bankroll-slot--left'>
                             <span className='game-action-overlay__bankroll-label'>Bankroll</span>
@@ -141,22 +122,12 @@ function GameActionOverlay({ isPaused = false }) {
                                 );
                             })}
                         </div>
-                    ) : (
-                        <div className='game-action-overlay__commentary'>
-                            {commentary.length ? commentary.map((entry, index) => (
-                                <div key={`commentary-${index}`} className='game-action-overlay__commentary-entry'>
-                                    {entry}
-                                </div>
-                            )) : (
-                                <div className='game-action-overlay__commentary-entry game-action-overlay__commentary-entry--empty'>
-                                    Waiting for table activity
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    ) : null}
                 </div>
             </div>
         </div>
+
+        </>
     );
 }
 

@@ -22,7 +22,12 @@ class Service {
     this.bHasSplit = oParticipantData.bHasSplit ?? false;
     this.aSplitHand = oParticipantData.aSplitHand ?? [];
     this.nSplitCardScore = oParticipantData.nSplitCardScore ?? 0;
-    this.sAvatar = oParticipantData.sAvatar ?? '';
+    this.eSplitPhase = oParticipantData.eSplitPhase ?? null;
+    this.bSplitHand1Locked = oParticipantData.bSplitHand1Locked ?? false;
+    this.bSplitHand2Locked = oParticipantData.bSplitHand2Locked ?? false;
+    this.nSplitHand1RoundCount = oParticipantData.nSplitHand1RoundCount ?? 0;
+    this.nSplitHand2RoundCount = oParticipantData.nSplitHand2RoundCount ?? 0;
+    this.sAvatar = oParticipantData.sAvatar ?? '';;
     this.bHasAceAndBust = oParticipantData.bHasAceAndBust ?? false;
     this.nLastBidChips = oParticipantData.nLastBidChips ?? 0;
     this.nTotalBidChips = oParticipantData.nTotalBidChips ?? 0;
@@ -291,6 +296,11 @@ class Service {
       'bHasSplit',
       'aSplitHand',
       'nSplitCardScore',
+      'eSplitPhase',
+      'bSplitHand1Locked',
+      'bSplitHand2Locked',
+      'nSplitHand1RoundCount',
+      'nSplitHand2RoundCount',
       'sAvatar',
       'bHasAceAndBust',
       'sRootSocket',

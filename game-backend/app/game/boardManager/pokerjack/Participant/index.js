@@ -26,8 +26,10 @@ class Participant extends Service {
       this.oBoard.nMaxBet = this.oBoard.nTableChips;
       this.nLastBidChips += nCallAmount;
       this.nTotalBidChips = (this.nTotalBidChips ?? 0) + nCallAmount;
-      if (!bCallStand && this.nChips <= 0) {
+      if (this.nChips <= 0) {
         this.nChips = 0;
+        this.isAllInLock = true;
+        if (!bCallStand) this.aUserAction = ['f'];
       }
 
       if (nCallAmount > 0) {
@@ -80,7 +82,7 @@ class Participant extends Service {
 
       // if (this.oBoard.nTableChips >= this.oBoard.nMaxTableAmount) return this.reachMaxTableAmount();
 
-      return await this.passTurn();
+      return this.bHasSplit && this.eSplitPhase ? await this.advanceSplitPhase() : await this.passTurn();
     } catch (error) {
       console.log('Error in call method:', error);
     }
@@ -185,7 +187,7 @@ class Participant extends Service {
           await this.oBoard.saveLogs([{ sAction: 'allin-raise', eLogType: 'game', iUserId: this.iUserId, nRaiseAmount, nToCallAmount, nAllInDebit, nActualRaiseAmount }]);
         }
 
-        return await this.passTurn();
+        return this.bHasSplit && this.eSplitPhase ? await this.advanceSplitPhase() : await this.passTurn();
       }
 
       // Player has acted on their current turn; prevent stale timeout fold on this turn.
@@ -198,8 +200,10 @@ class Participant extends Service {
       this.oBoard.nMaxBet = this.oBoard.nTableChips;
       this.nLastBidChips += nTotalDebit;
       this.nTotalBidChips = (this.nTotalBidChips ?? 0) + nTotalDebit;
-      if (!bRaiseStand && this.nChips <= 0) {
+      if (this.nChips <= 0) {
         this.nChips = 0;
+        this.isAllInLock = true;
+        if (!bRaiseStand) this.aUserAction = ['f'];
       }
 
       await this.recordTransaction({
@@ -253,7 +257,7 @@ class Participant extends Service {
 
       // if (this.oBoard.nTableChips >= this.oBoard.nMaxTableAmount) return this.reachMaxTableAmount();
 
-      return await this.passTurn();
+      return this.bHasSplit && this.eSplitPhase ? await this.advanceSplitPhase() : await this.passTurn();
     } catch (error) {
       console.log('Error in raise method:', error);
     }
@@ -410,7 +414,7 @@ class Participant extends Service {
         },
       ]);
 
-      return await this.passTurn();
+      return this.bHasSplit && this.eSplitPhase ? await this.advanceSplitPhase() : await this.passTurn();
     } catch (error) {
       console.log('Error in allInShortCall method:', error);
     }
@@ -421,6 +425,9 @@ class Participant extends Service {
       const sTutorialError = this.getTutorialActionError('doubleDown', oData);
       if (sTutorialError) return callback({ error: sTutorialError });
 
+      if (this.bHasSplit) return callback({ error: 'Double down is not allowed on a split hand' });
+
+      if (this.oBoard.nTableRound !== 2) return callback({ error: 'Double down is only available in round 2' });
       const nDoubleDownAmount = this.oBoard.nMinBet * 2;
       if (this.nChips < nDoubleDownAmount) {
         return callback({ error: "Oh no! You don't have enough chips to play here, Would you like to visit the store to top up your bankroll?" });
@@ -558,7 +565,7 @@ class Participant extends Service {
 
       // if (this.oBoard.nTableChips >= this.oBoard.nMaxTableAmount) return this.reachMaxTableAmount();
 
-      return await this.passTurn();
+      return this.bHasSplit && this.eSplitPhase ? await this.advanceSplitPhase() : await this.passTurn();
     } catch (error) {
       console.log('Error in stand method:', error);
     }
@@ -605,7 +612,11 @@ class Participant extends Service {
       // Player has acted on their current turn; prevent stale timeout fold on this turn.
       await this.oBoard.deleteScheduler('assignTurnTimeout', this.iUserId);
 
-      await this.passTurn();
+      if (this.bHasSplit && this.eSplitPhase) {
+        await this.advanceSplitPhase();
+      } else {
+        await this.passTurn();
+      }
       return await this.oBoard.saveLogs([{ sAction: 'check', eLogType: 'game', iUserId: this.iUserId }]);
     } catch (error) {
       console.log('Error in check method:', error);
@@ -662,6 +673,13 @@ class Participant extends Service {
       else this.aUserAction = this.aUserAction.map(action => (action === 'ck' ? 'c' : action));
 
       if (this.nChips < nToCallAmount) this.aUserAction = ['f', 'a'];
+      // Safety net: chips exactly 0 after a raise/call — ensure all-in lock is honoured
+      if (this.nChips === 0 && nToCallAmount > 0) {
+        this.isAllInLock = true;
+        this.nPlayerTurnCount += 1;
+        await this.oBoard.update({ aParticipant: [this.toJSON()] });
+        return await this.passTurn();
+      }
       await this.oBoard.update({ iUserTurn: this.iUserId, aParticipant: [this.toJSON()] });
 
       this.oBoard.emit('resPlayerTurn', {
@@ -671,6 +689,7 @@ class Participant extends Service {
         aUserAction: this.aUserAction,
         nMinBet: this.oBoard.nMinBet,
         toCallAmount: nToCallAmount,
+        eSplitPhase: this.eSplitPhase ?? null,
       });
       this.oBoard.saveLogs([{ sAction: 'assignTurn', eLogType: 'game', iUserId: this.oBoard.iUserTurn }]);
       if (this.isAutomatedPlayer()) {
@@ -789,6 +808,45 @@ class Participant extends Service {
     }
   }
 
+  async advanceSplitPhase() {
+    if (!this.bHasSplit || !this.eSplitPhase) return await this.passTurn();
+
+    if (this.eSplitPhase === 'hand1') {
+      this.nSplitHand1RoundCount += 1;
+      // All-in on hand1 — auto-fold hand2
+      if (this.nChips === 0) {
+        this.bSplitHand2Locked = true;
+        this.eSplitPhase = null;
+        await this.oBoard.update({ aParticipant: [this.toJSON()] });
+        await this.oBoard.emit('resSplitAutoFold', {
+          iUserId: this.iUserId,
+          sReason: 'allin',
+          sMessage: 'Your second hand was folded — you went all-in on hand 1',
+        });
+        return await this.passTurn();
+      }
+      // Advance to hand2 if it is not already locked
+      if (!this.bSplitHand2Locked) {
+        this.eSplitPhase = 'hand2';
+        await this.oBoard.update({ aParticipant: [this.toJSON()] });
+        return await this.takeTurn();
+      }
+      // hand2 already locked — done
+      this.eSplitPhase = null;
+      await this.oBoard.update({ aParticipant: [this.toJSON()] });
+      return await this.passTurn();
+    }
+
+    if (this.eSplitPhase === 'hand2') {
+      this.nSplitHand2RoundCount += 1;
+      this.eSplitPhase = null;
+      await this.oBoard.update({ aParticipant: [this.toJSON()] });
+      return await this.passTurn();
+    }
+
+    return await this.passTurn();
+  }
+
   async passTurn() {
     try {
       if (this.oBoard.eState !== 'playing') return false;
@@ -836,6 +894,12 @@ class Participant extends Service {
 
       const bRoundSettled = aActiveParticipants.every(p => {
         if (p.isAllInLock) return true;
+        if (p.bHasSplit) {
+          // A split player is settled when each hand has acted at least once or is locked
+          const hand1Settled = p.bSplitHand1Locked || p.nSplitHand1RoundCount > 0;
+          const hand2Settled = p.bSplitHand2Locked || p.nSplitHand2RoundCount > 0;
+          return hand1Settled && hand2Settled;
+        }
         const bCheckOpenState = p.aUserAction.includes('ck') && !p.aUserAction.includes('c');
         const nRequiredContribution = bCheckOpenState ? 0 : this.oBoard.nMinBet;
         return p.nPlayerTurnCount > 0 && p.nLastBidChips >= nRequiredContribution;
@@ -893,7 +957,7 @@ class Participant extends Service {
         return callback({ error: 'Split requires your hole card to match the community card' });
       }
 
-      const nSplitAmount = this.oBoard.nMinBet;
+      const nSplitAmount = this.nLastBidChips; // match the wager already placed for this round
       if (this.nChips < nSplitAmount) {
         return callback({ error: "Not enough chips to split" });
       }
@@ -939,6 +1003,11 @@ class Participant extends Service {
       }
 
       this.bHasSplit = true;
+      this.eSplitPhase = 'hand1';
+      this.bSplitHand1Locked = false;
+      this.bSplitHand2Locked = false;
+      this.nSplitHand1RoundCount = 0;
+      this.nSplitHand2RoundCount = 0;
 
       await this.oBoard.update({
         aDeck: this.oBoard.aDeck,
@@ -963,7 +1032,7 @@ class Participant extends Service {
       });
 
       await this.oBoard.saveLogs([{ sAction: 'split', eLogType: 'game', iUserId: this.iUserId, nSplitAmount }]);
-      return await this.passTurn();
+      return await this.takeTurn();
     } catch (error) {
       console.log('Error in split method:', error);
     }

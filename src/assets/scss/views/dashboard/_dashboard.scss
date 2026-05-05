@@ -1,3 +1,62 @@
+// ================================================================
+// LOBBY PAGE — EASY ADJUSTMENTS
+// Only edit values in this block. Nothing else needs to be touched.
+// ================================================================
+
+// --- PAGE SPACING ---
+// The gap between the fixed header bar and the start of page content
+$lobby-padding-top:    60px;
+// Left and right edge space (how close content gets to the screen edge)
+$lobby-padding-side:   14px;
+// Space below the last card at the bottom of the page
+$lobby-padding-bottom: 28px;
+
+// --- HERO CARD (the large glass panel at the top) ---
+// Space between the rows of content inside the hero card
+$hero-gap:     510px;
+// Inner padding of the hero card (top / right / bottom / left)
+$hero-padding: 18px 18px 18px;
+
+// --- BANKROLL CHIP (the player widget — name, avatar, balance) ---
+// How far the chip floats UP above the hero card edge (more negative = higher)
+$bankroll-offset-up:    20px;
+// Padding inside the chip pill (top/bottom  left/right)
+$bankroll-chip-padding:  8px 12px;
+// Width & height of the profile picture
+$bankroll-avatar-size:   34px;
+// Font size of the balance number (the gold chip count)
+$bankroll-balance-size:  28px;
+
+// --- UTILITY STRIP (the row of info pills below the hero) ---
+// Padding around the pill row (top / right / bottom / left)
+$utility-strip-padding: 18px 18px 0;
+
+// --- QUICK LINKS (the 4 icon shortcut buttons) ---
+// Padding around the entire icon grid
+$quick-links-padding:   0 18px 0;
+// Minimum height of each icon button
+$quick-link-height:     76px;
+// Inner padding of each icon button
+$quick-link-padding:    12px 8px;
+// Size of the icon svg inside each button
+$quick-link-icon-size:  20px;
+// Size of the label text below each icon
+$quick-link-label-size: 10px;
+
+// --- TABLE ROWS (the clickable game table cards in the list) ---
+// Inner padding of each table row card
+$table-row-padding: 16px;
+
+// --- NAV BUTTONS (e.g. Play Now, Lobby) ---
+// Height of the navigation buttons
+$nav-button-height: 52px;
+// Text size inside navigation buttons
+$nav-button-font:   13px;
+
+// ================================================================
+// END OF EASY ADJUSTMENTS — do not edit below this line
+// ================================================================
+
 .dashboard-container {
     // min-height: 100vh;
     position: relative;
@@ -188,11 +247,8 @@
 .dashboard-hub {
     &__hero {
         gap: 12px;
-        padding: 0;
-        border: 0;
-        background: transparent;
-        box-shadow: none;
-        overflow: visible;
+        padding: 0 0 18px;
+        overflow: hidden;
     }
 
     &__utility-strip {
@@ -202,7 +258,7 @@
         align-items: stretch;
         overflow: visible;
         max-width: 100%;
-        padding-bottom: 0;
+        padding: 18px 18px 0;
         scrollbar-width: none;
 
         &::-webkit-scrollbar {
@@ -246,21 +302,29 @@
         }
     }
 
+    &__quick-links {
+        padding: 0 18px 0;
+    }
+
     &__brand-mark {
-        flex: 0 1 240px;
+        flex: 1 1 auto;
         min-width: 0;
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        justify-content: center;
-        padding: 10px 12px;
+        justify-content: flex-start;
+        padding: 8px 12px;
         color: #f5fbff;
         text-decoration: none;
     }
 
     &__brand-mark-svg {
         display: block;
-        width: min(100%, 228px);
+        width: 100%;
+        max-width: 100%;
+        max-height: 64px;
         height: auto;
+        object-fit: contain;
+        object-position: left center;
     }
 
     &__player-chip {
@@ -269,17 +333,18 @@
         display: inline-flex;
         align-items: center;
         gap: 12px;
-        padding: 10px 12px;
+        padding: 0 12px;
         border-radius: 22px;
         color: #f5fbff;
         text-align: left;
+        margin-top: 0;
     }
 
     &__player-chip-avatar {
-        width: 44px;
-        height: 44px;
-        border-radius: 14px;
-        padding: 4px;
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        padding: 3px;
         border: 1px solid rgba(180, 219, 255, 0.16);
         background: linear-gradient(180deg, rgba(63, 129, 191, 0.28) 0%, rgba(23, 58, 94, 0.34) 100%);
         flex: 0 0 auto;
@@ -848,14 +913,14 @@
         width: min(100%, 1420px);
         margin-inline: auto;
         display: grid;
-        gap: 16px;
+        gap: 24px;
     }
 
     &__hero {
         position: relative;
         display: grid;
         gap: 18px;
-        padding: 18px;
+        padding: 0 0 18px;
         border-radius: 28px;
         border: 1px solid rgba(111, 158, 206, 0.28);
         background: linear-gradient(180deg, rgba(10, 31, 51, 0.94) 0%, rgba(5, 20, 35, 0.98) 100%);
@@ -5238,6 +5303,10 @@
         gap: 16px;
     }
 
+    &__tab-body--profile {
+        padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+    }
+
     &__store-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -6472,5 +6541,159 @@
 
     50% {
         filter: saturate(1.18) brightness(1.08);
+    }
+}
+
+// ================================================================
+// LOBBY PAGE — APPLIED ADJUSTMENTS
+// These rules apply the variables defined at the top of this file.
+// Edit the values UP THERE, not here.
+// ================================================================
+.dashboard-hub {
+    padding: $lobby-padding-top $lobby-padding-side $lobby-padding-bottom;
+
+    &__hero {
+        gap: $hero-gap;
+        padding: $hero-padding;
+    }
+
+    &__player-chip {
+        margin-top: $bankroll-offset-up;
+        padding: $bankroll-chip-padding;
+        flex: 0 0 auto;   // don't stretch — logo fills remaining space
+    }
+
+    &__player-chip-avatar {
+        width: $bankroll-avatar-size;
+        height: $bankroll-avatar-size;
+    }
+
+    &__player-chip-balance-value {
+        font-size: $bankroll-balance-size;
+    }
+
+    &__utility-strip {
+        padding: $utility-strip-padding;
+        align-items: center;  // vertically centre logo and chip on the same line
+    }
+
+    &__quick-links {
+        padding: $quick-links-padding;
+    }
+
+    &__quick-link {
+        min-height: $quick-link-height;
+        padding: $quick-link-padding;
+
+        svg {
+            font-size: $quick-link-icon-size;
+        }
+
+        span {
+            font-size: $quick-link-label-size;
+        }
+    }
+
+    &__table-row {
+        padding: $table-row-padding;
+    }
+
+    &__nav-button {
+        min-height: $nav-button-height;
+        font-size: $nav-button-font;
+    }
+}
+// ================================================================
+
+// --- FIXED LOBBY TOPBAR ---
+.lobby-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    height: $lobby-padding-top;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    background: linear-gradient(180deg, rgba(4, 18, 32, 0.98) 0%, rgba(3, 14, 26, 0.97) 100%);
+    border-bottom: 1px solid rgba(111, 158, 206, 0.22);
+    backdrop-filter: blur(16px) saturate(160%);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.36);
+
+    &__logo {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        flex: 0 0 auto;
+    }
+
+    &__logo-img {
+        height: 48px;
+        width: auto;
+        object-fit: contain;
+        display: block;
+    }
+
+    &__bankroll {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 12px 6px 6px;
+        border-radius: 999px;
+        border: 1px solid rgba(145, 202, 255, 0.28);
+        background: linear-gradient(180deg, rgba(16, 42, 68, 0.96) 0%, rgba(8, 22, 38, 0.98) 100%);
+        box-shadow: inset 0 1px 0 rgba(220, 242, 255, 0.1), 0 8px 20px rgba(0, 0, 0, 0.24);
+        cursor: pointer;
+        transition: border-color 0.2s ease, transform 0.2s ease;
+        flex: 0 0 auto;
+
+        &:hover {
+            border-color: rgba(145, 202, 255, 0.54);
+            transform: translateY(-1px);
+        }
+    }
+
+    &__bankroll-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 1px solid rgba(180, 219, 255, 0.2);
+        flex: 0 0 auto;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+    }
+
+    &__bankroll-copy {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+    }
+
+    &__bankroll-name {
+        color: rgba(210, 235, 255, 0.82);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        line-height: 1;
+    }
+
+    &__bankroll-amount {
+        color: #f6cf74;
+        font-family: 'Neue Plak Condensed', 'TT Commons', sans-serif;
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: 0.02em;
+        text-shadow: 0 0 16px rgba(255, 214, 110, 0.2);
     }
 }

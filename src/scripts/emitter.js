@@ -8,6 +8,7 @@ const emitter = {
     reqCheck: 'reqCheck',
     reqSplit: 'reqSplit',
     reqForcePair: 'reqForcePair',
+    reqReaction: 'reqReaction',
 }
 
 export default emitter;

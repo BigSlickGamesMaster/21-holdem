@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import config from '../scripts/config';
 import assets from '../scripts/assets';
 import _ from '../scripts/helper';
@@ -25,49 +25,13 @@ import {
 } from '../scripts/gameActionOverlayBridge';
 import GameInfo from 'prefabs/GameInfo';
 /**
- * ======================================================================
- * Level.js  (PHASER GAME SCENE) — FULL BEGINNER WALKTHROUGH
- * ======================================================================
- *
- * If you're new: THIS is the “main game screen”.
- * Everything you SEE during a hand mostly originates here:
- * - table UI, header/footer
- * - player seats (profiles)
- * - buttons (check/call/raise/double-down/stand etc)
- * - cards / animations
- *
- * --------------------------------------------------------------
- * How to read this file (recommended order)
- * --------------------------------------------------------------
- * 1) Start at: create()
- *    That’s the “boot sequence” for the scene.
- * 2) Then read: setHeader(), setTable(), setFooter(), setButtons()
- *    Those build the UI pieces.
- * 3) Then read: createPlayerProfiles()
- *    That spawns seats around the table.
- * 4) Then read the request methods (reqX)
- *    Those are “player clicked a button → talk to server”.
- * 5) Then read the response methods (setX / onX)
- *    Those are “server replied → update UI/state”.
- *
- * --------------------------------------------------------------
- * SAFE EDIT RULES (so you don’t brick the game)
- * --------------------------------------------------------------
- * ✅ Safe to change:
- * - numbers (x/y positions, scale, font sizes)
- * - timing values (delays, animation durations) IF clearly labeled
- * - text labels (button text, prompt messages)
- *
- * ⚠️ Be careful:
- * - Anything that looks like a server key: iUserId, iBoardId, nChips, etc.
- * - Socket event names (must match server)
- *
- * ❌ Do NOT do as a beginner:
- * - rename properties inside server payload objects
- * - change array lengths (player seats) without updating all places
- *
- * Tip: change ONE thing → reload → verify. Repeat.
- * ======================================================================
+ * Level -- main Phaser game scene.
+ * - create(): boots the scene, connects socket, builds UI.
+ * - setHeader/setTable/setFooter/setButtons(): build UI containers.
+ * - createPlayerProfiles(): spawns player seats around the table.
+ * - req*(): player action -> socket emit to server.
+ * - setX()/handleX(): server response -> UI update.
+ * Note: server payload keys (iUserId, nChips, etc.) must not be renamed.
  */
 
 export default class Level extends Phaser.Scene {
@@ -524,25 +488,6 @@ createGameActionOverlayRow(id, buttonKeys = [], className = '') {
     };
 }
 
-getOverlayCommentaryPlayerName(iUserId) {
-    const player = this.players?.get?.(iUserId);
-    const rawName = player?.sUserName || player?.name || '';
-    if (rawName) return _.appendSuffix(_.getFirstCapital(rawName), 10, '..');
-    return String(iUserId) === String(this.iUserId) ? 'You' : 'Player';
-}
-
-pushOverlayCommentary(message = '') {
-    const nextMessage = String(message || '').trim();
-    if (!nextMessage) return;
-
-    const nextEntries = Array.isArray(this.aOverlayCommentary) ? [...this.aOverlayCommentary] : [];
-    if (nextEntries[0] === nextMessage) return;
-
-    nextEntries.unshift(nextMessage);
-    this.aOverlayCommentary = nextEntries.slice(0, 6);
-    this.syncGameActionOverlay();
-}
-
     syncGameActionOverlay() {
         if (!this.oButtons) {
             hideGameActionOverlay();
@@ -571,10 +516,7 @@ pushOverlayCommentary(message = '') {
         const tableBankroll = Number.isFinite(Number(this.nOverlayTableBankroll))
             ? Number(this.nOverlayTableBankroll)
             : Number(this.oGameManager?.nMyPlayerChips);
-        const commentary = this.isMyTurn
-            ? []
-            : (Array.isArray(this.aOverlayCommentary) ? this.aOverlayCommentary.slice(0, 6) : []);
-        const shouldShowTray = Boolean(this.isOverlayReady && (aVisibleRows.length > 0 || commentary.length > 0 || Number.isFinite(tableBankroll)));
+        const shouldShowTray = Boolean(this.isOverlayReady && (aVisibleRows.length > 0 || Number.isFinite(tableBankroll)));
 
         emitGameActionOverlayState({
             visible: shouldShowTray,
@@ -586,7 +528,6 @@ pushOverlayCommentary(message = '') {
                     : ''),
             rows: aVisibleRows,
             tableBankroll: Number.isFinite(tableBankroll) ? tableBankroll : null,
-            commentary,
         });
     }
 
@@ -596,8 +537,23 @@ bindGameActionOverlayEvents() {
     this.handleGameActionOverlayCommand = (event) => {
         const command = String(event?.detail?.command || '');
         if (!command) return;
-        // DEV toggles are always allowed regardless of turn state
-        if (command !== 'toggleForcePair' && !this.isMyTurn) return;
+
+        // Commands that bypass the isMyTurn guard:
+        if (command === 'openShop') {
+            this.popup.open({
+                confirm: true,
+                title: 'LEAVE TABLE',
+                message: 'Visiting the shop will take you away from the table. Your hand will continue automatically.',
+                callback: () => {
+                    if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('bsg:navigate', { detail: { path: '/lobby?tab=lobby-shop' } }));
+                    }
+                },
+            });
+            return;
+        }
+
+        if (!this.isMyTurn) return;
 
         switch (command) {
             case 'fold':
@@ -617,7 +573,7 @@ bindGameActionOverlayEvents() {
                 this.openRaiseBuilder();
                 break;
             case 'exitTable':
-                this.popup.showConfirm({ title: 'EXIT', message: this.oGameManager.exitMessage, callback: () => {
+                this.popup.open({ confirm: true, title: 'EXIT', message: this.oGameManager.exitMessage, callback: () => {
                     this.reqLeaveGame();
                 }});
                 break;
@@ -659,20 +615,18 @@ bindGameActionOverlayEvents() {
             case 'cancelRaiseConfirm':
                 this.openRaiseBuilder();
                 break;
-            case 'toggleForcePair':
-                this.bForcePairDeal = !this.bForcePairDeal;
-                if (this.bForcePairDeal && this.oSocketManager) {
-                    this.oSocketManager.emit(emitter.reqForcePair);
-                }
-                // Broadcast updated state back so the overlay button reflects toggle
-                window.dispatchEvent(new CustomEvent('forcePairStateChange', { detail: { active: this.bForcePairDeal } }));
-                break;
             default:
                 break;
         }
     };
 
     window.addEventListener(GAME_ACTION_OVERLAY_COMMAND_EVENT, this.handleGameActionOverlayCommand);
+
+    this.handleEmojiSent = (event) => {
+        const sEmoji = event?.detail?.sEmoji;
+        if (sEmoji) this.showPlayerEmoji(sEmoji);
+    };
+    window.addEventListener('bsg:emoji-sent', this.handleEmojiSent);
 }
 
 getTutorialActionFromState() {
@@ -845,16 +799,15 @@ getCommunityCardBasePosition() {
 
 getCommunityCardPosition(index = 0, totalCards = 0) {
     const { gap } = this.getCommunityCardLayoutMetrics();
-    const safeCount = Math.max(1, Number(totalCards) || 1);
-    const normalizedPos = safeCount > 1 ? (index - (safeCount - 1) / 2) / ((safeCount - 1) / 2) : 0;
-    const offset = normalizedPos * ((safeCount - 1) / 2) * gap;
-    const arcY = normalizedPos * normalizedPos * 10; // parabolic arc: outer cards slightly lower
     const base = this.getCommunityCardBasePosition();
+    // Left-anchored: card 0 is fixed at the left of a max 5-card spread;
+    // subsequent cards step right by gap. No recentering as cards are added.
+    const leftAnchor = base.x - 2 * gap;
 
     return {
-        x: Math.round(base.x + offset),
-        y: Math.round(base.y + arcY),
-        angle: normalizedPos * 4, // tilt: outer cards lean outward
+        x: Math.round(leftAnchor + index * gap),
+        y: Math.round(base.y),
+        angle: 0,
     };
 }
 
@@ -1660,27 +1613,8 @@ setConsolePrompt(label = 'Waiting for turn') {
     }
 }
 
-    // ==============================================================
-    // HEADER (top bar) — ping display + settings/exit buttons
-    // ==============================================================
-    // Edit tips:
-    // - To move header items: adjust x/y numbers in this method.
-    // - To change text style: change fontSize / color in txt_ping.
-    // Expected outcome:
-    // - You’ll see changes immediately on reload (pure UI).
-
+    // Header: ping, settings, and exit buttons.
     setHeader() {
-        const ping_bg = this.add.image(config.centerX, 88, assets.ping_bg).setScale(1.18);
-        this.container_header.add(ping_bg);
-
-        const wifi_icon = this.add.image(ping_bg.x - 20, ping_bg.y, assets.wifi_icon).setScale(1.18);
-        this.container_header.add(wifi_icon);
-
-        const txt_ping = this.add.text(wifi_icon.x + wifi_icon.displayWidth + 15, wifi_icon.y, '', {
-            fontSize: 26, fontFamily: config.CommonFont, color: '#ffffff'
-        }).setOrigin(0.5, 0.5);
-        this.container_header.add(txt_ping);
-
         const btn_setting = new Button(this, 84, 88, { texture: assets.btn_setting, scaleX: 0.72, scaleY: 0.72 }, () => {
             btn_setting.setVisible(false);
             this.settings.open();
@@ -1696,18 +1630,10 @@ setConsolePrompt(label = 'Waiting for turn') {
         });
         this.container_header.add(btn_exit);
 
-        this.oHeader = { btn_setting: btn_setting, btn_exit: btn_exit, txt_ping: txt_ping };
+        this.oHeader = { btn_setting: btn_setting, btn_exit: btn_exit };
     }
 
-    // ==============================================================
-    // TABLE (center) — felt/table image + private table code UI
-    // ==============================================================
-    // Edit tips:
-    // - Change private table message text here.
-    // - Change code box size by changing setScale() on code_base.
-    // Expected outcome:
-    // - Only visuals / copy-to-clipboard UI changes.
-
+    // Table: felt background and private table code overlay.
     setTable() {
         // Private table overlay container
         const container_private_table = this.add.container(0, 0).setVisible(false);
@@ -1764,7 +1690,7 @@ setConsolePrompt(label = 'Waiting for turn') {
         });
         container_private_table.add(btn_copy);
 
-        // Deck card (hidden — not shown at this time)
+        // Deck card (hidden â€” not shown at this time)
         const { scale: communityCardScale } = this.getCommunityCardLayoutMetrics();
         const deckPosition = this.getDeckCardPosition();
         const close_deck_card = this.add
@@ -1789,15 +1715,7 @@ setConsolePrompt(label = 'Waiting for turn') {
         }
     }
 
-    // ==============================================================
-    // FOOTER (bottom bar) — your chips, bet size, action prompts
-    // ==============================================================
-    // Edit tips:
-    // - Move chip icon / text positions: edit setX() offsets.
-    // - Change formatting: look for formatCurrency calls.
-    // Expected outcome:
-    // - Only affects what the player sees, not server bets.
-
+    // Footer: player chip stack, bet display, and action prompts.
     setFooter() {
         const footerY = config.height - 128;
         const action_tray = this.add.zone(config.centerX, footerY, 10, 10);
@@ -2031,14 +1949,7 @@ createFloatSplitButton() {
 
     }
 
-    // ==============================================================
-    // SOCKET CONNECTION — creates SocketManager which wires server events
-    // ==============================================================
-    // Beginner warning:
-    // - sAuthToken / iBoardId must be correct or you won't join the table.
-    // Safe edits:
-    // - Usually none here. If debugging connection, add console.log payload.
-
+    // Connects SocketManager using sAuthToken + iBoardId.
     makeSocketConnection() {
         this.oSocketManager = new SocketManager(this, {
             sAuthToken: this.sAuthToken,
@@ -2053,16 +1964,7 @@ createFloatSplitButton() {
         this.fallbackPath = fallbackPath;
     }
 
-    // ==============================================================
-    // create() — Scene boot sequence (runs once when Level starts)
-    // ==============================================================
-    // What you can safely edit here:
-    // - initial default values (numbers / booleans) for local state
-    // - what UI components are created first
-    // What you should NOT change as a beginner:
-    // - the order of socket connection + service initialization (unless you know why)
-    // - IDs coming from server (iUserId, iBoardId, etc.)
-
+    // Scene boot: initializes state, builds UI, connects socket, binds events.
     async create() {
         this.nOpponentIndex = 1;
         this.nPingCounter = 0;
@@ -2081,7 +1983,6 @@ createFloatSplitButton() {
         this.isOverlayReady = false;
         this.iSelecetdCardId = '';
         this.oTutorialState = null;
-        this.aOverlayCommentary = ['Waiting for turn'];
 
         this.cards = [];
         this.selectedCards = [];
@@ -2093,13 +1994,7 @@ createFloatSplitButton() {
         this.emitTutorialOverlay({ type: 'sceneReady' });
         this.oServices = new Services({ sRoot: getApiRoot(), authorization: this.sAuthToken });
 
-        // [UI BUILD] editorCreate() is usually an auto-generated builder method.
-        // It creates containers and base images/text (the scaffolding).
-        // If you want to move UI around, you typically change:
-        // - GameManager seat coordinates OR
-        // - the specific setX() methods (setHeader/setFooter/etc).
-        // Beginners: treat editorCreate() as “base layout created here”.
-
+        // Build base UI containers and scaffolding.
         this.editorCreate();
         this.initializeGameUILayout();
         this.bindGameUILayoutEvents();
@@ -2109,12 +2004,7 @@ createFloatSplitButton() {
         window.FXOverlay?.enable?.();
         window.FXOverlay?.setSoundEnabled?.(this.oSoundManager.isSoundOn);
         window.FXOverlay?.setMusicEnabled?.(this.oSoundManager.isMusicOn);
-        // [PROFILE SETTINGS] Pulls player settings from your API (sound/music toggles).
-        // Safe edits:
-        // - you can change what happens after profile loads (e.g., default sound on/off)
-        // Expected outcome if you change the toggles here:
-        // - it will change initial sound/music state when the scene loads.
-
+        // Fetch player settings (sound/music) and apply to sound manager.
         this.oServices.profile().then(res => {
             const data = res.data.data;
             this.oSoundManager.setSoundEnabled(data.bSoundEnabled);
@@ -2138,20 +2028,13 @@ createFloatSplitButton() {
             if (document.visibilityState === 'hidden') this.exitGame();
         };
         this.popStateHandler = () => this.exitGame();
-        // [BROWSER EVENTS] These handlers exit the game if the tab becomes hidden
-        // or user navigates back. This prevents desync / AFK abuse.
-        // Safe edits:
-        // - You can change the behavior to show a popup instead of instant exit.
-        // Expected outcome:
-        // - If you remove these, players can background the game and keep seat.
-
+        // Exit game on tab hide or browser back â€” prevents desync and seat abuse.
         window.addEventListener('visibilitychange', this.visibilityChangeHandler);
         window.addEventListener('popstate', this.popStateHandler);
         this.events.once('shutdown', this.cleanupGameBindings, this);
         this.events.once('destroy', this.cleanupGameBindings, this);
     }
     setCardHand({ aCardHand, nCardScore }) {
-        this.oGameManager.exitMessage = 'Are you sure you want to quit?\nIf you quit now, your hand will be folded automatically, and you’ll lose your chance to win this round.';
         this.oTable.container_private_table.setVisible(false);
         const playersArray = Array.from(this.players.values());
         const myPlayer = this.players.get(this.iUserId);
@@ -2200,13 +2083,13 @@ createFloatSplitButton() {
             });
         });
     }
-    animateCard(cardData, cardIndex, player, playerIndex) {
-        this.createCard(cardData, player);
+    animateCard(cardData, cardIndex, player, playerIndex, targetContainer = null) {
+        this.createCard(cardData, player, null, targetContainer);
     }
-    async createCard(cardData, player, animatedCard) {
+    async createCard(cardData, player, animatedCard, targetContainer = null) {
         if (this.playerHasRenderedCard(player, cardData?._id)) return;
 
-        const container = player?.playerProfile?.container_cards;
+        const container = targetContainer || player?.playerProfile?.container_cards;
         if (!container) return;
 
         const cardSpacing = 25;
@@ -2228,7 +2111,8 @@ createFloatSplitButton() {
 
         container.setVisible(true);
         container.add(card);
-        const cardsList = player?.playerProfile?.container_cards.list || [];
+        // Open own cards regardless of which container they went into
+        const cardsList = container.list || [];
         for (let index = 0; index < cardsList.length; index++) {
             const card = cardsList[index];
             if (player?.iUserId === this.iUserId) {
@@ -2244,45 +2128,27 @@ createFloatSplitButton() {
             this.waitingForNextRoundStart(Math.round(nRoundStartsIn / 1000));
             return;
         }
-        const seconds = Math.max(0, Math.round(nInitializeTimer / 1000));
-        this.prompt.show(`Game will starts in ${seconds} second(s)`);
         this.declreResultInterval && clearInterval(this.declreResultInterval);
         this.timer && clearInterval(this.timer);
-        this.timer = setInterval(() => {
-            if (nInitializeTimer <= 0) {
-                clearInterval(this.timer);
-                this.prompt.hide();
-            } else {
-                nInitializeTimer -= 1000;
-                const remainingSeconds = Math.max(0, Math.round(nInitializeTimer / 1000));
-                this.prompt.txt_message.setText(`Game will starts in ${remainingSeconds} second(s)`);
-            }
-        }, 1000);
     }
     waitingForNextRoundStart(remainingTime) {
         this.timer && clearInterval(this.timer);
         this.declreResultInterval && clearInterval(this.declreResultInterval);
-        this.declreResultInterval = setInterval(() => {
-            remainingTime--;
-            if (remainingTime <= 0) {
-                clearInterval(this.declreResultInterval);
-                this.prompt.hide();
-            } else {
-                remainingTime < 3 && this.prompt.show(`The next round will starts in ${remainingTime} second(s)`);
-            }
-        }, 1000);
+        this.prompt.hide();
     }
     waitingForNextRound() {
         this.resetCheckCommitments();
-        this.container_community_cards.setVisible(false);
-        // Remove floatSplitBtn before removeAll(true) to prevent it from being destroyed
-        if (this.floatSplitBtn) {
-            this.container_community_cards.remove(this.floatSplitBtn, false);
-            this.floatSplitBtn.setVisible(false);
-        }
-        this.container_community_cards.removeAll(true);
-        if (this.floatSplitBtn) {
-            this.container_community_cards.add(this.floatSplitBtn);
+        // Don't wipe community cards while the hand-result display window is active
+        if (!this.bShowingHandResult) {
+            this.container_community_cards.setVisible(false);
+            if (this.floatSplitBtn) {
+                this.container_community_cards.remove(this.floatSplitBtn, false);
+                this.floatSplitBtn.setVisible(false);
+            }
+            this.container_community_cards.removeAll(true);
+            if (this.floatSplitBtn) {
+                this.container_community_cards.add(this.floatSplitBtn);
+            }
         }
         this.oTable.close_deck_card.setVisible(false);
         this.aPlayerProfiles.forEach(player => {
@@ -2292,7 +2158,6 @@ createFloatSplitButton() {
     startGame() {
         this.prompt.hide();
         this.oTable.container_private_table.setVisible(false);
-        this.container_table.setVisible(true);
         this.container_community_cards.setVisible(true);
     }
 
@@ -2346,7 +2211,7 @@ createFloatSplitButton() {
             this.iSmallBlindId = iSmallBlindId;
             const myPlayer = await this.findMyPlayer(aParticipant);
             if (!myPlayer) {
-                console.error('[setGameData] Could not match current player in participant list — skipping seat setup');
+                console.error('[setGameData] Could not match current player in participant list â€” skipping seat setup');
                 return;
             }
             this.arrangeSeats(myPlayer.nSeat);
@@ -2361,6 +2226,7 @@ createFloatSplitButton() {
             }
             this.setDealerAndBlind();
             this.syncTutorialState(this.oTutorialState);
+            this.nTableRound = Number(nTableRound) || 1;
             this.isOverlayReady = true;
             this.syncGameActionOverlay();
             // If resPlayerTurn arrived before setPlayersData finished, apply it now
@@ -2380,7 +2246,6 @@ createFloatSplitButton() {
         const player = this.players.get(oData.iUserId);
         const potIncrease = Math.max(0, Number(oData.nTableChips || 0) - Number(this.oGameManager.nPotAmount || 0));
         const nUpdatedScore = Number(oData.nCardScore);
-        const sPlayerName = this.getOverlayCommentaryPlayerName(oData.iUserId);
 
         const playerNewCards = [];
         this.oSoundManager.playSound(this.oSoundManager.doubleDown_sound, false);
@@ -2409,7 +2274,6 @@ createFloatSplitButton() {
         playerNewCards.forEach((cardData, index) => {
             this.animateCard(cardData, index, player, index);
         });
-        this.pushOverlayCommentary(`${sPlayerName} doubled down`);
         if (this.isGuestTutorial && oData.iUserId === this.iUserId) {
             this.emitTutorialOverlay({
                 type: 'userAction',
@@ -2421,7 +2285,6 @@ createFloatSplitButton() {
     handleSplit(oData) {
         const player = this.players.get(oData.iUserId);
         if (!player) return;
-        const sPlayerName = this.getOverlayCommentaryPlayerName(oData.iUserId);
 
         // Update player state
         player.bHasSplit = true;
@@ -2435,19 +2298,19 @@ createFloatSplitButton() {
         }
         player?.playerProfile?.setAmountIn(oData.nChips);
 
-        // Animate community card copy into player's hand (visible cue that the pair is being split)
+        // Animate community card copy â†’ split hand container (visual: paired card starts the split hand)
         if (oData.oCommunityCard) {
-            this.animateCard(oData.oCommunityCard, 1, player, 1);
+            this.animateCard(oData.oCommunityCard, 1, player, 1, player?.playerProfile?.container_split_cards);
         }
 
-        // Animate new main-hand private card
+        // Animate new main-hand private card â†’ main hand container
         if (oData.oMainCard) {
             this.animateCard(oData.oMainCard, 2, player, 2);
         }
 
-        // Animate new split-hand private card
+        // Animate new split-hand private card â†’ split hand container
         if (oData.oSplitCard) {
-            this.animateCard(oData.oSplitCard, 3, player, 3);
+            this.animateCard(oData.oSplitCard, 3, player, 3, player?.playerProfile?.container_split_cards);
         }
 
         // Update pot for split cost
@@ -2469,11 +2332,10 @@ createFloatSplitButton() {
         // Update main hand score display
         this.syncPlayerScoreDisplay(player, oData.nCardScore, oData.aCardHand || []);
 
-        // Hide split button — player has split, no second split allowed
+        // Hide split button â€” player has split, no second split allowed
         if (this.floatSplitBtn) this.floatSplitBtn.setVisible(false);
 
         this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
-        this.pushOverlayCommentary(`${sPlayerName} split!`);
     }
     handlePlayerBet(oData, sEventName) {
         const player = this.players.get(oData.iUserId);
@@ -2537,21 +2399,17 @@ createFloatSplitButton() {
             }
         }
 
-        const sPlayerName = this.getOverlayCommentaryPlayerName(oData.iUserId);
-
         if (sEventName === 'resCall') {
             const callAmount = oData.nLastBidChips ?? oData.nCurrentChips ?? 0;
             if (oData.iUserId != this.iUserId) {
                 player?.playerProfile?.setBettingLabel(oData.bAllIn ? 'All In' : 'Call', callAmount);
             }
-            this.pushOverlayCommentary(`${sPlayerName} ${oData.bAllIn ? 'went all in' : `called ${_.formatCurrencyWithComa(Number(callAmount) || 0)}`}`);
         } else if (sEventName === 'resRaise') {
             this.markRaiseOccurred();
             const raiseAmount = oData.nLastBidChips ?? oData.nCurrentChips ?? 0;
             if (oData.iUserId != this.iUserId) {
                 player?.playerProfile?.setBettingLabel('Raised', raiseAmount);
             }
-            this.pushOverlayCommentary(`${sPlayerName} raised to ${_.formatCurrencyWithComa(Number(raiseAmount) || 0)}`);
         } else if (sEventName === 'resStand') {
             const logs = this.oGameManager.recentLogs || [];
             const lastRaiseLog = logs.find(log =>
@@ -2564,24 +2422,20 @@ createFloatSplitButton() {
                 if (oData.iUserId != this.iUserId) {
                     player?.playerProfile?.setBettingLabel('Raise+Stand');
                 }
-                this.pushOverlayCommentary(`${sPlayerName} raised and stood`);
             } else if (lastCallStandLog) {
                 if (oData.iUserId != this.iUserId) {
                     player?.playerProfile?.setBettingLabel('Call+Stand');
                 }
-                this.pushOverlayCommentary(`${sPlayerName} called and stood`);
             } else {
                 if (oData.iUserId != this.iUserId) {
                     player?.playerProfile?.setBettingLabel('Stand');
                 }
-                this.pushOverlayCommentary(`${sPlayerName} stood`);
             }
         } else if (sEventName === 'resCheck') {
             this.markCheckCommitment(oData.iUserId);
             if (oData.iUserId != this.iUserId) {
                 player?.playerProfile?.setBettingLabel('Check');
             }
-            this.pushOverlayCommentary(`${sPlayerName} checked`);
         }
     }
     setFoldPlayer(iUserId, eState, sReason, bShowMessage, options = {}) {
@@ -2616,7 +2470,7 @@ createFloatSplitButton() {
         }
     }
     handleCommunityCard(oData) {
-        // A new community card has been dealt — reset check commitments for the next betting round.
+        // A new community card has been dealt â€” reset check commitments for the next betting round.
         this.resetCheckCommitments();
         const { aCommunityCard, aParticipant } = oData;
         const aUpdatedParticipants = Array.isArray(aParticipant) ? aParticipant : [];
@@ -2662,7 +2516,7 @@ createFloatSplitButton() {
         const { scale: communityCardScale } = this.getCommunityCardLayoutMetrics();
 
         if (sType === 'communityCard') {
-            const nExistingCount = this.container_community_cards.list.length;
+            const nExistingCount = this.container_community_cards.list.filter(item => item !== this.floatSplitBtn).length;
             const aNewCards = aCommunityCards.filter(card =>
                 !this.oGameManager.aCommunityCards.some(existingCard => existingCard._id === card._id)
             );
@@ -2794,11 +2648,14 @@ createFloatSplitButton() {
             this.iBigBlindId = iBigBlindId;
             this.iSmallBlindId = iSmallBlindId;
             this.updatePotAmount(nTableChips);
-            this.setCommunityCards(aCommunityCard);
+            // Don't wipe community cards while the hand-result display window is active
+            if (!this.bShowingHandResult) {
+                this.setCommunityCards(aCommunityCard);
+            }
             this.checkGameEState(eState);
             const myPlayer = await this.findMyPlayer(aParticipant);
             if (!myPlayer) {
-                console.error('[setBoardState] Could not match current player in participant list — skipping seat setup');
+                console.error('[setBoardState] Could not match current player in participant list â€” skipping seat setup');
                 return;
             }
             this.arrangeSeats(myPlayer.nSeat);
@@ -2811,6 +2668,7 @@ createFloatSplitButton() {
             this.isFinishGame = false;
             this.setDealerAndBlind();
             this.syncTutorialState(this.oTutorialState);
+            this.nTableRound = Number(nTableRound) || 1;
             this.isOverlayReady = true;
             this.syncGameActionOverlay();
         } catch (error) {
@@ -2868,13 +2726,15 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
         lastPlayer?.playerProfile?.resetTurnTimer();
         return lastPlayer;
     }
-    async setPlayerTurn({ iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount }) {
+    async setPlayerTurn({ iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount, eSplitPhase }) {
         if (nRemainingInitializeTime > 0 || nRemainingRoundStartsIn > 0) {
             this.resetCheckCommitments();
             this.clearStagedBetPiles();
             this.aPlayerProfiles.forEach(player => {
                 player.setAlpha(1);
                 player.container_cards.removeAll(true);
+                player.container_split_cards?.removeAll(true);
+                player.container_split_cards?.setVisible(false);
                 player.hideBettingLabel();
                 player.clearScore?.();
             });
@@ -2892,15 +2752,19 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
         }
         // If player data isn't ready yet (join race condition), defer until setGameData finishes
         if (!this.players.get(iUserId) && iUserId === this.iUserId) {
-            this.oPendingTurn = { iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount };
+            this.oPendingTurn = { iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount, eSplitPhase };
             return;
-        }
-        await this.resetTurnTimer();
+        }        await this.resetTurnTimer();
         const player = await this.players.get(iUserId);
         this.isMyTurn = player?.iUserId === this.iUserId;
         this.iLastTurnId = iUserId;
         this.oGameManager.nMinRaiseAmount = nMinBet;
         this.focusFXOverlayPlayer(player?.playerProfile);
+
+        // Highlight the active split sub-hand for all visible profiles
+        if (player?.playerProfile) {
+            player.playerProfile.highlightActiveSplitHand(eSplitPhase || 'none');
+        }
 
         if (player?.playerProfile && ttl > 0) {
             const total = nTotalTurnTime > 0 ? nTotalTurnTime : ttl;
@@ -2939,7 +2803,7 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
         : (Number.isFinite(fallbackCallAmount) ? fallbackCallAmount : 0);
     const canAffordRaise = this.getRaiseContext().maxRaiseAmount >= (Number(nMinBet) || 0);
     // If the local player previously checked and another player since raised,
-    // they are committed to an additional community card — strip stand, raise, and direct call.
+    // they are committed to an additional community card â€” strip stand, raise, and direct call.
     const iAmCheckCommitted = this.hasRaiseSinceCheck(this.iUserId);
     const actions = Array.isArray(aUserAction) ? aUserAction : [];
     actions.forEach(action => {
@@ -2948,27 +2812,17 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
                 this.oButtons.btn_fold.setVisible(true);
                 break;
             case 'c':
-                // After a check-commitment the player can no longer call/stand,
-                // only fold. Show call only when NOT committed.
-                if (!iAmCheckCommitted) {
-                    this.oButtons.btn_call.setVisible(true);
-                    this.oButtons.btn_call.bAllInMode = false;
-                    this.setCallButtonLabel(callAmount > 0 ? `Call ${_.formatCurrencyWithComa(callAmount)}` : 'Call');
-                }
+                this.oButtons.btn_call.setVisible(true);
+                this.oButtons.btn_call.bAllInMode = false;
+                this.setCallButtonLabel(callAmount > 0 ? `Call ${_.formatCurrencyWithComa(callAmount)}` : 'Call');
                 break;
             case 'r':
-                // No raise allowed after checking in the same betting round.
-                if (!iAmCheckCommitted) {
-                    this.oButtons.btn_raise.setVisible(canAffordRaise);
-                }
+                this.oButtons.btn_raise.setVisible(canAffordRaise);
                 break;
             case 's':
-                // Stand is not available after a check commitment.
-                if (!iAmCheckCommitted) {
-                    this.oButtons.btn_stand.setVisible(true);
-                    this.oButtons.btn_stand.bCallStandMode = actions.includes('c') && callAmount > 0;
-                    this.setStandButtonLabel(this.oButtons.btn_stand.bCallStandMode ? 'Call/Stand' : 'Stand');
-                }
+                this.oButtons.btn_stand.setVisible(true);
+                this.oButtons.btn_stand.bCallStandMode = actions.includes('c') && callAmount > 0;
+                this.setStandButtonLabel(this.oButtons.btn_stand.bCallStandMode ? 'Call/Stand' : 'Stand');
                 break;
             case 'a':
                 this.oButtons.btn_call.setVisible(true);
@@ -2978,6 +2832,15 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
             case 'ck':
                 this.oButtons.btn_check.setVisible(true);
                 break;
+            case 'd': {
+                const canDD = this.canShowDoubleDownAction();
+                this.oButtons.btn_doubleDown.setVisible(canDD);
+                if (canDD) {
+                    this.setGameActionButtonEnabled(this.oButtons.btn_doubleDown, true);
+                    this.oButtons.btn_doubleDown.setAlpha(1);
+                }
+                break;
+            }
             case 'sp': {
                 const canSplit = this.canShowSplitAction();
                 this.oButtons.btn_split.setVisible(canSplit);
@@ -3018,15 +2881,11 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
 }
 canShowDoubleDownAction() {
     const myPlayer = this.players?.get?.(this.iUserId);
+    if (myPlayer?.bHasSplit) return false;
     const nCardScore = Number(myPlayer?.nCardScore);
-    const communityCardCount = Array.isArray(this.oGameManager?.aCommunityCards)
-        ? this.oGameManager.aCommunityCards.length
-        : 0;
-
-    // Qualify DD at 1 community card when hand total is 9-12:
-    // 9-11 are classic DD spots (likely to land a 10-value card for 19-21);
-    // 12 included as a borderline strong spot in this hybrid game.
-    return communityCardCount === 1 && Number.isFinite(nCardScore) && nCardScore >= 9 && nCardScore <= 12;
+    // DD only in round 2 (after 1st community card). Use server-authoritative nTableRound.
+    if (this.nTableRound !== 2) return false;
+    return Number.isFinite(nCardScore) && nCardScore >= 9 && nCardScore <= 12;
 }
 canShowSplitAction() {
     // Split available when: 1 community card dealt, player not yet split,
@@ -3096,16 +2955,24 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
     this.waitingForNextRoundStart(remainingTime);
   }
 
+  // Lock community cards on screen for the result display window
+  this.bShowingHandResult = true;
+  // Capture the final board cards now — setBoardState may arrive before the
+  // timeout fires and clear oGameManager.aCommunityCards, so store locally.
+  const _finalCommunityCards = [...(this.oGameManager.aCommunityCards || [])];
+
   // Show community cards immediately when round ends
   setTimeout(() => {
     // Show community cards first for players to see final board
-    if (this.oGameManager.aCommunityCards.length > 0) {
-      this.setCommunityCards(this.oGameManager.aCommunityCards);
+    if (_finalCommunityCards.length > 0) {
+      this.setCommunityCards(_finalCommunityCards);
+      this.container_community_cards.setVisible(true);
     }
   }, 500); // Show cards almost immediately
 
   // Clear everything after showing cards for longer
   setTimeout(() => {
+    this.bShowingHandResult = false;
     if (this.sPrivateCode) this.oTable.container_private_table.setVisible(true);
     const deckPosition = this.getDeckCardPosition();
     this.oTable.close_deck_card.setVisible(false).setPosition(deckPosition.x, deckPosition.y);
@@ -3230,6 +3097,25 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
             }
         })
     }
+    showPlayerEmoji(sEmoji) {
+        const myPlayer = this.players.get(this.iUserId);
+        if (!myPlayer?.playerProfile) return;
+        myPlayer.playerProfile.setEmojiDisplay(sEmoji);
+        this.oSocketManager?.emit(emitter.reqReaction, { sEmoji });
+    }
+
+    handleResReaction({ iUserId, sEmoji } = {}) {
+        if (String(iUserId) === String(this.iUserId)) return; // already shown optimistically
+        const player = this.players.get(String(iUserId));
+        player?.playerProfile?.setEmojiDisplay(sEmoji);
+    }
+
+    handleSplitAutoFold({ iUserId, sMessage } = {}) {
+        if (String(iUserId) === String(this.iUserId)) {
+            this.prompt?.showForSeconds?.(sMessage || 'Your second split hand was auto-folded (bust).');
+        }
+    }
+
     cleanupGameBindings() {
         this.timer && clearInterval(this.timer);
         this.declreResultInterval && clearInterval(this.declreResultInterval);
@@ -3241,6 +3127,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
         if (this.popStateHandler) window.removeEventListener('popstate', this.popStateHandler);
         if (this.handleGameUILayoutUpdate) window.removeEventListener(GAME_UI_LAYOUT_EVENT, this.handleGameUILayoutUpdate);
         if (this.handleGameActionOverlayCommand) window.removeEventListener(GAME_ACTION_OVERLAY_COMMAND_EVENT, this.handleGameActionOverlayCommand);
+        if (this.handleEmojiSent) window.removeEventListener('bsg:emoji-sent', this.handleEmojiSent);
         hideGameActionOverlay();
         this.oSocketManager?.destroy?.();
     }

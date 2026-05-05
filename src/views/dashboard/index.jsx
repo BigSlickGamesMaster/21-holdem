@@ -10,7 +10,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import _ from 'scripts/helper';
-import AppWordmark from 'shared/components/AppWordmark';
 import DailyRewardsPanel from 'shared/components/DailyRewardsPanel';
 import { BUILT_IN_AVATARS, DEFAULT_PROFILE_BANNER, getAvatarImageSrc } from 'shared/constants/builtInAvatars';
 import { getCookie, ReactToastify } from 'shared/utils';
@@ -370,10 +369,6 @@ const Dashboard = () => {
             return (nChips / nPrice) > nBestRatio ? item : oBestItem;
         }, null)
     ), [aShopItems]);
-
-    const handleTabChange = (sTabId) => {
-        setActiveTab(sTabId);
-    };
 
     const handleQuickNavSelect = (item, { bScrollDesktop = false } = {}) => {
         if (item.kind === 'route') {
@@ -994,31 +989,6 @@ const Dashboard = () => {
 
                 <div className='dashboard-hub__shell'>
                     <header className='dashboard-hub__hero'>
-                        <div className='dashboard-hub__utility-strip'>
-                            <Link to='/lobby' className='dashboard-hub__brand-mark' aria-label="21 Hold'em home">
-                                <AppWordmark className='dashboard-hub__brand-mark-svg' />
-                            </Link>
-
-                            <button type='button' className='dashboard-hub__player-chip' onClick={() => handleTabChange('lobby-player-profile')}>
-                                <span className='dashboard-hub__player-chip-avatar'>
-                                    <img
-                                        src={sAvatarSrc}
-                                        alt={profileData?.sUserName || 'Player avatar'}
-                                        onError={(event) => {
-                                            event.currentTarget.src = getAvatarImageSrc('', profileData?.sUserName);
-                                        }}
-                                    />
-                                </span>
-                                <span className='dashboard-hub__player-chip-copy'>
-                                    <strong>{_.appendSuffix(sDisplayName, 14)}</strong>
-                                    <span className='dashboard-hub__player-chip-balance'>
-                                        <span className='dashboard-hub__player-chip-balance-label'>Bankroll</span>
-                                        <span className='dashboard-hub__player-chip-balance-value'>{formatAmount(profileData?.nChips)}</span>
-                                    </span>
-                                </span>
-                            </button>
-
-                        </div>
 
                         <nav className='dashboard-hub__quick-links' aria-label='Lobby shortcuts'>
                             {aQuickNavItems.map((item) => {

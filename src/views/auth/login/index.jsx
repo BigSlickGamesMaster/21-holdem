@@ -1,5 +1,5 @@
 import { exchangeHandoff, forgotPassword, login, resetPassword, verifyToken } from 'query/login.query';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMutation } from 'react-query';
 import { Button, Col, Form, Row } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ReactToastify, setCookie } from 'shared/utils';
 import eye from '../../../assets/images/icons/eye_icon.svg';
 import eye_slash_icon from '../../../assets/images/icons/eye_slash_icon.svg';
+import newBannerImg from '../../../assets/images/bg/new-banner.png';
 
 const LOGIN_REMEMBER_ME_KEY = 'bsg:remember-me';
 const LOGIN_REMEMBERED_IDENTIFIER_KEY = 'bsg:remembered-login';
@@ -23,6 +24,17 @@ const Login = () => {
     const [showResetFields, setShowResetFields] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showSplash, setShowSplash] = useState(false);
+    const [splashFading, setSplashFading] = useState(false);
+    const splashTimerRef = useRef(null);
+
+    const goToLobby = (path = '/lobby', opts = {}) => {
+        setShowSplash(true);
+        splashTimerRef.current = setTimeout(() => {
+            setSplashFading(true);
+            splashTimerRef.current = setTimeout(() => navigate(path, opts), 900);
+        }, 4200);
+    };
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(() => {
         if (typeof window === 'undefined') return false;
@@ -41,7 +53,7 @@ const Login = () => {
         onSuccess: (data) => {
             if (data.status === 200) {
                 setCookie('sAuthToken', data.data.data.authorization, rememberMe ? 14 : undefined);
-                navigate('/lobby');
+                goToLobby('/lobby');
             } else {
                 ReactToastify(data.data.message, 'error', 'login');
             }
@@ -61,7 +73,7 @@ const Login = () => {
         onSuccess: (data) => {
             if (data.status === 200) {
                 setCookie('sAuthToken', data.data.data.authorization, 14);
-                navigate('/lobby', { replace: true });
+                goToLobby('/lobby', { replace: true });
             } else {
                 ReactToastify(data?.data?.message || 'Website handoff failed', 'error', 'handoff');
             }
@@ -194,6 +206,18 @@ const Login = () => {
     };
 
     return (
+        <>
+        {showSplash && (
+            <div className={`login-splash${splashFading ? ' login-splash--fade-out' : ''}`} aria-hidden='true'>
+                <span className='login-splash__ring' />
+                <span className='login-splash__ring login-splash__ring--two' />
+                <span className='login-splash__ring login-splash__ring--three' />
+                <div className='login-splash__logo-wrap'>
+                    <img src={newBannerImg} alt="21 Hold'em" className='login-splash__logo' />
+                    <span className='login-splash__tagline'>Welcome to the table</span>
+                </div>
+            </div>
+        )}
         <div className='sign-in-container'>
             <div className='login-container'>
                 <div className='auth-container auth-shell'>
@@ -420,7 +444,7 @@ const Login = () => {
                                     </div>
                                     <div className='auth-guest-panel'>
                                         <div className='auth-guest-actions'>
-                                            <Button type='button' className='guest-entry-btn' onClick={() => navigate('/guest/login')}>
+                                            <Button type='button' className='guest-entry-btn' onClick={() => navigate('/guest')}>
                                                 Guest
                                             </Button>
                                         </div>
@@ -432,6 +456,7 @@ const Login = () => {
                 </div>
             </div>
         </div>
+        </>
     );
 };
 

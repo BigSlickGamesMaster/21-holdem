@@ -129,9 +129,16 @@
                     }
 
                     .guest-entry-btn {
-                        background: linear-gradient(180deg, #8dfcb3 0%, #42d985 100%);
-                        color: #052132;
-                        box-shadow: 0 12px 22px rgba(66, 217, 133, 0.22);
+                        background: linear-gradient(160deg, #2a4a6e 0%, #142235 100%);
+                        color: #f6cf74;
+                        border: 1px solid rgba(202, 162, 44, 0.55) !important;
+                        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 220, 130, 0.12);
+                        text-shadow: 0 0 12px rgba(246, 207, 116, 0.35);
+
+                        &:hover {
+                            border-color: rgba(202, 162, 44, 0.9) !important;
+                            box-shadow: 0 8px 28px rgba(202, 162, 44, 0.28), inset 0 1px 0 rgba(255, 220, 130, 0.18);
+                        }
                     }
 
                     .about-entry-btn {
@@ -504,9 +511,16 @@
                             }
 
                             .guest-entry-btn {
-                                background: linear-gradient(180deg, #8dfcb3 0%, #42d985 100%);
-                                color: #052132;
-                                box-shadow: 0 12px 22px rgba(66, 217, 133, 0.22);
+                                background: linear-gradient(160deg, #2a4a6e 0%, #142235 100%);
+                                color: #f6cf74;
+                                border: 1px solid rgba(202, 162, 44, 0.55) !important;
+                                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 220, 130, 0.12);
+                                text-shadow: 0 0 12px rgba(246, 207, 116, 0.35);
+
+                                &:hover {
+                                    border-color: rgba(202, 162, 44, 0.9) !important;
+                                    box-shadow: 0 8px 28px rgba(202, 162, 44, 0.28), inset 0 1px 0 rgba(255, 220, 130, 0.18);
+                                }
                             }
                         }
                     }
@@ -1035,5 +1049,76 @@
                 }
             }
         }
+    }
+}
+
+// ─── Login Splash Screen ────────────────────────────────────────────────────
+@keyframes splashLogoIn {
+    0%   { opacity: 0; transform: scale(0.75) translateY(14px); }
+    65%  { opacity: 1; transform: scale(1.04) translateY(-3px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes splashRingExpand {
+    0%   { transform: scale(0.5); opacity: 0.6; }
+    100% { transform: scale(2.8); opacity: 0; }
+}
+@keyframes splashTagline {
+    0%   { opacity: 0; letter-spacing: 0.32em; }
+    100% { opacity: 1; letter-spacing: 0.18em; }
+}
+@keyframes splashFadeOut {
+    0%   { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+.login-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 50% 42%, #0c2038 0%, #010a14 100%);
+
+    &--fade-out {
+        animation: splashFadeOut 0.5s ease-in forwards;
+    }
+
+    &__ring {
+        position: absolute;
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(202, 162, 44, 0.5);
+        animation: splashRingExpand 1.8s ease-out forwards;
+        opacity: 0;
+
+        &--two   { animation-delay: 0.45s; }
+        &--three { animation-delay: 0.9s; }
+    }
+
+    &__logo-wrap {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+
+    &__logo {
+        width: min(58vw, 260px);
+        height: auto;
+        display: block;
+        animation: splashLogoIn 0.7s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+        filter: drop-shadow(0 2px 24px rgba(202, 162, 44, 0.55));
+    }
+
+    &__tagline {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(202, 162, 44, 0.7);
+        opacity: 0;
+        animation: splashTagline 0.5s ease 0.9s forwards;
     }
 }

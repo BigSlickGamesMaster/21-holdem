@@ -10,6 +10,7 @@ const _ = require('./globals/lib/helper');
   try {
     await mongodb.initialize();
     await redis.initialize();
+    await require('./app/game/boardManager').flushStuckBoards();
     router.initialize();
     queue.initialize();
     socket.initialize(router.httpServer);

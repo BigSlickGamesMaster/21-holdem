@@ -49,6 +49,8 @@ export default function AddProtoPage() {
     },
   })
 
+  const BOT_SEAT_CAP = { 4: 2, 6: 4, 9: 5 }
+
   const [formType, setFormType] = useState('Add')
   const [viewAdminData, setViewAdminData] = useState()
   const [payload, setPayload] = useState({})
@@ -190,37 +192,38 @@ export default function AddProtoPage() {
 
                     <Col sm={6}>
                       {formType === 'View' ? (
-                        <CommonViewInput type="text" label="Max. Player" value={viewAdminData?.nMaxPlayer} disabled />
+                        <CommonViewInput type="text" label="Max. Players" value={viewAdminData?.nMaxPlayer} disabled />
                       ) : (
-                        <CommonInput
-                          type="text"
-                          register={register}
-                          errors={errors}
-                          name="nMaxPlayer"
-                          label="Max. Player"
-                          required
-                          placeholder="Enter Max Player"
-                          className={`form-control ${errors?.nMaxPlayer && 'error'}`}
-                          validation={{
-                            pattern: {
-                              value: /^[0-9]+$/,
-                              message: 'Only numbers are allowed',
-                            },
-                            required: {
-                              value: true,
-                              message: 'Max player is required',
-                            },
-                            min: {
-                              value: 2,
-                              message: 'Max player must be at least 2',
-                            },
-                            max: {
-                              value: 9,
-                              message: 'Max player must be 9 or less',
-                            },
-                          }}
-                        />
+                        <Form.Group className='form-group w-100'>
+                          <Form.Label>Max. Players <span className='inputStar'>*</span></Form.Label>
+                          <Form.Select
+                            className={`form-control ${errors?.nMaxPlayer ? 'error' : ''}`}
+                            {...register('nMaxPlayer', {
+                              required: { value: true, message: 'Max player is required' },
+                            })}
+                          >
+                            <option value=''>Select player count</option>
+                            <option value='4'>4 Players</option>
+                            <option value='6'>6 Players</option>
+                            <option value='9'>9 Players</option>
+                          </Form.Select>
+                          {errors?.nMaxPlayer && (
+                            <Form.Control.Feedback type='invalid'>{errors.nMaxPlayer.message}</Form.Control.Feedback>
+                          )}
+                        </Form.Group>
                       )}
+                    </Col>
+
+                    <Col sm={6}>
+                      <CommonViewInput
+                        type='text'
+                        label='Bot Count'
+                        value={(() => {
+                          const n = formType === 'View' ? viewAdminData?.nMaxPlayer : +watch('nMaxPlayer')
+                          return n ? BOT_SEAT_CAP[n] ?? '—' : '—'
+                        })()}
+                        disabled
+                      />
                     </Col>
 
                     <Col sm={6}>

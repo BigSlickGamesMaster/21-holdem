@@ -254,6 +254,42 @@ class BoardManager {
     }
     return board.addParticipant(oData.oUserData);
   }
+
+  // - Called on server startup to flush boards stuck in an active state with no
+  //   running timers (happens when the server restarts mid-hand and Redis TTLs expire).
+  // - Deletes the Redis key and MongoDB record so fresh boards are seeded on next lobby load.
+  async flushStuckBoards() {
+    try {
+      const aPokerBoards = await PokerBoard.find({}).lean();
+      let nFlushed = 0;
+      for (const pokerBoard of aPokerBoards) {
+        const sBoardId = pokerBoard.iBoardId.toString();
+        const board = await this.getBoard(sBoardId);
+        if (!board) {
+          await PokerBoard.deleteOne({ iBoardId: pokerBoard.iBoardId });
+          continue;
+        }
+        const bStuck =
+          (board.eState === 'playing' || board.eState === 'initialized') &&
+          !(await board.getScheduler('initializeGame')) &&
+          !(await board.getScheduler('resetTable')) &&
+          !(await board.getScheduler('assignTurnTimeout'));
+        if (!bStuck) continue;
+
+        log.yellow(`flushStuckBoards: flushing stuck board ${sBoardId} (eState: ${board.eState})`);
+        const aParticipantUserIds = board.aParticipant.map(p => p.iUserId).filter(Boolean);
+        await Promise.all([
+          redis.client.unlink(_.getBoardKey(sBoardId)),
+          PokerBoard.deleteOne({ iBoardId: pokerBoard.iBoardId }),
+          User.updateMany({ _id: { $in: aParticipantUserIds } }, { $pull: { aPokerBoard: sBoardId } }),
+        ]);
+        nFlushed += 1;
+      }
+      if (nFlushed > 0) log.yellow(`flushStuckBoards: flushed ${nFlushed} stuck board(s)`);
+    } catch (error) {
+      log.red(`flushStuckBoards error: ${error}`);
+    }
+  }
 }
 
 module.exports = new BoardManager();

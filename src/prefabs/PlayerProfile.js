@@ -44,6 +44,11 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.container_cards = scene.add.container(0, -44);
     this.container_profile.add(this.container_cards);
 
+    // Second card row for the split sub-hand
+    this.container_split_cards = scene.add.container(0, -22);
+    this.container_split_cards.setVisible(false);
+    this.container_profile.add(this.container_split_cards);
+
     this.container_profileImage = scene.add.container(0, 0);
     this.container_profile.add(this.container_profileImage);
 
@@ -143,7 +148,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
 
     this.identity_panel = scene.add.graphics();
     this.container_identity.add(this.identity_panel);
-    this._identityPanelState = { fillColor: 0x0d0b08, fillAlpha: 0.72, strokeColor: 0xd4af6a };
+    this._identityPanelState = { fillColor: 0x10314b, fillAlpha: 0.85, strokeColor: 0x4b7391 };
     this._drawIdentityPanel = () => {
       const { fillColor, fillAlpha, strokeColor } = this._identityPanelState;
       const r = 10;
@@ -157,9 +162,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       // Accent border
       this.identity_panel.lineStyle(1.5, strokeColor, 0.80);
       this.identity_panel.strokeRoundedRect(-identityPanelWidth / 2, -identityPanelHeight / 2, identityPanelWidth, identityPanelHeight, r);
-      // Top accent bar
-      this.identity_panel.fillStyle(strokeColor, 0.55);
-      this.identity_panel.fillRoundedRect(-identityPanelWidth / 2, -identityPanelHeight / 2, identityPanelWidth, 3, { tl: r, tr: r, bl: 0, br: 0 });
+      // (eyebrow removed)
     };
     this._drawIdentityPanel();
 
@@ -177,17 +180,17 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       const y = top;
       const r = 18;
       this.profileBorder.clear();
-      // Glassmorphic fill — dark translucent base
-      this.profileBorder.fillStyle(0x0d0b08, 0.60);
+      // Glassmorphic fill — navy blue base matching UI console panel
+      this.profileBorder.fillStyle(0x10314b, 0.75);
       this.profileBorder.fillRoundedRect(x, y, width, height, r);
-      // Subtle warm accent tint
-      this.profileBorder.fillStyle(this.seatTheme.accentColor, 0.04);
+      // Subtle blue accent tint
+      this.profileBorder.fillStyle(0x264e68, 0.08);
       this.profileBorder.fillRoundedRect(x, y, width, height, r);
       // Glass top-edge highlight (simulate refraction)
       this.profileBorder.fillStyle(0xffffff, 0.07);
       this.profileBorder.fillRoundedRect(x, y, width, Math.min(height * 0.15, 18), { tl: r, tr: r, bl: 0, br: 0 });
-      // Main accent border
-      this.profileBorder.lineStyle(1.5, this.seatTheme.accentColor, 0.75);
+      // Main blue accent border
+      this.profileBorder.lineStyle(1.5, 0x4b7391, 0.85);
       this.profileBorder.strokeRoundedRect(x, y, width, height, r);
       // Inner bright glass edge
       this.profileBorder.lineStyle(1, 0xffffff, 0.10);
@@ -339,6 +342,10 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.score_bg.setVisible(false);
     this.txt_score.setVisible(false);
     this.clearSplitHand();
+    this.container_split_cards?.removeAll(true);
+    this.container_split_cards?.setVisible(false);
+    this.container_cards?.setAlpha(1);
+    this.container_split_cards?.setAlpha(1);
     this.setIdentityState('normal');
     this.profileRenderer.stopActivePulse();
     this.profileRenderer.setFrameColor(this.seatTheme.accentColor);
@@ -363,6 +370,22 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.txt_splitScore.setAlpha(1);
     this.split_score_bg.setVisible(true);
     this.txt_splitScore.setVisible(true);
+    // Show the split card row if it has content
+    if (this.container_split_cards?.list?.length > 0) this.container_split_cards.setVisible(true);
+  }
+  // Dim the inactive sub-hand during split turns so the active one is obvious
+  highlightActiveSplitHand(eSplitPhase) {
+    if (!this.container_split_cards) return;
+    if (eSplitPhase === 'hand1') {
+      this.container_cards.setAlpha(1);
+      this.container_split_cards.setAlpha(0.4);
+    } else if (eSplitPhase === 'hand2') {
+      this.container_cards.setAlpha(0.4);
+      this.container_split_cards.setAlpha(1);
+    } else {
+      this.container_cards.setAlpha(1);
+      this.container_split_cards.setAlpha(1);
+    }
   }
   setScore(nScore) {
     const parsedScore = Number(nScore);
@@ -544,6 +567,8 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
   }
   hideWinnerPrompt() {
     this.container_cards.removeAll(true);
+    this.container_split_cards?.removeAll(true);
+    this.container_split_cards?.setVisible(false);
     this.scene.oAnimations.scale({
       aGameObjects: [this.container_winner],
       scaleX: 0,
@@ -599,5 +624,48 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
   stopIdleFloat() {
     if (this._floatTween) { this._floatTween.stop(); this._floatTween = null; }
     this.container_profileImage?.setY(0);
+  }
+
+  setEmojiDisplay(sEmoji) {
+    if (!sEmoji || !this.scene) return;
+
+    // Cancel any existing hide timer
+    if (this._emojiHideTimer) {
+      this._emojiHideTimer.remove(false);
+      this._emojiHideTimer = null;
+    }
+
+    // Reuse or create the emoji text object
+    if (!this.txt_emoji) {
+      this.txt_emoji = this.scene.add.text(52, -110, '', {
+        fontSize: '56px',
+        fontFamily: 'sans-serif',
+      }).setOrigin(0.5).setDepth(10);
+      this.container_profileImage.add(this.txt_emoji);
+    }
+
+    this.txt_emoji.setText(sEmoji).setScale(0).setVisible(true);
+
+    // Pop-in tween
+    this.scene.tweens.add({
+      targets: this.txt_emoji,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 220,
+      ease: 'Back.easeOut',
+    });
+
+    // Auto-hide after 3 seconds
+    this._emojiHideTimer = this.scene.time.delayedCall(3000, () => {
+      this.scene.tweens.add({
+        targets: this.txt_emoji,
+        scaleX: 0,
+        scaleY: 0,
+        duration: 180,
+        ease: 'Quart.easeIn',
+        onComplete: () => { if (this.txt_emoji) this.txt_emoji.setVisible(false); },
+      });
+      this._emojiHideTimer = null;
+    });
   }
 }

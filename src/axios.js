@@ -73,17 +73,22 @@ Axios.interceptors.response.use(
         return res;
     },
     (err) => {
+        const isGuestRoute = typeof window !== 'undefined' && window.location?.pathname?.startsWith('/guest');
         if (err?.code?.includes?.("ERR_NETWORK")) {
             ReactToastify("Network Error", "error");
-            removeToken();
-            setTimeout(() => {
-                window.location.href = "/login";
-            }, 2200);
+            if (!isGuestRoute) {
+                removeToken();
+                setTimeout(() => {
+                    window.location.href = "/login";
+                }, 2200);
+            }
             return Promise.reject(err);
         }
         if (err?.response?.status === 401) {
-            removeToken();
-            window.location.href = "/login";
+            if (!isGuestRoute) {
+                removeToken();
+                window.location.href = "/login";
+            }
             return Promise.reject(err);
         }
         return Promise.reject(err);

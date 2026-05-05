@@ -1,72 +1,36 @@
 import config from './config';
 
 /**
- * ==========================================================
- * GameManager.js — BEGINNER “CONTROL PANEL” + SAFE EDIT ZONES
- * ==========================================================
- *
- * Think of this file as your CLIENT-SIDE settings and layout blueprint.
- *
- * It mainly contains:
- * - Timers (how long phases last, delays between animations)
- * - Limits (max players, max community cards, max score)
- * - UI layout numbers (seat positions around the table)
- *
- * It does NOT:
- * - run server logic
- * - decide who wins
- * - validate poker rules (server should do that)
- *
- * ----------------------------------------------------------
- * Beginner editing rules
- * ----------------------------------------------------------
- * ✅ Change numbers in SAFE EDIT ZONES.
- * ❌ Do NOT rename keys inside oSetting (server/other code expects them).
- *
- * Expected outcomes:
- * - Change a timer → the pace feels faster/slower.
- * - Change seat x/y → players move on the table.
- * - Change nCardGap → cards spread out more/less.
- * ==========================================================
+ * GameManager — client-side settings and layout config.
+ * - Holds timers, limits, and UI layout values (not game logic).
+ * - oSetting keys must match server expectations — do not rename.
+ * - Seat x/y positions are in getPlayerProfileSpecs().
  */
 
 export default class GameManager {
     constructor(oScene) {
         this.oScene = oScene;
 
-        // ==========================================================
-        // SAFE EDIT ZONE A: TIMERS + LIMITS
-        // - Most values are milliseconds (ms): 1000ms = 1 second
-        // - You can change NUMBER VALUES, but DO NOT rename the keys.
-        // ==========================================================
+        // Timers and limits (ms). Keys must not be renamed — server expects them.
         this.oSetting = {
-            // How long the 'initializing' phase shows before the first action.
-            "nInitializeTimer": 4000,
-            // Bust limit (21). Change only if you intentionally want a different game.
-            "nMaxScoreBoundary": 21,
+            "nInitializeTimer": 4000,       // delay before first action
+            "nMaxScoreBoundary": 21,         // bust limit
             "nHighDroppedPenalty": 40,
             "nLowDroppedPenalty": 20,
-            // Delay before cards are distributed (animation pacing).
-            "nCardDistributionDelay": 3800,
-            // How long the pre-game countdown lasts before the round begins.
-            "nBeginCountdown": 25000,
+            "nCardDistributionDelay": 3800,  // pause before dealing
+            "nBeginCountdown": 25000,        // pre-game countdown
             "nDistributeCardAnimationDelay": 2000,
             "nAnimationCountdown": 1000,
-            // Core turn timer used by turn logic (UI countdown).
-            "nAllocatedTurnTime": 20000,
-            // Total time allowed for a turn (may include buffers).
-            "nTurnTime": 30000,
+            "nAllocatedTurnTime": 20000,     // UI turn countdown
+            "nTurnTime": 30000,              // total turn window (with buffers)
             "nTurnBuffer": 1000,
-            // How long results/winner screens remain visible.
-            "nDeclareTTL": 20000,
+            "nDeclareTTL": 20000,            // how long result screen shows
             "nFinishTTL": 30000,
-            // Max number of card groups (UI grouping mechanic).
             "nMaxCardGroup": 5,
             "nMaxWaitingTime": 30000,
             "nMaxTurnMissAllowed": 3,
             "nMaxBot": 1,
-            // Private table timeout (ms). 600000 = 10 minutes.
-            "nPrivateTableWaitingTimeOut": 600000,
+            "nPrivateTableWaitingTimeOut": 600000, // 10 min private table wait
             "nRoundStartsIn": 10000,
             "oTax": {
                 "nDeduction": 30,
@@ -96,11 +60,7 @@ export default class GameManager {
 
     }
 
-    // ==========================================================
-    // SAFE EDIT ZONE: SEAT POSITIONS (UI ONLY)
-    // If a seat overlaps buttons/cards, adjust x/y here.
-    // Expected outcome: ONLY visual movement of player HUDs.
-    // ==========================================================
+    // Seat x/y positions for desktop and mobile layouts.
     getPlayerProfileSpecs(nPlayer) {
         const aPlayerProfile = config.isDesktopLayout()
             ? [

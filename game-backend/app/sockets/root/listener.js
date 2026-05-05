@@ -2,14 +2,18 @@ const boardManager = require('../../game/boardManager');
 const { queue } = require('../../utils');
 
 const REACTION_EMOJIS = new Set([
-  '😀',
-  '😂',
+  '�',
+  '😍',
   '😎',
+  '🤑',
+  '😤',
+  '😱',
+  '💪',
   '🔥',
-  '👏',
-  '😮',
-  '😈',
-  '💥',
+  '💯',
+  '👑',
+  '🤞',
+  '🎉',
 ]);
 
 class PlayerListener {
