@@ -11,6 +11,34 @@ import {
 } from '../../scripts/gameActionOverlayBridge';
 import EmojiPicker from './EmojiPicker';
 
+const BSG_SOUND_STATE_EVENT = 'bsg:sound-state';
+const BSG_SOUND_TOGGLE_EVENT = 'bsg:sound-toggle';
+
+function SoundToggle() {
+    const [muted, setMuted] = useState(false);
+
+    useEffect(() => {
+        const onState = (e) => setMuted(!!e?.detail?.muted);
+        window.addEventListener(BSG_SOUND_STATE_EVENT, onState);
+        return () => window.removeEventListener(BSG_SOUND_STATE_EVENT, onState);
+    }, []);
+
+    const handleClick = () => {
+        window.dispatchEvent(new CustomEvent(BSG_SOUND_TOGGLE_EVENT));
+    };
+
+    return (
+        <button
+            type='button'
+            className={`sound-toggle${muted ? ' sound-toggle--muted' : ''}`}
+            aria-label={muted ? 'Unmute sound' : 'Mute sound'}
+            onClick={handleClick}
+        >
+            {muted ? '🔇' : '🔊'}
+        </button>
+    );
+}
+
 const BUTTON_CLASS_BY_VARIANT = {
     primary: 'guest-entry-btn',
     secondary: 'about-entry-btn',
@@ -68,6 +96,7 @@ function GameActionOverlay({ isPaused = false }) {
                 ) : null}
                 <div className='game-action-overlay__tray'>
                     <EmojiPicker />
+                    <SoundToggle />
                     <div className='game-action-overlay__bankroll'>
                         <div className='game-action-overlay__bankroll-slot game-action-overlay__bankroll-slot--left'>
                             <span className='game-action-overlay__bankroll-label'>Bankroll</span>

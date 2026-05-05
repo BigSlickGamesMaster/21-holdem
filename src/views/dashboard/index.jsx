@@ -570,13 +570,7 @@ const Dashboard = () => {
         <>
             <header className='dashboard-hub__tab-header'>
                 <div className='dashboard-hub__tab-copy'>
-                    <span className='dashboard-hub__section-kicker'>Store</span>
                     <h2>STORE</h2>
-                    <p>Chip packages now live inside the main lobby, and new store items added from the admin portal will appear here automatically.</p>
-                </div>
-                <div className='dashboard-hub__pill-row'>
-                    <span className='dashboard-hub__pill'>Admin managed inventory</span>
-                    <span className='dashboard-hub__pill'>Chip packages live</span>
                 </div>
             </header>
 

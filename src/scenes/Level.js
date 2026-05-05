@@ -627,6 +627,25 @@ bindGameActionOverlayEvents() {
         if (sEmoji) this.showPlayerEmoji(sEmoji);
     };
     window.addEventListener('bsg:emoji-sent', this.handleEmojiSent);
+
+    this.handleSoundToggle = () => {
+        const sm = this.oSoundManager;
+        if (!sm) return;
+        const bothOff = !sm.isSoundOn && !sm.isMusicOn;
+        if (bothOff) {
+            sm.setSoundEnabled(true);
+            sm.setMusicEnabled(true);
+            if (sm.isMusicOn) sm.playMusic(sm.bg_music, true);
+        } else {
+            sm.setSoundEnabled(false);
+            sm.setMusicEnabled(false);
+            sm.stopMusic?.();
+        }
+        window.FXOverlay?.setSoundEnabled?.(sm.isSoundOn);
+        window.FXOverlay?.setMusicEnabled?.(sm.isMusicOn);
+        window.dispatchEvent(new CustomEvent('bsg:sound-state', { detail: { muted: !sm.isSoundOn } }));
+    };
+    window.addEventListener('bsg:sound-toggle', this.handleSoundToggle);
 }
 
 getTutorialActionFromState() {
@@ -786,7 +805,7 @@ getCommunityCardLayoutMetrics() {
 
     return {
         scale: 0.82 / normalizedUiScale,
-        gap: 158 / normalizedUiScale,
+        gap: 110 / normalizedUiScale,
     };
 }
 
@@ -802,7 +821,7 @@ getCommunityCardPosition(index = 0, totalCards = 0) {
     const base = this.getCommunityCardBasePosition();
     // Left-anchored: card 0 is fixed at the left of a max 5-card spread;
     // subsequent cards step right by gap. No recentering as cards are added.
-    const leftAnchor = base.x - 2 * gap;
+    const leftAnchor = base.x - 1 * gap;
 
     return {
         x: Math.round(leftAnchor + index * gap),
@@ -829,7 +848,7 @@ getPotTargetPosition() {
 
     return {
         x: config.centerX,
-        y: Math.max(240, Math.min(topGuideY, 376)),
+        y: Math.max(390, Math.min(topGuideY, 526)),
     };
 }
 
@@ -1874,7 +1893,7 @@ createFloatSplitButton() {
         this.container_body?.setDepth(0);
         this.container_table?.setDepth(20);
         this.container_closed_cards?.setDepth(30);
-        this.container_community_cards?.setDepth(40);
+        this.container_community_cards?.setDepth(125);
         this.container_bet_staging?.setDepth(45);
         this.container_player_cards?.setDepth(50);
         this.container_pot_amount?.setDepth(60);
@@ -2153,6 +2172,7 @@ createFloatSplitButton() {
         this.oTable.close_deck_card.setVisible(false);
         this.aPlayerProfiles.forEach(player => {
             player.container_cards.removeAll(true).setVisible(false);
+            player.clearScore?.();
         });
     }
     startGame() {
@@ -2883,8 +2903,11 @@ canShowDoubleDownAction() {
     const myPlayer = this.players?.get?.(this.iUserId);
     if (myPlayer?.bHasSplit) return false;
     const nCardScore = Number(myPlayer?.nCardScore);
-    // DD only in round 2 (after 1st community card). Use server-authoritative nTableRound.
-    if (this.nTableRound !== 2) return false;
+    // DD available when exactly 1 community card is on the table (round 2).
+    // Use actual card count — nTableRound is only updated in setGameData/setBoardState,
+    // not when resCommunityCard fires, so it lags behind when turn fires.
+    const nCommCards = (this.oGameManager?.aCommunityCards || []).length;
+    if (nCommCards !== 1) return false;
     return Number.isFinite(nCardScore) && nCardScore >= 9 && nCardScore <= 12;
 }
 canShowSplitAction() {
@@ -3128,6 +3151,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
         if (this.handleGameUILayoutUpdate) window.removeEventListener(GAME_UI_LAYOUT_EVENT, this.handleGameUILayoutUpdate);
         if (this.handleGameActionOverlayCommand) window.removeEventListener(GAME_ACTION_OVERLAY_COMMAND_EVENT, this.handleGameActionOverlayCommand);
         if (this.handleEmojiSent) window.removeEventListener('bsg:emoji-sent', this.handleEmojiSent);
+        if (this.handleSoundToggle) window.removeEventListener('bsg:sound-toggle', this.handleSoundToggle);
         hideGameActionOverlay();
         this.oSocketManager?.destroy?.();
     }

@@ -113,14 +113,18 @@ class Board extends Service {
           participant.nLastBidChips = 0;
           participant.nPlayerTurnCount = 0;
           participant.aUserAction = participant.aUserAction.map(action => (action === 'c' ? 'ck' : action === 'd' ? 's' : action));
-          // Reset per-round split counters so round-settled check works each betting round
-          if (participant.bHasSplit) {
-            if (!participant.bSplitHand1Locked) participant.nSplitHand1RoundCount = 0;
-            if (!participant.bSplitHand2Locked) participant.nSplitHand2RoundCount = 0;
-          }
         }
         if (participant.isDoubleDownLock) continue;
         participant.nCardScore = (Number(participant.nCardScore) || 0) + (Number(oCard?.nValue) || 0);
+
+        // Also update the split hand score if the split hand hasn't independently stood
+        if (participant.bHasSplit && participant.aSplitHand?.length > 0 && !participant.bSplitHandStand) {
+          participant.nSplitCardScore = (Number(participant.nSplitCardScore) || 0) + (Number(oCard?.nValue) || 0);
+          if (participant.nSplitCardScore > 21) {
+            const aceInSplit = participant.aSplitHand.find(c => c.nValue === 11);
+            if (aceInSplit) { aceInSplit.nValue = 1; participant.nSplitCardScore -= 10; }
+          }
+        }
 
         if (participant.nCardScore > 21) {
           for (const card of this.aCommunityCard) {
@@ -145,31 +149,19 @@ class Board extends Service {
             await participant.foldPlayer({ sReason: 'player is bust due to score above 21', eBehaviour: 'bust' });
           }
         }
-
-        // Update split hand score with the community card (if split hand2 is still live)
-        if (participant.bHasSplit && !participant.bSplitHand2Locked) {
-          participant.nSplitCardScore = (Number(participant.nSplitCardScore) || 0) + (Number(oCard?.nValue) || 0);
-
-          if (participant.nSplitCardScore > 21) {
-            for (const card of this.aCommunityCard) {
-              const splitKey = participant.iUserId + '_split';
-              if (!card.aAceConvertedToOne) card.aAceConvertedToOne = [];
-              if (participant.nSplitCardScore > 21 && card.nValue === 11 && !card.aAceConvertedToOne.includes(splitKey)) {
-                card.aAceConvertedToOne.push(splitKey);
-                participant.nSplitCardScore -= 10;
-              }
-            }
-            const oAceInSplit = participant.aSplitHand.find(c => c.nValue === 11);
-            if (participant.nSplitCardScore > 21 && oAceInSplit) {
-              oAceInSplit.nValue = 1;
-              participant.nSplitCardScore -= 10;
-            }
-            if (participant.nSplitCardScore > 21) {
-              participant.bSplitHand2Locked = true;
-            }
-          }
-        }
-      } // end for (participant of aParticipant)
+        // Calculate the score of the participant "Hand" Score
+        // if (participant.nCardScore > 21) {
+        //   const oAceCardHand = participant.aCardHand.find(card => card.nValue === 11);
+        //   if (oAceCardHand) {
+        //     oAceCardHand.nValue = 1;
+        //     participant.bHasAceAndBust = true;
+        //     participant.nCardScore -= 10;
+        //   } else {
+        //     participant.eState = 'bust';
+        //     await participant.foldPlayer({ sReason: 'player is bust due to score above 21', eBehaviour: 'bust' });
+        //   }
+        // } else if (participant.nCardScore === 21) aWinner.push(participant);
+      }
 
       await this.update({ aCommunityCard: this.aCommunityCard, aParticipant: this.aParticipant.map(p => p.toJSON()) });
       await this.emit('resCommunityCard', { aCommunityCard: this.aCommunityCard, aParticipant: this.aParticipant });
@@ -211,20 +203,6 @@ class Board extends Service {
 
       this.nTableRound++;
       await this.update({ nTableRound: this.nTableRound, nMinBet: this.nMinBet });
-
-      // Restore Stand for all playing participants from round 2 onwards,
-      // and grant Double Down exclusively in round 2 to eligible players.
-      if (this.nTableRound === 2) {
-        for (const p of this.aParticipant) {
-          if (p.eState !== 'playing') continue;
-          if (!p.aUserAction.includes('s')) p.aUserAction.push('s');
-          if (p.isDoubleDownLock || p.bHasSplit) continue;
-          if (!p.aUserAction.includes('d')) p.aUserAction.push('d');
-        }
-        // Persist to Redis: subsequent turns reload the board via getBoard() (event-emitter
-        // driven takeTurn), so in-memory changes are lost without an explicit save.
-        await this.update({ aParticipant: this.aParticipant.map(p => p.toJSON()) });
-      }
 
       // Round opener stays fixed within a hand: player to the left of the BB.
       const bigBlind = this.getParticipant(this.iBigBlindId);
@@ -279,21 +257,8 @@ class Board extends Service {
         }
 
         const getContribution = participant => Math.max(Number(participant.nTotalBidChips) || 0, 0);
-        // For split players, use the best valid hand score; for others, use nCardScore
-        const getEffectiveScore = (p) => {
-          if (!p.bHasSplit) return Number(p.nCardScore) || 0;
-          const s1 = Number(p.nCardScore) || 0;
-          const s2 = Number(p.nSplitCardScore) || 0;
-          const v1 = s1 <= 21 ? s1 : -1;
-          const v2 = (!p.bSplitHand2Locked && s2 <= 21) ? s2 : -1;
-          return Math.max(v1, v2);
-        };
         const payoutByUserId = new Map();
-        const showdownEligible = this.aParticipant.filter(p => {
-          if (p.eState !== 'playing') return false;
-          if (p.bHasSplit) return getEffectiveScore(p) > 0;
-          return (Number(p.nCardScore) || 0) <= 21;
-        });
+        const showdownEligible = this.aParticipant.filter(p => p.eState === 'playing' && (Number(p.nCardScore) || 0) <= 21);
         const showdownEligibleIds = new Set(showdownEligible.map(p => _.toString(p.iUserId)));
         const contributedPlayers = this.aParticipant.filter(p => getContribution(p) > 0);
         const contributionLevels = [...new Set(contributedPlayers.map(getContribution).filter(v => v > 0))].sort((a, b) => a - b);
@@ -345,7 +310,7 @@ class Board extends Service {
             let nMaxScore = 0;
             let aPotWinners = [];
             for (const participant of aPotContestants) {
-              const nParticipantScore = getEffectiveScore(participant);
+              const nParticipantScore = Number(participant.nCardScore) || 0;
               if (nParticipantScore > nMaxScore) {
                 nMaxScore = nParticipantScore;
                 aPotWinners = [participant];
@@ -456,6 +421,25 @@ class Board extends Service {
         };
         await this.update({ oTutorial: this.oTutorial });
       }
+
+      // --- Side Bet Payouts ---
+      try {
+        for (const participant of this.aParticipant) {
+          if (!participant.aSideBets || participant.aSideBets.length === 0) continue;
+          const aResults = participant.evaluateSideBets(this.aCommunityCard);
+          const nTotalPayout = aResults.reduce((sum, r) => sum + (r.bWon ? r.nPayout : 0), 0);
+          if (nTotalPayout > 0) {
+            await participant.updateUser({ $inc: { nChips: nTotalPayout } });
+            participant.nChips += nTotalPayout;
+          }
+          participant.aSideBets = []; // clear for next hand
+          await participant.emit('resSideBetResult', { aSideBetResults: aResults, nChips: participant.nChips });
+        }
+        await this.update({ aParticipant: this.aParticipant.map(p => p.toJSON()) });
+      } catch (sbErr) {
+        console.error('[declareResult] Side bet payout error:', sbErr);
+      }
+      // --- End Side Bet Payouts ---
       await this.emit('resDeclareResult', resultData);
 
       await this.saveLogs([{ sAction: 'declareResult', eLogType: 'game', ...(!aWinner.length && { sReason: 'All players are bust' }), functionCalledFrom }]);
@@ -472,7 +456,7 @@ class Board extends Service {
 
       for (const participant of this.aParticipant) {
         participant.aCardHand = [];
-        participant.aUserAction = ['c', 'r', 'f'];
+        participant.aUserAction = ['c', 'r', 'f', 'd'];
         participant.nCardScore = 0;
         participant.isDoubleDownLock = false;
         participant.isAllInLock = false;
@@ -484,23 +468,10 @@ class Board extends Service {
         participant.nPlayerTurnCount = 0;
         participant.bHasSplit = false;
         participant.aSplitHand = [];
+        participant.aSideBets = [];
         participant.nSplitCardScore = 0;
 
         if (participant.bNextTurnLeave) {
-          // Bots on a live table get refilled and re-seated instead of leaving
-          if (participant.isBotUser() && this.isLiveTable()) {
-            await systemBots.topUpBotBankroll({
-              iUserId: participant.iUserId,
-              nMinRequiredChips: proto.nMinBuyIn,
-              sReason: `System bot auto top-up (leave) for board ${this._id}`,
-            });
-            participant.nChips = proto.nMinBuyIn;
-            participant.bNextTurnLeave = false;
-            participant.eState = 'waiting';
-            aAutoTopUp.push({ iUserId: participant.iUserId, nTopUpTo: proto.nMinBuyIn, bShopAutoTopUp: true });
-            await this.update({ aParticipant: [participant.toJSON()] });
-            continue;
-          }
           participant.eState = 'leave';
         } else if (participant.nChips < proto.nMinBet * 2) {
           if (participant.isBotUser() && this.isLiveTable()) {
