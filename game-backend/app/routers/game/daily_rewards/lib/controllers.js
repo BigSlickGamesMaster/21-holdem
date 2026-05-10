@@ -2,28 +2,55 @@ const { User, Setting, Transaction } = require('../../../../models');
 
 const controllers = {};
 
+const ONE_DAY_IN_MILLIS = 24 * 60 * 60 * 1000;
+
+function getStartOfDay(dateValue = new Date()) {
+  const date = dateValue ? new Date(dateValue) : new Date();
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function getRewardStreakState(user) {
+  const today = getStartOfDay();
+  const lastClaimDate = getStartOfDay(user.dLastRewardClaimDate);
+  const nCurrentStreak = Number(user.nDailyRewardStreak) || 0;
+
+  if (!lastClaimDate) {
+    return { today, lastClaimDate: null, nDailyRewardStreak: 0, bTodayRewardClaimed: false, bMissedClaimWindow: false };
+  }
+
+  const nDaysSinceLastClaim = Math.floor((today.getTime() - lastClaimDate.getTime()) / ONE_DAY_IN_MILLIS);
+  const bTodayRewardClaimed = nDaysSinceLastClaim === 0;
+  const bMissedClaimWindow = nDaysSinceLastClaim > 1;
+
+  return {
+    today,
+    lastClaimDate,
+    nDailyRewardStreak: bMissedClaimWindow ? 0 : nCurrentStreak,
+    bTodayRewardClaimed,
+    bMissedClaimWindow,
+  };
+}
+
 controllers.getDailyRewards = async (req, res) => {
   try {
     const settings = await Setting.findOne({}, { aDailyReward: true }).lean();
 
     const user = req.user;
-    if (!user.dLastRewardClaimDate) user.dLastRewardClaimDate = null;
-    if (!user.nDailyRewardStreak) user.nDailyRewardStreak = 0;
+    const rewardState = getRewardStreakState(user);
+    user.nDailyRewardStreak = rewardState.nDailyRewardStreak;
+    user.bTodayRewardClaimed = rewardState.bTodayRewardClaimed;
 
-    const today = new Date();
-
-    today.setHours(0, 0, 0, 0);
-    const lastClaimDate = new Date(user.dLastRewardClaimDate);
-    lastClaimDate.setHours(0, 0, 0, 0);
-
-    const oneDayInMillis = 24 * 60 * 60 * 1000;
-    if (lastClaimDate.getTime() > today.getTime() + oneDayInMillis) {
-      user.nDailyRewardStreak = 0;
+    if (rewardState.bMissedClaimWindow || !user.nDailyRewardStreak) {
+      await User.updateOne(
+        { _id: user._id },
+        {
+          $set: { nDailyRewardStreak: rewardState.nDailyRewardStreak },
+          ...(rewardState.bMissedClaimWindow ? { $unset: { dLastRewardClaimDate: true } } : {}),
+        }
+      );
     }
-
-    await User.updateOne({ _id: user._id }, { $set: { nDailyRewardStreak: user.nDailyRewardStreak, dLastRewardClaimDate: user.dLastRewardClaimDate } });
-
-    if (lastClaimDate.getTime() === today.getTime()) user.bTodayRewardClaimed = true;
 
     return res.reply(messages.success(), {
       rewards: settings.aDailyReward,
@@ -39,14 +66,12 @@ controllers.getDailyRewards = async (req, res) => {
 controllers.claimDailyReward = async (req, res) => {
   try {
     const user = req.user;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const lastClaimDate = new Date(user.dLastRewardClaimDate);
-    lastClaimDate.setHours(0, 0, 0, 0);
+    const rewardState = getRewardStreakState(user);
+    const today = rewardState.today;
 
-    if (lastClaimDate.getTime() === today.getTime()) return res.reply(messages.custom.daily_reward_already_claimed);
+    if (rewardState.bTodayRewardClaimed) return res.reply(messages.custom.daily_reward_already_claimed);
 
-    user.nDailyRewardStreak = (user.nDailyRewardStreak % 7) + 1;
+    user.nDailyRewardStreak = (rewardState.nDailyRewardStreak % 7) + 1;
 
     const settings = await Setting.findOne({}, { aDailyReward: true }).lean();
     const reward = settings.aDailyReward[user.nDailyRewardStreak - 1];

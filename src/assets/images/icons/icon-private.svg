@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#180808"/>
+      <stop offset="100%" stop-color="#090202"/>
+    </linearGradient>
+    <!-- Left curtain: bright left edge, dark toward centre -->
+    <linearGradient id="cL" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#8c0016"/>
+      <stop offset="28%" stop-color="#c8001e"/>
+      <stop offset="60%" stop-color="#920014"/>
+      <stop offset="100%" stop-color="#3c0008"/>
+    </linearGradient>
+    <!-- Right curtain: bright right edge, dark toward centre -->
+    <linearGradient id="cR" x1="1" y1="0" x2="0" y2="0">
+      <stop offset="0%" stop-color="#8c0016"/>
+      <stop offset="28%" stop-color="#c8001e"/>
+      <stop offset="60%" stop-color="#920014"/>
+      <stop offset="100%" stop-color="#3c0008"/>
+    </linearGradient>
+    <!-- Gold horizontal (bollard shaft/base) -->
+    <linearGradient id="goldH" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7a5200"/>
+      <stop offset="28%" stop-color="#f0c028"/>
+      <stop offset="55%" stop-color="#daa018"/>
+      <stop offset="82%" stop-color="#b08000"/>
+      <stop offset="100%" stop-color="#6a4600"/>
+    </linearGradient>
+    <!-- Gold vertical (bollard dome) -->
+    <linearGradient id="goldV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fce060"/>
+      <stop offset="55%" stop-color="#d49820"/>
+      <stop offset="100%" stop-color="#8a6000"/>
+    </linearGradient>
+    <linearGradient id="floorG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2c0a0a"/>
+      <stop offset="100%" stop-color="#100202"/>
+    </linearGradient>
+    <radialGradient id="cGlow" cx="50%" cy="45%">
+      <stop offset="0%" stop-color="#c00020" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#800010" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="88" fill="url(#bg)"/>
+
+  <!-- Subtle warm glow in centre -->
+  <ellipse cx="256" cy="230" rx="210" ry="210" fill="url(#cGlow)"/>
+
+  <!-- FLOOR -->
+  <rect x="0" y="408" width="512" height="104" fill="url(#floorG)"/>
+  <line x1="0" y1="408" x2="512" y2="408" stroke="#5a1214" stroke-width="2.5" opacity="0.8"/>
+
+  <!-- LEFT CURTAIN main shape -->
+  <path d="
+    M 0 0
+    L 150 0
+    C 164 48, 138 96, 154 144
+    C 168 190, 140 236, 156 282
+    C 170 326, 142 372, 150 430
+    L 150 512
+    L 0 512
+    Z
+  " fill="url(#cL)"/>
+  <!-- Left curtain fold darks -->
+  <path d="M 36 0 C 40 82 26 172 38 258 C 48 330 36 386 32 462"
+        stroke="#230005" stroke-width="16" fill="none" opacity="0.6"/>
+  <path d="M 78 0 C 84 94 68 186 80 272 C 90 344 78 408 74 478"
+        stroke="#230005" stroke-width="11" fill="none" opacity="0.46"/>
+  <path d="M 116 0 C 122 72 106 156 118 240 C 130 310 116 370 110 450"
+        stroke="#230005" stroke-width="8" fill="none" opacity="0.34"/>
+  <!-- Leading edge highlight -->
+  <path d="M 152 0 C 160 62 138 134 154 206 C 166 268 142 330 150 412"
+        stroke="#f03050" stroke-width="5" fill="none" opacity="0.45"/>
+
+  <!-- RIGHT CURTAIN main shape -->
+  <path d="
+    M 512 0
+    L 362 0
+    C 348 48, 374 96, 358 144
+    C 344 190, 372 236, 356 282
+    C 342 326, 370 372, 362 430
+    L 362 512
+    L 512 512
+    Z
+  " fill="url(#cR)"/>
+  <!-- Right curtain fold darks -->
+  <path d="M 476 0 C 472 82 486 172 474 258 C 464 330 476 386 480 462"
+        stroke="#230005" stroke-width="16" fill="none" opacity="0.6"/>
+  <path d="M 434 0 C 428 94 444 186 432 272 C 422 344 434 408 438 478"
+        stroke="#230005" stroke-width="11" fill="none" opacity="0.46"/>
+  <path d="M 396 0 C 390 72 406 156 394 240 C 382 310 396 370 402 450"
+        stroke="#230005" stroke-width="8" fill="none" opacity="0.34"/>
+  <!-- Leading edge highlight -->
+  <path d="M 360 0 C 352 62 374 134 358 206 C 346 268 370 330 362 412"
+        stroke="#f03050" stroke-width="5" fill="none" opacity="0.45"/>
+
+  <!-- LEFT BOLLARD -->
+  <!-- Base platform -->
+  <rect x="156" y="390" width="74" height="22" rx="6" fill="url(#goldH)"/>
+  <ellipse cx="193" cy="390" rx="37" ry="9" fill="#f0c030" opacity="0.35"/>
+  <!-- Shaft -->
+  <rect x="177" y="282" width="32" height="114" rx="5" fill="url(#goldH)"/>
+  <!-- Shaft centre highlight -->
+  <rect x="184" y="282" width="9" height="114" rx="3" fill="#f8e060" opacity="0.28"/>
+  <!-- Neck ring -->
+  <rect x="171" y="276" width="44" height="16" rx="5" fill="url(#goldH)"/>
+  <!-- Dome cap -->
+  <path d="M 165 276 Q 165 244 193 240 Q 221 244 221 276 Z" fill="url(#goldV)"/>
+  <ellipse cx="193" cy="241" rx="16" ry="16" fill="#fce068"/>
+  <ellipse cx="193" cy="239" rx="8" ry="5" fill="#fff8a0" opacity="0.7"/>
+
+  <!-- RIGHT BOLLARD -->
+  <rect x="282" y="390" width="74" height="22" rx="6" fill="url(#goldH)"/>
+  <ellipse cx="319" cy="390" rx="37" ry="9" fill="#f0c030" opacity="0.35"/>
+  <rect x="303" y="282" width="32" height="114" rx="5" fill="url(#goldH)"/>
+  <rect x="310" y="282" width="9" height="114" rx="3" fill="#f8e060" opacity="0.28"/>
+  <rect x="297" y="276" width="44" height="16" rx="5" fill="url(#goldH)"/>
+  <path d="M 291 276 Q 291 244 319 240 Q 347 244 347 276 Z" fill="url(#goldV)"/>
+  <ellipse cx="319" cy="241" rx="16" ry="16" fill="#fce068"/>
+  <ellipse cx="319" cy="239" rx="8" ry="5" fill="#fff8a0" opacity="0.7"/>
+
+  <!-- VELVET ROPE -->
+  <!-- Shadow -->
+  <path d="M 193 260 Q 256 322 319 260"
+        stroke="#200005" stroke-width="28" fill="none" stroke-linecap="round"/>
+  <!-- Main rope -->
+  <path d="M 193 260 Q 256 322 319 260"
+        stroke="#be001c" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <!-- Rope highlight streak -->
+  <path d="M 195 255 Q 256 314 317 255"
+        stroke="#f03252" stroke-width="5.5" fill="none" stroke-linecap="round" opacity="0.55"/>
+  <!-- End cap gold rings -->
+  <circle cx="193" cy="260" r="12" fill="url(#goldV)" stroke="#c89000" stroke-width="1.5"/>
+  <circle cx="319" cy="260" r="12" fill="url(#goldV)" stroke="#c89000" stroke-width="1.5"/>
+</svg>

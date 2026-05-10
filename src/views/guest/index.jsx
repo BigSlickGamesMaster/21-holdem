@@ -243,10 +243,7 @@ function GuestLanding() {
 
                         <div className='guest-landing__cta-row guest-landing__cta-row--lobby guest-landing__cta-row--lobby-bottom'>
                             <Button className='guest-landing__primary-cta' onClick={handleEnterGuestTable} disabled={isLoading}>
-                                {isLoading ? 'Opening Table...' : "Try 21 Hold'em"}
-                            </Button>
-                            <Button className='guest-landing__tutorial-cta' onClick={() => navigate('/guest/tutorial')} disabled={isLoading}>
-                                Tutorial
+                                {isLoading ? 'Opening Table...' : 'Take A Seat'}
                             </Button>
                         </div>
                     </div>

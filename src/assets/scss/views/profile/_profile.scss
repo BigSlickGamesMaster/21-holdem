@@ -1,8 +1,30 @@
 .profile {
+    --profile-page-icon: url("../../../images/icons/icon-settings2.png");
     margin: 100px 50px;
     border: 2px solid #163C57;
     border-radius: 15px;
     overflow: hidden;
+    position: relative;
+
+    &::before {
+        content: '';
+        position: absolute;
+        right: -110px;
+        bottom: -130px;
+        z-index: 0;
+        width: clamp(300px, 44vw, 620px);
+        aspect-ratio: 1;
+        background: var(--profile-page-icon) center center / contain no-repeat;
+        opacity: 0.12;
+        filter: drop-shadow(0 30px 52px rgba(0, 0, 0, 0.38));
+        pointer-events: none;
+        transform: rotate(-9deg);
+    }
+
+    > * {
+        position: relative;
+        z-index: 1;
+    }
 
     .profile-header {
         text-align: center;
@@ -12,6 +34,18 @@
         text-transform: uppercase;
         letter-spacing: 1px;
         background-color: #0C263B;
+    }
+
+    .profile-quick-nav {
+        flex-wrap: wrap;
+        padding: 0 8px;
+    }
+
+    .profile-quick-nav-icon {
+        width: clamp(58px, 16vw, 76px);
+        height: clamp(58px, 16vw, 76px);
+        object-fit: contain;
+        display: block;
     }
 
     .profile-content {

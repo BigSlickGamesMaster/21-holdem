@@ -561,7 +561,7 @@ bindGameActionOverlayEvents() {
                 break;
             case 'call':
                 if (this.oButtons?.btn_call?.bAllInMode) {
-                    this.oSocketManager.emit(emitter.reqRaise, { nRaiseAmount: this.getRaiseRequestAmountForAllIn() });
+                    this.openRaiseConfirm(this.getRaiseRequestAmountForAllIn());
                 } else {
                     this.oSocketManager.emit(emitter.reqCall);
                 }
@@ -1774,6 +1774,7 @@ setConsolePrompt(label = 'Waiting for turn') {
     }
     reqLeaveGame() {
         this.oSocketManager.emit(emitter.reqLeave);
+        this.time.delayedCall(150, () => this.exitGame());
     }
     reqDiscardCard(iCardId) {
         this.oSocketManager.emit(emitter.reqDiscardCard, { iCardId: iCardId });
@@ -3156,7 +3157,14 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
         this.oSocketManager?.destroy?.();
     }
     exitGame() {
-        window.location.href = this.fallbackPath || '/lobby';
+        const fallbackPath = this.fallbackPath || '/lobby';
+        window.dispatchEvent(new CustomEvent('bsg:navigate', { detail: { path: fallbackPath } }));
+        window.setTimeout(() => {
+            const fallbackRoute = fallbackPath.split('?')[0];
+            if (window.location.pathname !== fallbackRoute) {
+                window.location.href = fallbackPath;
+            }
+        }, 250);
     }
     setPing(pingTime) {
         this.oHeader?.txt_ping?.setText(`${pingTime}ms`);

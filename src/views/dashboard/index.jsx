@@ -1,6 +1,10 @@
 import { loadStripe } from '@stripe/stripe-js';
-import { faBagShopping, faGear, faGift, faShieldHalved, faTableCellsLarge, faUser } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import iconLobby from '../../assets/images/icons/working/live tables.png';
+import iconPrivate from '../../assets/images/icons/working/private.png';
+import iconProfile from '../../assets/images/icons/working/profile (2).png';
+import iconRewards from '../../assets/images/icons/working/rewards.png';
+import iconShop from '../../assets/images/icons/working/shop.png';
+import iconSettings from '../../assets/images/icons/working/stats.png';
 import { chips1, chips2, chips3, chips4, chips5 } from 'assets/images/shop/shop';
 import { getDailyRewards, updateDailyRewards } from 'query/dailyRewards.query';
 import { getTables, joinTable } from 'query/gameTable.query';
@@ -37,6 +41,10 @@ function getActivePlayers(table) {
     return Number(table?.nLiveParticipants) || Number(table?.nActivePlayers) || 0;
 }
 
+function getArrayPayload(value) {
+    return Array.isArray(value) ? value : [];
+}
+
 function getAvailableTableCount(table) {
     return Math.max(Number(table?.nLiveTableCount) || 0, 1);
 }
@@ -56,7 +64,7 @@ function sortTablesByPriority(a, b) {
 
 const PLAYER_OPTIONS = [4, 6, 9];
 const BUY_IN_OPTIONS = [1000, 5000, 15000, 20000];
-const LOBBY_TAB_IDS = ['lobby-live-tables', 'lobby-missions', 'lobby-private-table', 'lobby-player-profile', 'lobby-shop'];
+const LOBBY_TAB_IDS = ['lobby-live-tables', 'lobby-missions', 'lobby-private-table', 'lobby-player-profile', 'lobby-shop', 'lobby-settings'];
 const stripePromise = loadStripe('pk_live_51RKUWDCjGp9Y7z5pfEw3AFjBJPli82C2xV3NJLsSwl0KBdRlhfDJg4u5qLX9GKZmbfb6nKYc6jljLeZ3yxTPnn1M00FddDWVLA');
 
 function hashSeed(seed = '') {
@@ -116,6 +124,8 @@ function getDefaultBuyIn(tables, nSeatCount) {
 
 const Dashboard = () => {
     const dashboardRef = useRef(null);
+    const carouselPointerRef = useRef({ x: 0, y: 0, active: false });
+    const carouselSuppressClickRef = useRef(false);
     const navigate = useNavigate();
     const location = useLocation();
     const queryClient = useQueryClient();
@@ -123,9 +133,10 @@ const Dashboard = () => {
     const [nActiveSeatCount, setActiveSeatCount] = useState(PLAYER_OPTIONS[0]);
     const [nActiveBuyIn, setActiveBuyIn] = useState(BUY_IN_OPTIONS[0]);
     const [bHasAdjustedFilters, setHasAdjustedFilters] = useState(false);
+    const [nCarouselDragOffset, setCarouselDragOffset] = useState(0);
 
     const { data: tablesData = [], isLoading: isDataTableLoading } = useQuery('getTables', getTables, {
-        select: (data) => data?.data?.data || [],
+        select: (data) => getArrayPayload(data?.data?.data),
         onError: (error) => {
             console.log(error);
             ReactToastify(error?.response?.data?.message || 'Unable to load tables', 'error');
@@ -147,7 +158,7 @@ const Dashboard = () => {
     });
 
     const { data: aShopItems = [], isLoading: isShopLoading } = useQuery('getChips', getChips, {
-        select: (data) => data?.data?.data || [],
+        select: (data) => getArrayPayload(data?.data?.data),
         onError: (error) => {
             console.log(error);
             ReactToastify(error?.response?.data?.message || 'Unable to load store items', 'error');
@@ -210,7 +221,12 @@ const Dashboard = () => {
         },
     });
 
-    const aSortedTables = useMemo(() => [...tablesData].sort(sortTablesByPriority), [tablesData]);
+    const aSafeShopItems = useMemo(() => getArrayPayload(aShopItems).filter(Boolean), [aShopItems]);
+    const aSortedTables = useMemo(() => (
+        getArrayPayload(tablesData)
+            .filter(Boolean)
+            .sort(sortTablesByPriority)
+    ), [tablesData]);
 
     useEffect(() => {
         if (bHasAdjustedFilters || !aSortedTables.length) return;
@@ -319,15 +335,14 @@ const Dashboard = () => {
 
     const aFilteredTables = useMemo(() => (
         aSortedTables.filter(table => (
-            Number(table.nMaxPlayer) === nActiveSeatCount
-            && Number(table.nMinBuyIn) === nActiveBuyIn
+            Number(table.nMinBuyIn) === nActiveBuyIn
         ))
-    ), [aSortedTables, nActiveSeatCount, nActiveBuyIn]);
+    ), [aSortedTables, nActiveBuyIn]);
 
     const oBuyInPlayerCounts = useMemo(() => (
         aSortedTables.reduce((accumulator, table) => {
-            const sKey = `${Number(table.nMaxPlayer) || 0}:${Number(table.nMinBuyIn) || 0}`;
-            accumulator[sKey] = (accumulator[sKey] || 0) + getActivePlayers(table);
+            const nKey = Number(table.nMinBuyIn) || 0;
+            accumulator[nKey] = (accumulator[nKey] || 0) + getActivePlayers(table);
             return accumulator;
         }, {})
     ), [aSortedTables]);
@@ -344,21 +359,99 @@ const Dashboard = () => {
 
     const oProfileStageStyle = useMemo(() => ({ '--profile-stage-image': `url("${sAvatarSrc || DEFAULT_PROFILE_BANNER}")` }), [sAvatarSrc]);
 
-    const getBuyInPlayerCount = (nSeatCount, nBuyIn) => (
-        oBuyInPlayerCounts[`${Number(nSeatCount) || 0}:${Number(nBuyIn) || 0}`] || 0
+    const getBuyInPlayerCount = (nBuyIn) => (
+        oBuyInPlayerCounts[Number(nBuyIn) || 0] || 0
     );
 
     const aQuickNavItems = useMemo(() => ([
-        { id: 'lobby-live-tables', label: 'Live Tables', icon: faTableCellsLarge, kind: 'tab' },
-        { id: 'lobby-missions', label: 'Missions & Rewards', icon: faGift, kind: 'tab' },
-        { id: 'lobby-private-table', label: 'Private Table', icon: faShieldHalved, kind: 'tab' },
-        { id: 'lobby-player-profile', label: 'Player Profile', icon: faUser, kind: 'tab' },
-        { id: 'lobby-shop', label: 'Shop', icon: faBagShopping, kind: 'tab' },
-        { id: 'lobby-settings', label: 'Settings', icon: faGear, kind: 'route', path: '/profile' },
+        {
+            id: 'lobby-live-tables',
+            label: 'Live Tables',
+            iconSrc: iconLobby,
+            kind: 'tab',
+            theme: {
+                '--dashboard-theme-rgb': '48, 91, 166',
+                '--dashboard-theme-soft-rgb': '18, 38, 92',
+                '--dashboard-theme-accent-rgb': '130, 190, 255',
+            },
+        },
+        {
+            id: 'lobby-missions',
+            label: 'Missions & Rewards',
+            iconSrc: iconRewards,
+            kind: 'tab',
+            theme: {
+                '--dashboard-theme-rgb': '226, 169, 35',
+                '--dashboard-theme-soft-rgb': '108, 66, 12',
+                '--dashboard-theme-accent-rgb': '255, 226, 122',
+            },
+        },
+        {
+            id: 'lobby-private-table',
+            label: 'Private Table',
+            iconSrc: iconPrivate,
+            kind: 'tab',
+            theme: {
+                '--dashboard-theme-rgb': '163, 53, 54',
+                '--dashboard-theme-soft-rgb': '92, 24, 30',
+                '--dashboard-theme-accent-rgb': '255, 154, 132',
+            },
+        },
+        {
+            id: 'lobby-player-profile',
+            label: 'Stats',
+            iconSrc: iconProfile,
+            kind: 'tab',
+            theme: {
+                '--dashboard-theme-rgb': '188, 107, 33',
+                '--dashboard-theme-soft-rgb': '96, 48, 18',
+                '--dashboard-theme-accent-rgb': '255, 198, 112',
+            },
+        },
+        {
+            id: 'lobby-shop',
+            label: 'Shop',
+            iconSrc: iconShop,
+            kind: 'tab',
+            theme: {
+                '--dashboard-theme-rgb': '51, 165, 86',
+                '--dashboard-theme-soft-rgb': '20, 91, 52',
+                '--dashboard-theme-accent-rgb': '147, 255, 180',
+            },
+        },
+        {
+            id: 'lobby-settings',
+            label: 'Settings',
+            iconSrc: iconSettings,
+            kind: 'tab',
+            path: '/profile',
+            theme: {
+                '--dashboard-theme-rgb': '89, 126, 181',
+                '--dashboard-theme-soft-rgb': '36, 58, 105',
+                '--dashboard-theme-accent-rgb': '174, 210, 255',
+            },
+        },
     ]), []);
 
+    const nActiveCarouselIndex = Math.max(0, aQuickNavItems.findIndex((item) => item.id === sActiveTab));
+    const oActiveCarouselItem = aQuickNavItems[nActiveCarouselIndex] || aQuickNavItems[0];
+
+    const getLobbyIconBackgroundStyle = (sItemId) => {
+        const oItem = aQuickNavItems.find((item) => item.id === sItemId);
+        return oItem?.iconSrc ? { '--dashboard-page-icon': `url("${oItem.iconSrc}")` } : undefined;
+    };
+
+    const oActiveLobbyIconBackgroundStyle = oActiveCarouselItem?.iconSrc
+        ? {
+            '--dashboard-page-icon': `url("${oActiveCarouselItem.iconSrc}")`,
+            ...(oActiveCarouselItem.theme || {}),
+        }
+        : undefined;
+    const sActiveSceneName = (sActiveTab || '').replace(/^lobby-/, '').replace(/[^a-z0-9]+/g, '-');
+    const sDashboardSceneClass = ` dashboard-hub--themed-scene dashboard-hub--scene-${sActiveSceneName}`;
+
     const oBestValueShopItem = useMemo(() => (
-        aShopItems.reduce((oBestItem, item) => {
+        aSafeShopItems.reduce((oBestItem, item) => {
             const nChips = Number(item?.nChips) || 0;
             const nPrice = Number(item?.nPrice) || 0;
             if (!nChips || !nPrice) return oBestItem;
@@ -368,14 +461,9 @@ const Dashboard = () => {
             const nBestRatio = (Number(oBestItem?.nChips) || 0) / (Number(oBestItem?.nPrice) || 1);
             return (nChips / nPrice) > nBestRatio ? item : oBestItem;
         }, null)
-    ), [aShopItems]);
+    ), [aSafeShopItems]);
 
     const handleQuickNavSelect = (item, { bScrollDesktop = false } = {}) => {
-        if (item.kind === 'route') {
-            navigate(item.path);
-            return;
-        }
-
         setActiveTab(item.id);
         if (!bScrollDesktop || typeof document === 'undefined') return;
 
@@ -383,6 +471,145 @@ const Dashboard = () => {
         if (oPanel) {
             oPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
         }
+    };
+
+    const handleCarouselStep = (nDirection) => {
+        if (!aQuickNavItems.length) return;
+        const nNextIndex = (nActiveCarouselIndex + nDirection + aQuickNavItems.length) % aQuickNavItems.length;
+        handleQuickNavSelect(aQuickNavItems[nNextIndex]);
+    };
+
+    const startCarouselDrag = (x, y, width) => {
+        carouselPointerRef.current = {
+            active: true,
+            dragged: false,
+            x,
+            y,
+            width: width || 320,
+        };
+    };
+
+    const updateCarouselDrag = (x, y) => {
+        const oPointer = carouselPointerRef.current;
+        if (!oPointer.active) return;
+
+        const nDragDistance = Math.max(90, Math.min(180, (oPointer.width || 320) * 0.2));
+        const nDeltaX = x - oPointer.x;
+        const nDeltaY = y - oPointer.y;
+        if (Math.abs(nDeltaX) > 6 && Math.abs(nDeltaX) > Math.abs(nDeltaY)) {
+            carouselPointerRef.current.dragged = true;
+        }
+        const nNextDragOffset = Math.max(-1.35, Math.min(1.35, -nDeltaX / nDragDistance));
+        setCarouselDragOffset(nNextDragOffset);
+    };
+
+    const finishCarouselDrag = (x, y) => {
+        const oPointer = carouselPointerRef.current;
+        if (!oPointer.active) return;
+
+        const bWasDragged = Boolean(oPointer.dragged);
+        carouselPointerRef.current = { x: 0, y: 0, active: false };
+        setCarouselDragOffset(0);
+
+        const nDeltaX = x - oPointer.x;
+        const nDeltaY = y - oPointer.y;
+        const nDragDistance = Math.max(90, Math.min(180, (oPointer.width || 320) * 0.2));
+        if (bWasDragged) {
+            carouselSuppressClickRef.current = true;
+            window.setTimeout(() => {
+                carouselSuppressClickRef.current = false;
+            }, 220);
+        }
+
+        if (Math.abs(nDeltaX) < 28 || Math.abs(nDeltaX) < Math.abs(nDeltaY) * 1.15) return;
+        if (Math.abs(nDeltaX / nDragDistance) < 0.18) return;
+
+        handleCarouselStep(nDeltaX < 0 ? 1 : -1);
+    };
+
+    const cancelCarouselDrag = () => {
+        carouselPointerRef.current = { x: 0, y: 0, active: false };
+        setCarouselDragOffset(0);
+    };
+
+    const handleCarouselPointerDown = (event) => {
+        if (event.pointerType === 'touch') return;
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+        const { width } = event.currentTarget.getBoundingClientRect();
+        startCarouselDrag(event.clientX, event.clientY, width);
+    };
+
+    const handleCarouselPointerMove = (event) => {
+        if (event.pointerType === 'touch') return;
+        updateCarouselDrag(event.clientX, event.clientY);
+    };
+
+    const handleCarouselPointerEnd = (event) => {
+        if (event.pointerType === 'touch') return;
+        finishCarouselDrag(event.clientX, event.clientY);
+    };
+
+    const handleCarouselTouchStart = (event) => {
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        const { width } = event.currentTarget.getBoundingClientRect();
+        startCarouselDrag(touch.clientX, touch.clientY, width);
+    };
+
+    const handleCarouselTouchMove = (event) => {
+        const touch = event.touches?.[0];
+        if (!touch) return;
+        updateCarouselDrag(touch.clientX, touch.clientY);
+        if (carouselPointerRef.current?.dragged) event.preventDefault();
+    };
+
+    const handleCarouselTouchEnd = (event) => {
+        const touch = event.changedTouches?.[0];
+        if (!touch) {
+            cancelCarouselDrag();
+            return;
+        }
+        finishCarouselDrag(touch.clientX, touch.clientY);
+    };
+
+    const handleCarouselItemClick = (event, item) => {
+        if (carouselSuppressClickRef.current) {
+            event.preventDefault();
+            event.stopPropagation();
+            return;
+        }
+        handleQuickNavSelect(item);
+    };
+
+    const getCarouselOffset = (nItemIndex) => {
+        const nTotalItems = aQuickNavItems.length;
+        const nRawOffset = nItemIndex - nActiveCarouselIndex;
+        const nHalfItems = Math.floor(nTotalItems / 2);
+
+        if (nRawOffset > nHalfItems) return nRawOffset - nTotalItems;
+        if (nRawOffset < -nHalfItems) return nRawOffset + nTotalItems;
+        return nRawOffset;
+    };
+
+    const getCarouselItemStyle = (nItemIndex) => {
+        const nVisualOffset = getCarouselOffset(nItemIndex) - nCarouselDragOffset;
+        const nAngle = nVisualOffset * (Math.PI / 3);
+        const nDepth = Math.cos(nAngle);
+        const nSide = Math.sin(nAngle);
+        const nFocus = Math.max(0, Math.min(1, 1 - Math.abs(nVisualOffset)));
+        const nScale = 0.2 + (nFocus * 0.8);
+        const nOpacity = 0.42 + (nFocus * 0.58);
+        const nViewportWidth = typeof window === 'undefined' ? 420 : window.innerWidth;
+        const nRadius = Math.max(112, Math.min(300, nViewportWidth * 0.34));
+
+        return {
+            '--carousel-x': `${Math.round(nSide * nRadius)}px`,
+            '--carousel-y': `${Math.round((1 - nDepth) * 56)}px`,
+            '--carousel-scale': nScale.toFixed(3),
+            '--carousel-opacity': nOpacity.toFixed(3),
+            '--carousel-brightness': (0.58 + (nFocus * 0.5)).toFixed(3),
+            zIndex: Math.round(80 + (nFocus * 80) + (nDepth * 8)),
+        };
     };
 
     const handleSeatCountChange = (nSeatCount) => {
@@ -412,28 +639,16 @@ const Dashboard = () => {
         <>
             <header className='dashboard-hub__window-heading'>
                 <h2>Live Tables</h2>
-                <div className='dashboard-hub__seat-switch' role='group' aria-label='Choose number of players'>
-                    {PLAYER_OPTIONS.map((nSeatOption) => (
-                        <button
-                            key={nSeatOption}
-                            type='button'
-                            className={`dashboard-hub__seat-pill${nSeatOption === nActiveSeatCount ? ' is-active' : ''}`}
-                            onClick={() => handleSeatCountChange(nSeatOption)}
-                        >
-                            {nSeatOption}
-                        </button>
-                    ))}
-                </div>
             </header>
 
             <div className='dashboard-hub__tab-body dashboard-hub__tab-body--live'>
+                <span className='dashboard-hub__live-label'>Buy-in</span>
                 <div className='dashboard-hub__buyin-grid' role='group' aria-label='Choose buy-in'>
                     {BUY_IN_OPTIONS.map((nBuyInOption) => {
                         const oBuyInTable = aSortedTables.find((table) => (
-                            Number(table.nMaxPlayer) === nActiveSeatCount
-                            && Number(table.nMinBuyIn) === nBuyInOption
+                            Number(table.nMinBuyIn) === nBuyInOption
                         ));
-                        const nBuyInPlayers = getBuyInPlayerCount(nActiveSeatCount, nBuyInOption);
+                        const nBuyInPlayers = getBuyInPlayerCount(nBuyInOption);
 
                         return (
                             <button
@@ -443,10 +658,6 @@ const Dashboard = () => {
                                 onClick={() => handleBuyInChange(nBuyInOption)}
                                 aria-label={`${formatAmount(nBuyInOption)} buy-in, ${nBuyInPlayers} ${nBuyInPlayers === 1 ? 'player' : 'players'} active`}
                             >
-                                <span className='dashboard-hub__buyin-art' aria-hidden='true'>
-                                    <img src={liveTablesImage} alt='' />
-                                    <span className='dashboard-hub__buyin-art-badge'>{nBuyInPlayers}</span>
-                                </span>
                                 <span className='dashboard-hub__buyin-copy'>
                                     <strong>{formatAmount(nBuyInOption)}</strong>
                                     <span>{oBuyInTable ? getBlindLabel(oBuyInTable.nMinBet) : 'Waiting'}</span>
@@ -458,37 +669,49 @@ const Dashboard = () => {
 
                 {aFilteredTables.length ? (
                     <ul className='dashboard-hub__table-grid' aria-label='Available tables'>
-                        {aFilteredTables.map((table) => {
-                            const nAvailableTables = getAvailableTableCount(table);
+                        {aFilteredTables.map((table, index) => {
+                            const nOccupied = getActivePlayers(table);
+                            const nTotalSeats = Number(table.nMaxPlayer) || 0;
+                            const nOpenSeats = Math.max(0, nTotalSeats - nOccupied);
                             const aSeatAvatars = getTableSeatAvatars(table);
+                            const sTableId = table?._id || table?.id || `${table?.sName || 'table'}-${index}`;
+                            const sTableName = table?.sName || 'Live Table';
 
                             return (
-                                <li key={table._id}>
+                                <li key={sTableId}>
                                     <button
                                         type='button'
                                         className='dashboard-hub__table-card'
-                                        onClick={() => joinTableMutate(table._id)}
-                                        disabled={joinTableLoading}
-                                        aria-label={`Select ${table.sName}. ${nAvailableTables} available ${nAvailableTables === 1 ? 'table' : 'tables'}. ${table.nMaxPlayer}-player setup.`}
+                                        onClick={() => joinTableMutate(table?._id || table?.id)}
+                                        disabled={joinTableLoading || !(table?._id || table?.id)}
+                                        aria-label={`${sTableName}: ${nOccupied} playing, ${nOpenSeats} seat${nOpenSeats === 1 ? '' : 's'} open.`}
                                     >
                                         <span className='dashboard-hub__table-card-art' aria-hidden='true'>
                                             <img src={portraitTableImage} alt='' />
                                         </span>
                                         <span className='dashboard-hub__table-card-copy'>
                                             <span className='dashboard-hub__table-card-header'>
-                                                <strong>{table.sName}</strong>
-                                                <span className='dashboard-hub__table-card-availability'>
-                                                    {nAvailableTables} {nAvailableTables === 1 ? 'table' : 'tables'}
-                                                </span>
+                                                <strong>{sTableName}</strong>
                                             </span>
                                             <span className='dashboard-hub__table-card-avatars' aria-hidden='true'>
-                                                {aSeatAvatars.map((avatarSrc, index) => (
-                                                    <span key={`${table._id}-seat-${index + 1}`} className='dashboard-hub__table-card-avatar'>
-                                                        <img src={avatarSrc} alt='' />
-                                                    </span>
-                                                ))}
+                                                {Array.from({ length: nTotalSeats }, (_, index) => {
+                                                    const bFilled = index < nOccupied;
+                                                    return (
+                                                        <span
+                                                            key={`${sTableId}-seat-${index + 1}`}
+                                                            className={`dashboard-hub__table-card-avatar${bFilled ? '' : ' is-empty'}`}
+                                                        >
+                                                            {bFilled ? <img src={aSeatAvatars[index]} alt='' /> : null}
+                                                        </span>
+                                                    );
+                                                })}
                                             </span>
-                                            <span className='dashboard-hub__table-card-caption'>{table.nMaxPlayer}-player setup</span>
+                                            <span className='dashboard-hub__table-card-cta'>
+                                                {nOccupied > 0
+                                                    ? `${nOccupied} ${nOccupied === 1 ? 'person' : 'people'} playing — tap to join`
+                                                    : `${nOpenSeats} seat${nOpenSeats === 1 ? '' : 's'} open — be the first`
+                                                }
+                                            </span>
                                         </span>
                                     </button>
                                 </li>
@@ -499,8 +722,8 @@ const Dashboard = () => {
 
                 {!aFilteredTables.length ? (
                     <div className='dashboard-hub__empty'>
-                        <strong>{isDataTableLoading ? 'Loading tables...' : 'No tables on this buy-in yet'}</strong>
-                        <span>Try another buy-in or seat count to find an open table.</span>
+                        <strong>{isDataTableLoading ? 'Loading tables...' : 'No tables at this buy-in yet'}</strong>
+                        <span>Try another buy-in to find an open table.</span>
                     </div>
                 ) : null}
             </div>
@@ -520,7 +743,7 @@ const Dashboard = () => {
     );
 
     const renderStoreItems = (bCompact = false) => {
-        if (!aShopItems.length) {
+        if (!aSafeShopItems.length) {
             return (
                 <div className='dashboard-hub__empty'>
                     <strong>{isShopLoading ? 'Loading store...' : 'No store items available yet'}</strong>
@@ -531,7 +754,7 @@ const Dashboard = () => {
 
         return (
             <div className={`dashboard-hub__store-grid${bCompact ? ' dashboard-hub__store-grid--compact' : ''}`}>
-                {aShopItems.map((item, index) => {
+                {aSafeShopItems.map((item, index) => {
                     const sItemKey = `${item?.sTitle || 'store-item'}-${item?.nPrice || index}`;
                     const sItemTitle = item?.sTitle || 'Chip Package';
                     const sItemAmount = Number(item?.nChips) ? `${formatAmount(item.nChips)} chips` : 'Store item';
@@ -710,13 +933,15 @@ const Dashboard = () => {
     const renderDesktopLiveCard = () => {
         const oFeaturedTable = aFilteredTables[0] || aSortedTables[0] || null;
         const nAvailableTables = oFeaturedTable ? getAvailableTableCount(oFeaturedTable) : 0;
+        const nFeaturedOccupied = oFeaturedTable ? getActivePlayers(oFeaturedTable) : 0;
         const aSeatAvatars = oFeaturedTable ? getTableSeatAvatars(oFeaturedTable) : [];
 
         return (
-            <article
-                id='lobby-live-tables-desktop-card'
-                className={`dashboard-hub__desktop-card dashboard-hub__desktop-card--live${sActiveTab === 'lobby-live-tables' ? ' is-active' : ''}`}
-            >
+        <article
+            id='lobby-live-tables-desktop-card'
+            className={`dashboard-hub__desktop-card dashboard-hub__desktop-card--live${sActiveTab === 'lobby-live-tables' ? ' is-active' : ''}`}
+            style={getLobbyIconBackgroundStyle('lobby-live-tables')}
+        >
                 <header className='dashboard-hub__desktop-card-header'>
                     <h3>Live Tables</h3>
                 </header>
@@ -727,30 +952,13 @@ const Dashboard = () => {
 
                 <div className='dashboard-hub__desktop-card-body dashboard-hub__desktop-card-body--live'>
                     <div className='dashboard-hub__desktop-filter-block'>
-                        <span className='dashboard-hub__desktop-filter-label'>Players</span>
-                        <div className='dashboard-hub__seat-switch' role='group' aria-label='Choose number of players'>
-                            {PLAYER_OPTIONS.map((nSeatOption) => (
-                                <button
-                                    key={`desktop-seat-${nSeatOption}`}
-                                    type='button'
-                                    className={`dashboard-hub__seat-pill${nSeatOption === nActiveSeatCount ? ' is-active' : ''}`}
-                                    onClick={() => handleSeatCountChange(nSeatOption)}
-                                >
-                                    {nSeatOption}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className='dashboard-hub__desktop-filter-block'>
                         <span className='dashboard-hub__desktop-filter-label'>Buy-In</span>
                         <div className='dashboard-hub__desktop-buyin-grid' role='group' aria-label='Choose buy-in'>
                             {BUY_IN_OPTIONS.map((nBuyInOption) => {
                                 const oBuyInTable = aSortedTables.find((table) => (
-                                    Number(table.nMaxPlayer) === nActiveSeatCount
-                                    && Number(table.nMinBuyIn) === nBuyInOption
+                                    Number(table.nMinBuyIn) === nBuyInOption
                                 ));
-                                const nBuyInPlayers = getBuyInPlayerCount(nActiveSeatCount, nBuyInOption);
+                                const nBuyInPlayers = getBuyInPlayerCount(nBuyInOption);
 
                                 return (
                                     <button
@@ -780,16 +988,22 @@ const Dashboard = () => {
                             <span>{nAvailableTables} {nAvailableTables === 1 ? 'table' : 'tables'} available</span>
                         </div>
                         <div className='dashboard-hub__desktop-live-summary-bottom'>
-                            <span>{oFeaturedTable ? `${oFeaturedTable.nMaxPlayer}-player setup` : `${nActiveSeatCount}-player setup`}</span>
+                            <span>{oFeaturedTable ? `${oFeaturedTable.nMaxPlayer}-player setup` : 'Select a buy-in'}</span>
                             <span>{oFeaturedTable ? getBlindLabel(oFeaturedTable.nMinBet) : 'Blind amount waiting'}</span>
                         </div>
-                        {aSeatAvatars.length ? (
+                        {oFeaturedTable ? (
                             <div className='dashboard-hub__desktop-seat-strip' aria-hidden='true'>
-                                {aSeatAvatars.map((avatarSrc, index) => (
-                                    <span key={`desktop-live-seat-${index + 1}`} className='dashboard-hub__table-card-avatar'>
-                                        <img src={avatarSrc} alt='' />
-                                    </span>
-                                ))}
+                                {Array.from({ length: oFeaturedTable.nMaxPlayer }, (_, index) => {
+                                    const bFilled = index < nFeaturedOccupied;
+                                    return (
+                                        <span
+                                            key={`desktop-live-seat-${index + 1}`}
+                                            className={`dashboard-hub__table-card-avatar${bFilled ? '' : ' is-empty'}`}
+                                        >
+                                            {bFilled ? <img src={aSeatAvatars[index]} alt='' /> : null}
+                                        </span>
+                                    );
+                                })}
                             </div>
                         ) : null}
                     </div>
@@ -813,6 +1027,7 @@ const Dashboard = () => {
         <article
             id='lobby-missions-desktop-card'
             className={`dashboard-hub__desktop-card dashboard-hub__desktop-card--rewards${sActiveTab === 'lobby-missions' ? ' is-active' : ''}`}
+            style={getLobbyIconBackgroundStyle('lobby-missions')}
         >
             <header className='dashboard-hub__desktop-card-header'>
                 <h3>DAILY REWARDS</h3>
@@ -866,6 +1081,7 @@ const Dashboard = () => {
         <article
             id='lobby-private-table-desktop-card'
             className={`dashboard-hub__desktop-card dashboard-hub__desktop-card--private${sActiveTab === 'lobby-private-table' ? ' is-active' : ''}`}
+            style={getLobbyIconBackgroundStyle('lobby-private-table')}
         >
             <header className='dashboard-hub__desktop-card-header'>
                 <h3>PRIVATE TABLES</h3>
@@ -898,6 +1114,7 @@ const Dashboard = () => {
         <article
             id='lobby-shop-desktop-card'
             className={`dashboard-hub__desktop-card dashboard-hub__desktop-card--shop${sActiveTab === 'lobby-shop' ? ' is-active' : ''}`}
+            style={getLobbyIconBackgroundStyle('lobby-shop')}
         >
             <header className='dashboard-hub__desktop-card-header'>
                 <h3>STORE</h3>
@@ -918,6 +1135,7 @@ const Dashboard = () => {
         <article
             id='lobby-player-profile-desktop-card'
             className={`dashboard-hub__desktop-card dashboard-hub__desktop-card--profile${sActiveTab === 'lobby-player-profile' ? ' is-active' : ''}`}
+            style={getLobbyIconBackgroundStyle('lobby-player-profile')}
         >
             <header className='dashboard-hub__desktop-card-header'>
                 <h3>PLAYER STATS</h3>
@@ -969,11 +1187,42 @@ const Dashboard = () => {
         </article>
     );
 
+    const renderSettingsPanel = () => (
+        <>
+            <header className='dashboard-hub__window-heading'>
+                <h2>Settings</h2>
+            </header>
+
+            <div className='dashboard-hub__tab-body dashboard-hub__tab-body--settings'>
+                <div className='dashboard-hub__settings-card'>
+                    <span className='dashboard-hub__section-kicker'>Account Controls</span>
+                    <strong>Manage your profile, sound, security, and account preferences.</strong>
+                    <p>Open settings when you want to update your player details or adjust how the game feels.</p>
+                    <button type='button' className='dashboard-hub__desktop-cta dashboard-hub__desktop-cta--primary' onClick={() => navigate('/profile')}>
+                        Open Settings
+                    </button>
+                </div>
+            </div>
+        </>
+    );
+
     return (
         <div className='dashboard-container'>
-            <section className='dashboard-hub dashboard-hub--force-mobile' ref={dashboardRef}>
+            <section className={`dashboard-hub dashboard-hub--force-mobile${sDashboardSceneClass}`} ref={dashboardRef} style={oActiveLobbyIconBackgroundStyle}>
                 <div className='dashboard-hub__backdrop' aria-hidden='true' />
                 <div className='dashboard-hub__ambient-grid' aria-hidden='true' />
+                <div className='dashboard-hub__stage-lights' aria-hidden='true'>
+                    <span className='dashboard-hub__stage-beam dashboard-hub__stage-beam--one' />
+                    <span className='dashboard-hub__stage-beam dashboard-hub__stage-beam--two' />
+                    <span className='dashboard-hub__stage-beam dashboard-hub__stage-beam--three' />
+                    <span className='dashboard-hub__stage-beam dashboard-hub__stage-beam--four' />
+                    <span className='dashboard-hub__stage-beam dashboard-hub__stage-beam--five' />
+                    <span className='dashboard-hub__stage-fixture dashboard-hub__stage-fixture--one' />
+                    <span className='dashboard-hub__stage-fixture dashboard-hub__stage-fixture--two' />
+                    <span className='dashboard-hub__stage-fixture dashboard-hub__stage-fixture--three' />
+                    <span className='dashboard-hub__stage-fixture dashboard-hub__stage-fixture--four' />
+                    <span className='dashboard-hub__stage-fixture dashboard-hub__stage-fixture--five' />
+                </div>
                 <div className='dashboard-hub__lobby-atmosphere' aria-hidden='true'>
                     <span className='dashboard-hub__lobby-orb dashboard-hub__lobby-orb--one' />
                     <span className='dashboard-hub__lobby-orb dashboard-hub__lobby-orb--two' />
@@ -983,28 +1232,76 @@ const Dashboard = () => {
 
                 <div className='dashboard-hub__shell'>
                     <header className='dashboard-hub__hero'>
+                        <div className={`dashboard-hub__icon-carousel${Math.abs(nCarouselDragOffset) > 0.02 ? ' is-dragging' : ''}`} aria-label='Lobby pages'>
+                            <button
+                                type='button'
+                                className='dashboard-hub__carousel-arrow dashboard-hub__carousel-arrow--prev'
+                                onPointerDown={(event) => event.stopPropagation()}
+                                onTouchStart={(event) => event.stopPropagation()}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleCarouselStep(-1);
+                                }}
+                                aria-label='Previous lobby page'
+                            >
+                                &lsaquo;
+                            </button>
 
-                        <nav className='dashboard-hub__quick-links' aria-label='Lobby shortcuts'>
-                            {aQuickNavItems.map((item) => {
-                                const bIsActive = item.kind === 'tab' && sActiveTab === item.id;
+                            <div
+                                className='dashboard-hub__carousel-track'
+                                onPointerDown={handleCarouselPointerDown}
+                                onPointerMove={handleCarouselPointerMove}
+                                onPointerUp={handleCarouselPointerEnd}
+                                onPointerCancel={cancelCarouselDrag}
+                                onPointerLeave={handleCarouselPointerEnd}
+                                onTouchStart={handleCarouselTouchStart}
+                                onTouchMove={handleCarouselTouchMove}
+                                onTouchEnd={handleCarouselTouchEnd}
+                                onTouchCancel={cancelCarouselDrag}
+                            >
+                                {aQuickNavItems.map((item, nItemIndex) => {
+                                    const nOffset = getCarouselOffset(nItemIndex);
+                                    const bIsActive = sActiveTab === item.id;
+                                    const nAbsOffset = Math.abs(nOffset);
+                                    const sDepthClass = nAbsOffset === 0 ? ' is-active' : nAbsOffset === 1 ? ' is-near' : nAbsOffset === 2 ? ' is-mid' : ' is-back';
 
-                                return (
-                                    <button
-                                        key={item.id}
-                                        type='button'
-                                        aria-label={item.label}
-                                        aria-pressed={item.kind === 'tab' ? bIsActive : undefined}
-                                        className={`dashboard-hub__quick-link${bIsActive ? ' is-active' : ''}`}
-                                        onClick={() => handleQuickNavSelect(item)}
-                                        title={item.label}
-                                    >
-                                        <span className='dashboard-hub__quick-link-icon'>
-                                            <FontAwesomeIcon icon={item.icon} />
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </nav>
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            type='button'
+                                            aria-label={item.label}
+                                            aria-pressed={bIsActive}
+                                            className={`dashboard-hub__carousel-item${sDepthClass}`}
+                                            style={getCarouselItemStyle(nItemIndex)}
+                                            onClick={(event) => handleCarouselItemClick(event, item)}
+                                            title={item.label}
+                                        >
+                                            <span className='dashboard-hub__carousel-icon'>
+                                                <img src={item.iconSrc} alt='' aria-hidden='true' />
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <button
+                                type='button'
+                                className='dashboard-hub__carousel-arrow dashboard-hub__carousel-arrow--next'
+                                onPointerDown={(event) => event.stopPropagation()}
+                                onTouchStart={(event) => event.stopPropagation()}
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleCarouselStep(1);
+                                }}
+                                aria-label='Next lobby page'
+                            >
+                                &rsaquo;
+                            </button>
+
+                            <div className='dashboard-hub__carousel-label' aria-live='polite'>
+                                {oActiveCarouselItem?.label}
+                            </div>
+                        </div>
                     </header>
 
                     <div className='dashboard-hub__desktop-stage'>
@@ -1024,7 +1321,7 @@ const Dashboard = () => {
                                             title={item.label}
                                         >
                                             <span className='dashboard-hub__desktop-nav-icon'>
-                                                <FontAwesomeIcon icon={item.icon} />
+                                                <img src={item.iconSrc} alt='' aria-hidden='true' />
                                             </span>
                                         </button>
                                     );
@@ -1082,6 +1379,14 @@ const Dashboard = () => {
                             >
                                 {renderShopPanel()}
                             </section>
+
+                            <section
+                                id='lobby-settings-panel'
+                                className={`dashboard-hub__tab-panel dashboard-hub__tab-panel--settings${sActiveTab === 'lobby-settings' ? ' is-active' : ''}`}
+                                hidden={sActiveTab !== 'lobby-settings'}
+                            >
+                                {renderSettingsPanel()}
+                            </section>
                         </div>
                     </div>
                 </div>
@@ -1091,4 +1396,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

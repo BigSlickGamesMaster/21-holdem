@@ -6,6 +6,10 @@ const nodemailer = require('../../../../utils/lib/nodemailer');
 
 const controllers = {};
 
+function escapeRegExp(value = '') {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /*
 controllers.login = async (req, res) => {
   try {
@@ -295,7 +299,17 @@ controllers.login = async (req, res) => {
     if (!body.sEmail) return res.reply(messages.required_field('Email ID or Username'));
     if (!body.sPassword) return res.reply(messages.required_field('Password'));
 
-    const user = await User.findOne({ $or: [{ sEmail: body.sEmail }, { sUserName: body.sEmail }] });
+    const sLogin = String(body.sEmail).trim();
+    const sLoginEmail = sLogin.toLowerCase();
+    const oExactLoginRegex = new RegExp(`^${escapeRegExp(sLogin)}$`, 'i');
+    const user = await User.findOne({
+      $or: [
+        { sEmail: sLoginEmail },
+        { sEmail: oExactLoginRegex },
+        { sUserName: sLogin },
+        { sUserName: oExactLoginRegex },
+      ],
+    });
     if (!user) return res.reply(messages.not_found('User'));
 
     if (user.eStatus === 'n') return res.reply(messages.custom.user_blocked);

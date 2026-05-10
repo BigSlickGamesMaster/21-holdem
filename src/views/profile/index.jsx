@@ -6,19 +6,25 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faCircleCheck, faBagShopping, faGear, faGift, faShieldHalved, faTableCellsLarge, faUser } from "@fortawesome/free-solid-svg-icons";
+import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 import _ from "scripts/helper";
 import { ReactToastify, removeCookie } from "shared/utils";
 import { buildAvatarOptions, getAvatarImageSrc } from "shared/constants/builtInAvatars";
+import iconLobby from '../../assets/images/icons/icon-lobby.png';
+import iconGift from '../../assets/images/icons/icon-gift2.png';
+import iconShield from '../../assets/images/icons/icon-shield2.png';
+import iconProfile from '../../assets/images/icons/icon-profile2.png';
+import iconShop from '../../assets/images/icons/icon-shop2.png';
+import iconSettings from '../../assets/images/icons/icon-settings2.png';
 
 
 const QUICK_NAV_ITEMS = [
-    { id: 'lobby-live-tables', label: 'Live Tables', icon: faTableCellsLarge, kind: 'tab', path: '/lobby?tab=lobby-live-tables' },
-    { id: 'lobby-missions', label: 'Missions & Rewards', icon: faGift, kind: 'tab', path: '/lobby?tab=lobby-missions' },
-    { id: 'lobby-private-table', label: 'Private Table', icon: faShieldHalved, kind: 'tab', path: '/lobby?tab=lobby-private-table' },
-    { id: 'lobby-player-profile', label: 'Player Profile', icon: faUser, kind: 'tab', path: '/lobby?tab=lobby-player-profile' },
-    { id: 'lobby-shop', label: 'Shop', icon: faBagShopping, kind: 'tab', path: '/lobby?tab=lobby-shop' },
-    { id: 'lobby-settings', label: 'Settings', icon: faGear, kind: 'route', path: '/profile' },
+    { id: 'lobby-live-tables', label: 'Live Tables', iconSrc: iconLobby, kind: 'tab', path: '/lobby?tab=lobby-live-tables' },
+    { id: 'lobby-missions', label: 'Missions & Rewards', iconSrc: iconGift, kind: 'tab', path: '/lobby?tab=lobby-missions' },
+    { id: 'lobby-private-table', label: 'Private Table', iconSrc: iconShield, kind: 'tab', path: '/lobby?tab=lobby-private-table' },
+    { id: 'lobby-player-profile', label: 'Player Profile', iconSrc: iconProfile, kind: 'tab', path: '/lobby?tab=lobby-player-profile' },
+    { id: 'lobby-shop', label: 'Shop', iconSrc: iconShop, kind: 'tab', path: '/lobby?tab=lobby-shop' },
+    { id: 'lobby-settings', label: 'Settings', iconSrc: iconSettings, kind: 'route', path: '/profile' },
 ];
 
 const Profile = () => {
@@ -190,7 +196,7 @@ const Profile = () => {
 
     return (
         <>
-            <div className="profile">
+            <div className="profile" style={{ '--profile-page-icon': `url("${iconSettings}")` }}>
                 {/* Navigation tab icons */}
                 <nav className="profile-quick-nav" aria-label="Lobby shortcuts" style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
                     {QUICK_NAV_ITEMS.map((item) => (
@@ -202,10 +208,10 @@ const Profile = () => {
                             className={`profile-quick-nav-btn${activeNavId === item.id ? ' is-active' : ''}`}
                             onClick={() => handleQuickNav(item)}
                             title={item.label}
-                            style={{ background: 'none', border: 'none', padding: 8, borderRadius: 8, cursor: 'pointer', color: activeNavId === item.id ? '#fff' : '#aaa', fontSize: 22, transition: 'color 0.2s' }}
+                            style={{ background: 'none', border: 'none', padding: 8, borderRadius: 8, cursor: 'pointer', color: activeNavId === item.id ? '#fff' : '#aaa', fontSize: 44, transition: 'color 0.2s' }}
                         >
                             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <FontAwesomeIcon icon={item.icon} />
+                                <img src={item.iconSrc} alt="" aria-hidden="true" className="profile-quick-nav-icon" />
                                 <span style={{ fontSize: 10, marginTop: 2 }}>{item.label}</span>
                             </span>
                         </button>
@@ -294,7 +300,7 @@ const Profile = () => {
                                             <div className="avatar-list">
                                                 {
                                                     Array.from(new Map((avatarList || []).map(avatar => [avatar.sPath, avatar])).values())
-                                                        .map((avatar, index) => (
+                                                        .map((avatar) => (
                                                             <div
                                                                 key={avatar.sPath}
                                                                 className={`avatar-option ${avatar?.selected ? 'selected' : ''}`}

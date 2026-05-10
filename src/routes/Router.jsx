@@ -9,8 +9,6 @@ const Register = lazy(() => import('views/auth/register'))
 const Login = lazy(() => import('views/auth/login'))
 const GuestLanding = lazy(() => import('views/guest'))
 const GuestGame = lazy(() => import('views/guest/game'))
-const GuestTutorialLanding = lazy(() => import('views/guest/tutorial'))
-const GuestTutorialGame = lazy(() => import('views/guest/tutorial/game'))
 const Dashboard = lazy(() => import('views/dashboard/index'))
 const PrivateTable = lazy(() => import('views/dashboard/privateTable'))
 const Profile = lazy(() => import('views/profile/index'))
@@ -46,8 +44,6 @@ const RoutesDetails = [
         children: [
             { path: '/guest', Component: GuestLanding, exact: true },
             { path: '/guest/game', Component: GuestGame, exact: true },
-            { path: '/guest/tutorial', Component: GuestTutorialLanding, exact: true },
-            { path: '/guest/tutorial/game', Component: GuestTutorialGame, exact: true },
         ]
     },
     {

@@ -8,7 +8,7 @@ function GuestRoute() {
   const token = getCookie('sAuthToken')
   const location = useLocation()
   if (token) return <Navigate to='/lobby' replace />
-  if (location.pathname === '/guest/game' || location.pathname === '/guest/tutorial/game') return <Outlet />
+  if (location.pathname === '/guest/game') return <Outlet />
 
   return (
     <CommonLayout>

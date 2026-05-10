@@ -1,14 +1,12 @@
 import React, { Suspense } from "react";
 import PropTypes from "prop-types";
-import { Row, Col, Spinner, Container } from "react-bootstrap";
-import HeaderPublic from "shared/components/Header/Public";
+import { Spinner } from "react-bootstrap";
 import Footer from "shared/components/Footer";
 
 function AuthLayout({ children }) {
     return (
         <div className="auth-main">
             <div className="auth-layout-background"></div>
-            <HeaderPublic />
             <div className={`auth-container container-fluid`}>
                 <Suspense
                     fallback={
