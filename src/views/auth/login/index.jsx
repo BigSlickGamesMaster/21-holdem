@@ -8,8 +8,6 @@ import { ReactToastify, setCookie } from 'shared/utils';
 import eye from '../../../assets/images/icons/eye_icon.svg';
 import eye_slash_icon from '../../../assets/images/icons/eye_slash_icon.svg';
 import holdemLogoImg from '../../../assets/images/bg/21HLogo.png';
-import loginBonusBannerImg from '../../../assets/images/bg/login banner 10free.png';
-import tableWatermarkImg from '../../../assets/images/gameplay/portrate_table.png';
 
 const LOGIN_REMEMBER_ME_KEY = 'bsg:remember-me';
 const LOGIN_REMEMBERED_IDENTIFIER_KEY = 'bsg:remembered-login';
@@ -220,251 +218,102 @@ const Login = () => {
                 </div>
             </div>
         )}
-        <div className='sign-in-container'>
-            <div className='login-container'>
-                <div className='auth-container auth-shell'>
-                    <Row className='justify-content-center'>
-                        <Col xl={11} lg={11} md={12} sm={12}>
-                            {showForgotPassword ? (
-                                <div className='auth-box auth-box--centered'>
-                                    <div className='auth-form-container'>
-                                        <h2 className='auth-title'>Forgot Password</h2>
-                                        <div className='auth-form'>
-                                            <Form onSubmit={forgotPwdHandleSubmit(onForgotPassword)} className='form'>
-                                                <Form.Group className='form-group'>
-                                                    <Form.Label>Email ID</Form.Label>
-                                                    <Form.Control
-                                                        type='email'
-                                                        placeholder='Enter your Email ID'
-                                                        className={`form-control ${forgotPwdErrors.forgotEmail ? 'border border-danger' : ''}`}
-                                                        isInvalid={!!forgotPwdErrors.forgotEmail}
-                                                        {...forgotPwdRegister('forgotEmail', {
-                                                            required: 'Email is required',
-                                                            pattern: {
-                                                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                                                message: 'Invalid email address',
-                                                            },
-                                                        })}
-                                                    />
-                                                </Form.Group>
-                                                <div className='form-group d-flex justify-content-between align-items-center'>
-                                                    <div className='back-to-login'>
-                                                        <a onClick={() => {
-                                                            setShowResetFields(false);
-                                                            setShowForgotPassword(false);
-                                                        }} className='back-to-login'>Back to Login</a>
-                                                    </div>
-                                                </div>
-                                                <div className='forgot-password-msg'>
-                                                    Please enter your registered email address to reset your password.
-                                                </div>
-                                                <Button type='submit' className='btn btn-primary sign-in-btn'>
-                                                    {forgotPwdLoading ? 'Submitting...' : 'Submit'}
-                                                </Button>
-                                            </Form>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : null}
-
-                            {showResetFields ? (
-                                <div className='auth-box auth-box--centered'>
-                                    <div className='auth-form-container'>
-                                        <h2 className='auth-title'>Reset Password</h2>
-                                        <div className='auth-form'>
-                                            <Form onSubmit={forgotPwdHandleSubmit(onResetPassword)} className='form'>
-                                                <Form.Group className='form-group'>
-                                                    <Form.Label>New Password</Form.Label>
-                                                    <div className='position-relative'>
-                                                        <Form.Control
-                                                            type={showNewPassword ? 'text' : 'password'}
-                                                            placeholder='Enter New Password'
-                                                            className={`form-control ${forgotPwdErrors.newPassword ? 'border border-danger' : ''}`}
-                                                            {...forgotPwdRegister('newPassword', {
-                                                                required: 'New password is required',
-                                                                validate: (value) => {
-                                                                    const passwordPattern = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,16}$/;
-                                                                    if (!passwordPattern.test(value)) {
-                                                                        ReactToastify('Password must be 8-16 characters with a mix of letters, numbers, and a special character.', 'error', 'password');
-                                                                        return false;
-                                                                    }
-                                                                    return true;
-                                                                },
-                                                                minLength: {
-                                                                    value: 8,
-                                                                    message: 'Password must be at least 8 characters',
-                                                                },
-                                                                maxLength: {
-                                                                    value: 16,
-                                                                    message: 'Password must be less than 16 characters',
-                                                                },
-                                                            })}
-                                                        />
-                                                        <img src={showNewPassword ? eye : eye_slash_icon} alt='eye' className='eye-icon' onClick={() => setShowNewPassword(!showNewPassword)} />
-                                                    </div>
-                                                </Form.Group>
-
-                                                <Form.Group className='form-group'>
-                                                    <Form.Label>Confirm Password</Form.Label>
-                                                    <div className='position-relative'>
-                                                        <Form.Control
-                                                            type={showConfirmPassword ? 'text' : 'password'}
-                                                            placeholder='Confirm New Password'
-                                                            className={`form-control ${forgotPwdErrors.confirmPassword ? 'border border-danger' : ''}`}
-                                                            {...forgotPwdRegister('confirmPassword', {
-                                                                required: 'Please confirm your password',
-                                                                validate: (value) => {
-                                                                    const passwordPattern = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,16}$/;
-                                                                    if (!passwordPattern.test(value)) {
-                                                                        ReactToastify('Password must be 8-16 characters with a mix of letters, numbers, and a special character.', 'error', 'password');
-                                                                        return false;
-                                                                    }
-                                                                    return true;
-                                                                },
-                                                                minLength: {
-                                                                    value: 8,
-                                                                    message: 'Password must be at least 8 characters',
-                                                                },
-                                                                maxLength: {
-                                                                    value: 16,
-                                                                    message: 'Password must be less than 16 characters',
-                                                                },
-                                                            })}
-                                                        />
-                                                        <img src={showConfirmPassword ? eye : eye_slash_icon} alt='eye' className='eye-icon' onClick={() => setShowConfirmPassword(!showConfirmPassword)} />
-                                                    </div>
-                                                </Form.Group>
-                                                <div className='form-group d-flex justify-content-between align-items-center'>
-                                                    <div className='back-to-login'>
-                                                        <a onClick={() => {
-                                                            setShowResetFields(false);
-                                                            setShowForgotPassword(false);
-                                                        }} className='back-to-login'>Back to Login</a>
-                                                    </div>
-                                                </div>
-                                                <Button type='submit' className='btn btn-primary sign-in-btn'>
-                                                    {resetPwdLoading ? 'Resetting...' : 'Reset Password'}
-                                                </Button>
-                                            </Form>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : null}
-
-                            {!showForgotPassword && !showResetFields ? (
-                                <div
-                                    className='auth-login-layout'
-                                    style={{
-                                        '--auth-login-banner': `url("${loginBonusBannerImg}")`,
-                                        '--auth-table-watermark': `url("${tableWatermarkImg}")`,
-                                    }}
-                                >
-                                    <div className='auth-box'>
-                                        <div className='auth-login-form-pane'>
-                                            <div className='auth-form-container'>
-                                                <div className='auth-login-brand'>
-                                                    <img src={holdemLogoImg} alt="21 Hold'em" className='auth-login-brand__logo' />
-                                                    <div className='auth-login-brand__subtitle'>Sign in or jump in as a guest.</div>
-                                                </div>
-
-                                                <div className='auth-form'>
-                                                    {handoffCode ? (
-                                                        <div className='forgot-password-msg'>
-                                                            {isHandoffLoading
-                                                                ? "Completing the Big Slick Games website handoff..."
-                                                                : "Big Slick Games website handoff detected for this session."}
-                                                        </div>
-                                                    ) : null}
-                                                    <Form autoComplete='off' onSubmit={handleSubmit(onLogin)} className='form'>
-                                                        <Form.Group className='form-group'>
-                                                            <Form.Label>Email ID or Username</Form.Label>
-                                                            <Form.Control
-                                                                type='text'
-                                                                placeholder='Enter your Email ID or Username'
-                                                                className={`form-control ${errors.email ? 'border border-danger' : ''}`}
-                                                                isInvalid={!!errors.email}
-                                                                {...register('email', {
-                                                                    required: 'Email or Username is Required',
-                                                                    validate: (value) => {
-                                                                        const emailPattern = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-                                                                        const usernamePattern = /^[a-zA-Z0-9_]+$/;
-                                                                        if (emailPattern.test(value) || usernamePattern.test(value)) return true;
-                                                                        return 'Please enter a valid email or username';
-                                                                    },
-                                                                })}
-                                                            />
-                                                        </Form.Group>
-                                                        <Form.Group className='form-group'>
-                                                            <Form.Label>Password</Form.Label>
-                                                            <div className='position-relative'>
-                                                                <Form.Control
-                                                                    type={showPassword ? 'text' : 'password'}
-                                                                    placeholder='Enter Password'
-                                                                    className={`form-control ${errors.password ? 'border border-danger' : ''}`}
-                                                                    {...register('password', {
-                                                                        required: 'Password is required',
-                                                                        validate: (value) => {
-                                                                            const passwordPattern = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,16}$/;
-                                                                            if (!passwordPattern.test(value)) {
-                                                                                ReactToastify('Password must be 8-16 characters with a mix of letters, numbers, and a special character.', 'error', 'password');
-                                                                                return false;
-                                                                            }
-                                                                            return true;
-                                                                        },
-                                                                        minLength: {
-                                                                            value: 8,
-                                                                            message: 'Password must be at least 8 characters',
-                                                                        },
-                                                                        maxLength: {
-                                                                            value: 16,
-                                                                            message: 'Password must be less than 16 characters',
-                                                                        },
-                                                                    })}
-                                                                />
-                                                                <img src={showPassword ? eye : eye_slash_icon} alt='eye' className='eye-icon' onClick={() => setShowPassword(!showPassword)} />
-                                                            </div>
-                                                        </Form.Group>
-                                                        <div className='form-group d-flex justify-content-between align-items-center'>
-                                                            <div className="form-check auth-remember-check">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="form-check-input"
-                                                                    id="remember-me"
-                                                                    checked={rememberMe}
-                                                                    onChange={(event) => setRememberMe(event.target.checked)}
-                                                                />
-                                                                <label className="form-check-label" htmlFor="remember-me">
-                                                                    Remember Me
-                                                                </label>
-                                                            </div>
-                                                            <div className='forgot-password'>
-                                                                <a onClick={() => setShowForgotPassword(true)}>Forgot Password?</a>
-                                                            </div>
-                                                        </div>
-                                                        <Button type='submit' className='btn btn-primary sign-in-btn'>
-                                                            {isHandoffLoading ? 'Connecting...' : isLoading ? 'Signing in...' : 'Sign In'}
-                                                        </Button>
-                                                        <Button type='button' className='btn btn-primary register-entry-btn' onClick={() => navigate('/register')}>
-                                                            Create Account
-                                                        </Button>
-                                                    </Form>
-                                                </div>
-                                            </div>
-                                            <div className='auth-guest-panel'>
-                                                <div className='auth-guest-actions'>
-                                                    <Button type='button' className='guest-entry-btn' onClick={() => navigate('/guest')}>
-                                                        Guest Area
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : null}
-                        </Col>
-                    </Row>
-                </div>
+        <div className='login-background-only'>
+            <div className='login-background-only__promo'>
+                <span className='login-background-only__promo-kicker'>New players</span>
+                <span className='login-background-only__promo-main'>10K Free Chips</span>
             </div>
+            <form autoComplete='off' onSubmit={handleSubmit(onLogin)} className='login-background-only__fields'>
+                <input
+                    type='text'
+                    placeholder='Enter email or username'
+                    className={`login-background-only__field ${errors.email ? 'login-background-only__field--error' : ''}`}
+                    {...register('email', {
+                        required: 'Email or Username is Required',
+                        validate: (value) => {
+                            const emailPattern = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+                            const usernamePattern = /^[a-zA-Z0-9_]+$/;
+                            if (emailPattern.test(value) || usernamePattern.test(value)) return true;
+                            return 'Please enter a valid email or username';
+                        },
+                    })}
+                />
+                <input
+                    type='password'
+                    placeholder='Enter password'
+                    className={`login-background-only__field ${errors.password ? 'login-background-only__field--error' : ''}`}
+                    {...register('password', {
+                        required: 'Password is required',
+                        validate: (value) => {
+                            const passwordPattern = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,16}$/;
+                            if (!passwordPattern.test(value)) {
+                                ReactToastify('Password must be 8-16 characters with a mix of letters, numbers, and a special character.', 'error', 'password');
+                                return false;
+                            }
+                            return true;
+                        },
+                        minLength: {
+                            value: 8,
+                            message: 'Password must be at least 8 characters',
+                        },
+                        maxLength: {
+                            value: 16,
+                            message: 'Password must be less than 16 characters',
+                        },
+                    })}
+                />
+                <div className='login-background-only__field-actions'>
+                    <label className='login-background-only__remember'>
+                        <input
+                            type='checkbox'
+                            checked={rememberMe}
+                            onChange={(e) => {
+                                const checked = e.target.checked;
+                                setRememberMe(checked);
+                                if (typeof window !== 'undefined') {
+                                    if (checked) {
+                                        window.localStorage.setItem(LOGIN_REMEMBER_ME_KEY, 'true');
+                                    } else {
+                                        window.localStorage.removeItem(LOGIN_REMEMBER_ME_KEY);
+                                    }
+                                }
+                            }}
+                        />
+                        <span>Remember me</span>
+                    </label>
+                    <button
+                        type='button'
+                        className='login-background-only__forgot'
+                        onClick={() => setShowForgotPassword(true)}
+                    >
+                        Forgot Password?
+                    </button>
+                </div>
+                <button
+                    type='submit'
+                    className='login-background-only__submit'
+                    disabled={isLoading || isHandoffLoading}
+                >
+                    {isLoading || isHandoffLoading ? 'Signing In...' : 'Sign In'}
+                </button>
+                <div className='login-background-only__signup'>
+                    <span>Need an account?</span>
+                    <button
+                        type='button'
+                        className='login-background-only__signup-link'
+                        onClick={() => navigate('/register')}
+                    >
+                        Sign Up
+                    </button>
+                    <button
+                        type='button'
+                        className='login-background-only__guest-link'
+                        onClick={() => navigate('/guest')}
+                    >
+                        Play as Guest
+                    </button>
+                </div>
+            </form>
         </div>
         </>
     );

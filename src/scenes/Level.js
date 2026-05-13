@@ -1799,7 +1799,7 @@ setButtons() {
         btn_check: this.createGameActionButtonState('check', 'Check', 'secondary'),
         btn_raise: this.createGameActionButtonState('raise', 'Raise', 'primary'),
         btn_doubleDown: this.createGameActionButtonState('doubleDown', 'Double Down', 'primary'),
-        btn_split: this.createGameActionButtonState('split', 'Split', 'primary'),
+        btn_split: this.createGameActionButtonState('split', '', 'primary'),
         btn_stand: this.createGameActionButtonState('stand', 'Stand', 'secondary'),
         btn_min: this.createGameActionButtonState('minRaise', 'MIN', 'secondary'),
         btn_halfPot: this.createGameActionButtonState('halfPotRaise', '1/2 Pot', 'secondary'),
@@ -1844,7 +1844,7 @@ createFloatSplitButton() {
     };
     drawDefault();
 
-    const label = this.add.text(0, 1, 'SPLIT', {
+    const label = this.add.text(0, 1, '', {
         fontSize: '30px',
         fontFamily: config.playerFontBold || 'Arial',
         color: '#48d8ff',

@@ -355,7 +355,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     if (this.txt_splitScore) { this.txt_splitScore.setAlpha(1); this.txt_splitScore.setVisible(false); }
   }
   showSplitPreview() {
-    this.txt_splitScore.setText('Split');
+    this.txt_splitScore.setText('');
     this.split_score_bg.setAlpha(0.5);
     this.txt_splitScore.setAlpha(0.5);
     this.split_score_bg.setVisible(true);
