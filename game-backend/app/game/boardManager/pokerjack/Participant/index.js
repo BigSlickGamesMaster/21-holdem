@@ -29,7 +29,11 @@ class Participant extends Service {
       if (this.nChips <= 0) {
         this.nChips = 0;
         this.isAllInLock = true;
-        if (!bCallStand) this.aUserAction = ['f'];
+        if (!bCallStand) {
+          this.bPendingAllInStandChoice = true;
+          this.nPlayerTurnCount = 0;
+          this.aUserAction = ['s', 'f'];
+        }
       }
 
       if (nCallAmount > 0) {
@@ -54,6 +58,7 @@ class Participant extends Service {
 
       if (bCallStand) {
         this.isDoubleDownLock = true;
+        this.bPendingAllInStandChoice = false;
         this.nStandAtRound = this.oBoard.nTableRound;
         this.aUserAction = ['c', 'f'];
       }
@@ -129,10 +134,13 @@ class Participant extends Service {
         this.isAllInLock = true;
         if (bRaiseStand) {
           this.isDoubleDownLock = true;
+          this.bPendingAllInStandChoice = false;
           this.nStandAtRound = this.oBoard.nTableRound;
           this.aUserAction = ['c', 'f'];
         } else {
-          this.aUserAction = ['f'];
+          this.bPendingAllInStandChoice = true;
+          this.nPlayerTurnCount = 0;
+          this.aUserAction = ['s', 'f'];
         }
 
         await this.recordTransaction({
@@ -203,7 +211,11 @@ class Participant extends Service {
       if (this.nChips <= 0) {
         this.nChips = 0;
         this.isAllInLock = true;
-        if (!bRaiseStand) this.aUserAction = ['f'];
+        if (!bRaiseStand) {
+          this.bPendingAllInStandChoice = true;
+          this.nPlayerTurnCount = 0;
+          this.aUserAction = ['s', 'f'];
+        }
       }
 
       await this.recordTransaction({
@@ -224,6 +236,7 @@ class Participant extends Service {
 
       if (bRaiseStand) {
         this.isDoubleDownLock = true;
+        this.bPendingAllInStandChoice = false;
         this.nStandAtRound = this.oBoard.nTableRound;
         this.aUserAction = ['c', 'f'];
       }
@@ -368,9 +381,13 @@ class Participant extends Service {
       this.isAllInLock = true;
       if (bStandMode) {
         this.isDoubleDownLock = true;
+        this.bPendingAllInStandChoice = false;
         this.nStandAtRound = this.oBoard.nTableRound;
+      } else {
+        this.bPendingAllInStandChoice = true;
+        this.nPlayerTurnCount = 0;
       }
-      this.aUserAction = bStandMode ? ['c', 'f'] : ['f'];
+      this.aUserAction = bStandMode ? ['c', 'f'] : ['s', 'f'];
 
       await this.recordTransaction({
         iUserId: this.iUserId,
@@ -510,7 +527,8 @@ class Participant extends Service {
       if (sTutorialError) return callback({ error: sTutorialError });
 
       const bCheckOpenState = this.aUserAction.includes('ck') && !this.aUserAction.includes('c');
-      const nStandAmount = bCheckOpenState ? 0 : Math.max(this.oBoard.nMinBet - this.nLastBidChips, 0);
+      const bResolvingAllInStandChoice = this.isAllInLock && this.bPendingAllInStandChoice;
+      const nStandAmount = bResolvingAllInStandChoice ? 0 : (bCheckOpenState ? 0 : Math.max(this.oBoard.nMinBet - this.nLastBidChips, 0));
       const bIsDefendingRaise = nStandAmount > 0;
       if (this.nChips < nStandAmount) return await this.allInShortCall({ bStandMode: true }, callback);
 
@@ -518,6 +536,7 @@ class Participant extends Service {
       await this.oBoard.deleteScheduler('assignTurnTimeout', this.iUserId);
 
       this.isDoubleDownLock = true; // lock double down because player is stand & its same functionality
+      this.bPendingAllInStandChoice = false;
       this.nStandAtRound = this.oBoard.nTableRound;
       this.aUserAction = bCheckOpenState ? ['ck', 'f'] : ['c', 'f'];
 
@@ -560,6 +579,7 @@ class Participant extends Service {
         nLastBidChips: nStandAmount,
         nChips: this.nChips,
         nMinBet: this.oBoard.nMinBet,
+        bAllIn: bResolvingAllInStandChoice || undefined,
       });
       await this.oBoard.saveLogs([{ sAction: 'stand', eLogType: 'game', iUserId: this.iUserId, nStandAmount, bIsDefendingRaise }]);
 
@@ -637,6 +657,33 @@ class Participant extends Service {
 
       if (playingPlayers.length === 1) return await this.oBoard.declareResult(playingPlayers, 'takeTurn: 1 player left');
 
+      if (this.isAllInLock && this.bPendingAllInStandChoice) {
+        this.oBoard.iUserTurn = this.iUserId;
+        const { nTurnTime } = this.oBoard.oSetting;
+        const bTutorialTurn = this.oBoard?.isTutorialTable?.() === true;
+
+        this.nPlayerTurnCount += 1;
+        this.aUserAction = ['s', 'f'];
+
+        const turnScheduler = await this.oBoard.getScheduler('assignTurnTimeout');
+        if (turnScheduler) await this.oBoard.deleteScheduler('assignTurnTimeout');
+        if (!bTutorialTurn) await this.oBoard.setSchedular('assignTurnTimeout', this.iUserId, nTurnTime);
+
+        await this.oBoard.update({ iUserTurn: this.iUserId, aParticipant: [this.toJSON()] });
+        await this.oBoard.emit('resPlayerTurn', {
+          iUserId: this.iUserId,
+          ttl: bTutorialTurn ? null : nTurnTime,
+          nTotalTurnTime: bTutorialTurn ? null : nTurnTime,
+          aUserAction: this.aUserAction,
+          nMinBet: this.oBoard.nMinBet,
+          toCallAmount: 0,
+          eSplitPhase: this.eSplitPhase ?? null,
+          bAllInStandChoice: true,
+        });
+        await this.oBoard.saveLogs([{ sAction: 'assignAllInStandChoice', eLogType: 'game', iUserId: this.oBoard.iUserTurn }]);
+        return true;
+      }
+
       if (this.isAllInLock) {
         this.nPlayerTurnCount += 1;
         await this.oBoard.update({ aParticipant: [this.toJSON()] });
@@ -676,7 +723,9 @@ class Participant extends Service {
       // Safety net: chips exactly 0 after a raise/call — ensure all-in lock is honoured
       if (this.nChips === 0 && nToCallAmount > 0) {
         this.isAllInLock = true;
-        this.nPlayerTurnCount += 1;
+        this.bPendingAllInStandChoice = true;
+        this.aUserAction = ['s', 'f'];
+        this.nPlayerTurnCount = 0;
         await this.oBoard.update({ aParticipant: [this.toJSON()] });
         return await this.passTurn();
       }
@@ -893,7 +942,7 @@ class Participant extends Service {
       if (aActiveParticipants.length === 1) return await this.oBoard.declareResult(aActiveParticipants, 'passTurn: 1 player left');
 
       const bRoundSettled = aActiveParticipants.every(p => {
-        if (p.isAllInLock) return true;
+        if (p.isAllInLock) return !p.bPendingAllInStandChoice;
         if (p.bHasSplit) {
           // A split player is settled when each hand has acted at least once or is locked
           const hand1Settled = p.bSplitHand1Locked || p.nSplitHand1RoundCount > 0;

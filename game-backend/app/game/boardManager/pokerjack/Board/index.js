@@ -45,7 +45,9 @@ class Board extends Service {
           if (participant.nChips <= 0) {
             participant.nChips = 0;
             participant.isAllInLock = true;
-            participant.aUserAction = ['f'];
+            participant.bPendingAllInStandChoice = true;
+            participant.nPlayerTurnCount = 0;
+            participant.aUserAction = ['s', 'f'];
           }
 
           await participant.recordTransaction({
@@ -476,6 +478,7 @@ class Board extends Service {
         participant.nCardScore = 0;
         participant.isDoubleDownLock = false;
         participant.isAllInLock = false;
+        participant.bPendingAllInStandChoice = false;
         participant.bHasAceAndBust = false;
         participant.nStandAtRound = 0;
         participant.nLastBidChips = 0;

@@ -1,5 +1,5 @@
 .profile {
-    --profile-page-icon: url("../../../images/icons/icon-settings2.png");
+    --profile-page-icon: url("../../../images/icons/working/stats.png");
     margin: 100px 50px;
     border: 2px solid #163C57;
     border-radius: 15px;
@@ -26,9 +26,28 @@
         z-index: 1;
     }
 
+    .profile-settings-hero {
+        display: grid;
+        place-items: center;
+        min-height: clamp(160px, 28vw, 280px);
+        padding: 16px 16px 0;
+        background:
+            radial-gradient(circle at 50% 55%, rgba(174, 210, 255, 0.22) 0%, rgba(174, 210, 255, 0) 42%),
+            linear-gradient(180deg, rgba(8, 25, 42, 0.92) 0%, rgba(6, 18, 32, 0.98) 100%);
+
+        img {
+            width: min(54vw, 260px);
+            max-height: 250px;
+            object-fit: contain;
+            filter:
+                drop-shadow(0 24px 36px rgba(0, 0, 0, 0.46))
+                drop-shadow(0 0 24px rgba(174, 210, 255, 0.3));
+        }
+    }
+
     .profile-header {
         text-align: center;
-        padding: 20px 10px;
+        padding: 10px;
         font-size: 32px;
         color: #AADDFF;
         text-transform: uppercase;
@@ -37,8 +56,7 @@
     }
 
     .profile-quick-nav {
-        flex-wrap: wrap;
-        padding: 0 8px;
+        display: none;
     }
 
     .profile-quick-nav-icon {

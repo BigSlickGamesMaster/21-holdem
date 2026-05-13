@@ -240,10 +240,15 @@ const Dashboard = () => {
 
     useEffect(() => {
         const sRequestedTab = new URLSearchParams(location.search).get('tab');
+        if (sRequestedTab === 'lobby-settings') {
+            navigate('/profile');
+            return;
+        }
+
         if (LOBBY_TAB_IDS.includes(sRequestedTab)) {
             setActiveTab(sRequestedTab);
         }
-    }, [location.search]);
+    }, [location.search, navigate]);
 
     useEffect(() => {
         const dashboardNode = dashboardRef.current;
@@ -450,6 +455,20 @@ const Dashboard = () => {
     const sActiveSceneName = (sActiveTab || '').replace(/^lobby-/, '').replace(/[^a-z0-9]+/g, '-');
     const sDashboardSceneClass = ` dashboard-hub--themed-scene dashboard-hub--scene-${sActiveSceneName}`;
 
+    useEffect(() => {
+        if (typeof document === 'undefined') return undefined;
+
+        const rootStyle = document.documentElement.style;
+        const theme = oActiveCarouselItem?.theme || {};
+        Object.entries(theme).forEach(([key, value]) => {
+            rootStyle.setProperty(key, value);
+        });
+
+        return () => {
+            Object.keys(theme).forEach((key) => rootStyle.removeProperty(key));
+        };
+    }, [oActiveCarouselItem]);
+
     const oBestValueShopItem = useMemo(() => (
         aSafeShopItems.reduce((oBestItem, item) => {
             const nChips = Number(item?.nChips) || 0;
@@ -464,6 +483,11 @@ const Dashboard = () => {
     ), [aSafeShopItems]);
 
     const handleQuickNavSelect = (item, { bScrollDesktop = false } = {}) => {
+        if (item?.path) {
+            navigate(item.path);
+            return;
+        }
+
         setActiveTab(item.id);
         if (!bScrollDesktop || typeof document === 'undefined') return;
 
@@ -593,22 +617,20 @@ const Dashboard = () => {
 
     const getCarouselItemStyle = (nItemIndex) => {
         const nVisualOffset = getCarouselOffset(nItemIndex) - nCarouselDragOffset;
-        const nAngle = nVisualOffset * (Math.PI / 3);
-        const nDepth = Math.cos(nAngle);
-        const nSide = Math.sin(nAngle);
-        const nFocus = Math.max(0, Math.min(1, 1 - Math.abs(nVisualOffset)));
-        const nScale = 0.2 + (nFocus * 0.8);
-        const nOpacity = 0.42 + (nFocus * 0.58);
         const nViewportWidth = typeof window === 'undefined' ? 420 : window.innerWidth;
-        const nRadius = Math.max(112, Math.min(300, nViewportWidth * 0.34));
+        const nSide = Math.max(-1, Math.min(1, nVisualOffset));
+        const nFocus = Math.max(0, Math.min(1, 1 - Math.abs(nVisualOffset)));
+        const nScale = 0.5 + (nFocus * 0.5);
+        const nOpacity = 0.5 + (nFocus * 0.5);
+        const nRadius = Math.max(76, Math.min(176, nViewportWidth * 0.24));
 
         return {
             '--carousel-x': `${Math.round(nSide * nRadius)}px`,
-            '--carousel-y': `${Math.round((1 - nDepth) * 56)}px`,
+            '--carousel-y': `${Math.round(Math.abs(nVisualOffset) * 18)}px`,
             '--carousel-scale': nScale.toFixed(3),
             '--carousel-opacity': nOpacity.toFixed(3),
-            '--carousel-brightness': (0.58 + (nFocus * 0.5)).toFixed(3),
-            zIndex: Math.round(80 + (nFocus * 80) + (nDepth * 8)),
+            '--carousel-brightness': (0.72 + (nFocus * 0.36)).toFixed(3),
+            zIndex: Math.round(80 + (nFocus * 80)),
         };
     };
 
@@ -637,10 +659,6 @@ const Dashboard = () => {
 
     const renderLiveTablesPanel = () => (
         <>
-            <header className='dashboard-hub__window-heading'>
-                <h2>Live Tables</h2>
-            </header>
-
             <div className='dashboard-hub__tab-body dashboard-hub__tab-body--live'>
                 <span className='dashboard-hub__live-label'>Buy-in</span>
                 <div className='dashboard-hub__buyin-grid' role='group' aria-label='Choose buy-in'>
@@ -732,10 +750,6 @@ const Dashboard = () => {
 
     const renderRewardsPanel = () => (
         <>
-            <header className='dashboard-hub__window-heading'>
-                <h2>DAILY REWARDS</h2>
-            </header>
-
             <div className='dashboard-hub__tab-body dashboard-hub__tab-body--rewards'>
                 <DailyRewardsPanel embedded />
             </div>
@@ -791,12 +805,6 @@ const Dashboard = () => {
 
     const renderShopPanel = () => (
         <>
-            <header className='dashboard-hub__tab-header'>
-                <div className='dashboard-hub__tab-copy'>
-                    <h2>STORE</h2>
-                </div>
-            </header>
-
             <div className='dashboard-hub__tab-body dashboard-hub__tab-body--store'>
                 {renderStoreItems()}
             </div>
@@ -805,17 +813,12 @@ const Dashboard = () => {
 
     const renderPrivateTablePanel = () => (
         <>
-            <header className='dashboard-hub__tab-header'>
-                <div className='dashboard-hub__tab-copy'>
-                    <h2>PRIVATE TABLES</h2>
-                    <p>Private tables give you a cleaner setup for friends, invite-only sessions, and repeat groups without public lobby noise.</p>
-                </div>
-                <div className='dashboard-hub__tab-side'>
-                    <div className='dashboard-hub__pill-row'>
-                        <span className='dashboard-hub__pill'>Invite-only access</span>
-                        <span className='dashboard-hub__pill'>Fast room setup</span>
-                        <span className='dashboard-hub__pill'>Group play ready</span>
+            <div className='dashboard-hub__tab-body dashboard-hub__tab-body--private'>
+                <div className='dashboard-hub__tab-stack'>
+                    <div className='dashboard-hub__card-media'>
+                        <img src={privateTableImage} alt='21 Holdem private table' />
                     </div>
+
                     <button
                         type='button'
                         className='dashboard-hub__cta dashboard-hub__cta--private'
@@ -824,58 +827,12 @@ const Dashboard = () => {
                         Create Private Table
                     </button>
                 </div>
-            </header>
-
-            <div className='dashboard-hub__tab-body dashboard-hub__tab-body--private'>
-                <div className='dashboard-hub__tab-grid'>
-                    <div className='dashboard-hub__card-media'>
-                        <img src={privateTableImage} alt='21 Holdem private table' />
-                    </div>
-
-                    <div className='dashboard-hub__tab-stack'>
-                        <div className='dashboard-hub__spotlight'>
-                            <strong>Host your own room</strong>
-                            <span>Create a code, choose the seat count, and bring your group into a private game without public-table traffic.</span>
-                        </div>
-
-                        <ul className='dashboard-hub__private-list' aria-label='Private table benefits'>
-                            <li className='dashboard-hub__private-item'>
-                                <strong>Invite-only access</strong>
-                                <span>Only players with your room code can join the table.</span>
-                            </li>
-                            <li className='dashboard-hub__private-item'>
-                                <strong>Fast setup</strong>
-                                <span>Open a room in seconds and send the code straight to your group.</span>
-                            </li>
-                            <li className='dashboard-hub__private-item'>
-                                <strong>Controlled atmosphere</strong>
-                                <span>Perfect for friends, private events, and repeat home-game style sessions.</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div className='dashboard-hub__tab-footer'>
-                    <span className='dashboard-hub__tab-footnote'>Use private rooms when you want the table atmosphere without the public lobby queue.</span>
-                </div>
             </div>
         </>
     );
 
     const renderProfilePanel = () => (
         <>
-            <header className='dashboard-hub__tab-header'>
-                <div className='dashboard-hub__tab-copy'>
-                    <span className='dashboard-hub__section-kicker'>Player profile</span>
-                    <h2>PLAYER STATS</h2>
-                    <p>Rules, help, support, and account tools now live behind the settings icon on your profile page.</p>
-                </div>
-                <div className='dashboard-hub__pill-row'>
-                    <span className='dashboard-hub__pill'>Balance {formatAmount(profileData?.nChips)}</span>
-                    <span className='dashboard-hub__pill'>Win Rate {formatPercent(nWinRate)}</span>
-                </div>
-            </header>
-
             <div className='dashboard-hub__tab-body dashboard-hub__tab-body--profile'>
                 <div className='dashboard-hub__tab-grid dashboard-hub__tab-grid--profile'>
                     <div className='dashboard-hub__profile-stage' style={oProfileStageStyle}>
@@ -1189,10 +1146,6 @@ const Dashboard = () => {
 
     const renderSettingsPanel = () => (
         <>
-            <header className='dashboard-hub__window-heading'>
-                <h2>Settings</h2>
-            </header>
-
             <div className='dashboard-hub__tab-body dashboard-hub__tab-body--settings'>
                 <div className='dashboard-hub__settings-card'>
                     <span className='dashboard-hub__section-kicker'>Account Controls</span>
@@ -1233,19 +1186,9 @@ const Dashboard = () => {
                 <div className='dashboard-hub__shell'>
                     <header className='dashboard-hub__hero'>
                         <div className={`dashboard-hub__icon-carousel${Math.abs(nCarouselDragOffset) > 0.02 ? ' is-dragging' : ''}`} aria-label='Lobby pages'>
-                            <button
-                                type='button'
-                                className='dashboard-hub__carousel-arrow dashboard-hub__carousel-arrow--prev'
-                                onPointerDown={(event) => event.stopPropagation()}
-                                onTouchStart={(event) => event.stopPropagation()}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleCarouselStep(-1);
-                                }}
-                                aria-label='Previous lobby page'
-                            >
-                                &lsaquo;
-                            </button>
+                            <div className='dashboard-hub__carousel-label' aria-live='polite'>
+                                {oActiveCarouselItem?.label}
+                            </div>
 
                             <div
                                 className='dashboard-hub__carousel-track'
@@ -1261,9 +1204,11 @@ const Dashboard = () => {
                             >
                                 {aQuickNavItems.map((item, nItemIndex) => {
                                     const nOffset = getCarouselOffset(nItemIndex);
+                                    if (Math.abs(nOffset) > 1) return null;
+
                                     const bIsActive = sActiveTab === item.id;
                                     const nAbsOffset = Math.abs(nOffset);
-                                    const sDepthClass = nAbsOffset === 0 ? ' is-active' : nAbsOffset === 1 ? ' is-near' : nAbsOffset === 2 ? ' is-mid' : ' is-back';
+                                    const sDepthClass = nAbsOffset === 0 ? ' is-active' : ' is-near';
 
                                     return (
                                         <button
@@ -1282,24 +1227,6 @@ const Dashboard = () => {
                                         </button>
                                     );
                                 })}
-                            </div>
-
-                            <button
-                                type='button'
-                                className='dashboard-hub__carousel-arrow dashboard-hub__carousel-arrow--next'
-                                onPointerDown={(event) => event.stopPropagation()}
-                                onTouchStart={(event) => event.stopPropagation()}
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    handleCarouselStep(1);
-                                }}
-                                aria-label='Next lobby page'
-                            >
-                                &rsaquo;
-                            </button>
-
-                            <div className='dashboard-hub__carousel-label' aria-live='polite'>
-                                {oActiveCarouselItem?.label}
                             </div>
                         </div>
                     </header>

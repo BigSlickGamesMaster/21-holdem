@@ -18,6 +18,7 @@ class Service {
     this.aUserAction = oParticipantData.aUserAction ?? ['c', 'r', 'f', 'd'];
     this.isDoubleDownLock = oParticipantData.isDoubleDownLock ?? false;
     this.isAllInLock = oParticipantData.isAllInLock ?? false;
+    this.bPendingAllInStandChoice = oParticipantData.bPendingAllInStandChoice ?? false;
     this.nCardScore = oParticipantData.nCardScore ?? 0;
     this.bHasSplit = oParticipantData.bHasSplit ?? false;
     this.aSplitHand = oParticipantData.aSplitHand ?? [];
@@ -292,6 +293,7 @@ class Service {
       'aUserAction',
       'isDoubleDownLock',
       'isAllInLock',
+      'bPendingAllInStandChoice',
       'nCardScore',
       'bHasSplit',
       'aSplitHand',

@@ -4,33 +4,17 @@ import React, { useEffect, useState } from "react";
 import { Button, Col, Form, Row, Spinner } from "react-bootstrap";
 import { useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "react-query";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 import _ from "scripts/helper";
 import { ReactToastify, removeCookie } from "shared/utils";
 import { buildAvatarOptions, getAvatarImageSrc } from "shared/constants/builtInAvatars";
-import iconLobby from '../../assets/images/icons/icon-lobby.png';
-import iconGift from '../../assets/images/icons/icon-gift2.png';
-import iconShield from '../../assets/images/icons/icon-shield2.png';
-import iconProfile from '../../assets/images/icons/icon-profile2.png';
-import iconShop from '../../assets/images/icons/icon-shop2.png';
-import iconSettings from '../../assets/images/icons/icon-settings2.png';
-
-
-const QUICK_NAV_ITEMS = [
-    { id: 'lobby-live-tables', label: 'Live Tables', iconSrc: iconLobby, kind: 'tab', path: '/lobby?tab=lobby-live-tables' },
-    { id: 'lobby-missions', label: 'Missions & Rewards', iconSrc: iconGift, kind: 'tab', path: '/lobby?tab=lobby-missions' },
-    { id: 'lobby-private-table', label: 'Private Table', iconSrc: iconShield, kind: 'tab', path: '/lobby?tab=lobby-private-table' },
-    { id: 'lobby-player-profile', label: 'Player Profile', iconSrc: iconProfile, kind: 'tab', path: '/lobby?tab=lobby-player-profile' },
-    { id: 'lobby-shop', label: 'Shop', iconSrc: iconShop, kind: 'tab', path: '/lobby?tab=lobby-shop' },
-    { id: 'lobby-settings', label: 'Settings', iconSrc: iconSettings, kind: 'route', path: '/profile' },
-];
+import iconSettings from '../../assets/images/icons/working/stats.png';
 
 const Profile = () => {
     const [payload, setPayload] = useState({});
     const navigate = useNavigate();
-    const location = useLocation();
     const queryClient = useQueryClient();
     const [avatarList, setAvatarList] = useState();
     const { reset, watch, formState: { isDirty, dirtyFields }, handleSubmit, setValue } = useForm({ mode: "all" });
@@ -178,45 +162,12 @@ const Profile = () => {
         },
     ];
 
-    // Navigation bar handler
-    const handleQuickNav = (item) => {
-        if (item.path) {
-            navigate(item.path);
-        }
-    };
-
-    // Determine active nav item based on location
-    const getActiveNavId = () => {
-        if (location.pathname === '/profile') return 'lobby-settings';
-        const tab = new URLSearchParams(location.search).get('tab');
-        if (tab && QUICK_NAV_ITEMS.some(i => i.id === tab)) return tab;
-        return '';
-    };
-    const activeNavId = getActiveNavId();
-
     return (
         <>
             <div className="profile" style={{ '--profile-page-icon': `url("${iconSettings}")` }}>
-                {/* Navigation tab icons */}
-                <nav className="profile-quick-nav" aria-label="Lobby shortcuts" style={{ display: 'flex', justifyContent: 'center', gap: 12, marginBottom: 24 }}>
-                    {QUICK_NAV_ITEMS.map((item) => (
-                        <button
-                            key={item.id}
-                            type="button"
-                            aria-label={item.label}
-                            aria-pressed={activeNavId === item.id}
-                            className={`profile-quick-nav-btn${activeNavId === item.id ? ' is-active' : ''}`}
-                            onClick={() => handleQuickNav(item)}
-                            title={item.label}
-                            style={{ background: 'none', border: 'none', padding: 8, borderRadius: 8, cursor: 'pointer', color: activeNavId === item.id ? '#fff' : '#aaa', fontSize: 44, transition: 'color 0.2s' }}
-                        >
-                            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <img src={item.iconSrc} alt="" aria-hidden="true" className="profile-quick-nav-icon" />
-                                <span style={{ fontSize: 10, marginTop: 2 }}>{item.label}</span>
-                            </span>
-                        </button>
-                    ))}
-                </nav>
+                <div className="profile-settings-hero" aria-hidden="true">
+                    <img src={iconSettings} alt="" />
+                </div>
                 <div className="profile-header">SETTINGS</div>
                 <Form className="profile-content" onSubmit={handleSubmit(onSubmit)}>
                     {
