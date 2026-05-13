@@ -240,15 +240,10 @@ const Dashboard = () => {
 
     useEffect(() => {
         const sRequestedTab = new URLSearchParams(location.search).get('tab');
-        if (sRequestedTab === 'lobby-settings') {
-            navigate('/profile');
-            return;
-        }
-
         if (LOBBY_TAB_IDS.includes(sRequestedTab)) {
             setActiveTab(sRequestedTab);
         }
-    }, [location.search, navigate]);
+    }, [location.search]);
 
     useEffect(() => {
         const dashboardNode = dashboardRef.current;
@@ -429,7 +424,6 @@ const Dashboard = () => {
             label: 'Settings',
             iconSrc: iconSettings,
             kind: 'tab',
-            path: '/profile',
             theme: {
                 '--dashboard-theme-rgb': '89, 126, 181',
                 '--dashboard-theme-soft-rgb': '36, 58, 105',
