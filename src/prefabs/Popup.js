@@ -88,12 +88,14 @@ export default class Popup extends Phaser.GameObjects.Container {
             texture: assets.btn_yellow, scaleX: 0.75, scaleY: 0.75,
             text: 'Yes', fontFamily: config.ButtonFont, fontSize: '50px', color: '#ffffcf', stroke: '#ffffcf', shadow: false, strokeThickness: 2,
         }, () => { this.callback?.(); this.close(); });
+        this.btn_yes = btn_yes;
         this.container_confirm.add(btn_yes);
 
         const btn_no = new Button(scene, 190, BTN_Y, {
             texture: assets.btn_green, scaleX: 0.75, scaleY: 0.75,
             text: 'No', fontFamily: config.ButtonFont, fontSize: '50px', color: '#ffffcf', stroke: '#ffffcf', shadow: false, strokeThickness: 2,
         }, () => { this.close(); });
+        this.btn_no = btn_no;
         this.container_confirm.add(btn_no);
 
         const btn_okay = new Button(scene, 0, BTN_Y, {
@@ -103,8 +105,10 @@ export default class Popup extends Phaser.GameObjects.Container {
         this.container_prpmpt.add(btn_okay);
     }
 
-    open({ confirm = true, title = '', message = '', callback }) {
+    open({ confirm = true, title = '', message = '', callback, confirmText = 'Yes', cancelText = 'No' }) {
         this.callback = callback;
+        this.btn_yes?.btn_text?.setText(confirmText);
+        this.btn_no?.btn_text?.setText(cancelText);
         if (confirm) {
             this.container_confirm.setVisible(true);
             this.container_prpmpt.setVisible(false);

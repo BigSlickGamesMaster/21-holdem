@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { getProfile } from '../../query/profile.query';
 import _ from '../../scripts/helper';
 import {
@@ -46,6 +46,7 @@ const BUTTON_CLASS_BY_VARIANT = {
 
 function GameActionOverlay({ isPaused = false }) {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [overlayState, setOverlayState] = useState(() => createHiddenGameActionOverlayState());
     const { data: profileData } = useQuery('profileData', getProfile, {
         select: (data) => data?.data?.data,
@@ -65,13 +66,20 @@ function GameActionOverlay({ isPaused = false }) {
             if (sPath) navigate(sPath);
         };
 
+        const handleProfileRefresh = () => {
+            queryClient.invalidateQueries('profileData');
+            queryClient.invalidateQueries('layout-profile');
+        };
+
         window.addEventListener(GAME_ACTION_OVERLAY_STATE_EVENT, handleStateUpdate);
         window.addEventListener('bsg:navigate', handleNavigate);
+        window.addEventListener('bsg:profile-refresh', handleProfileRefresh);
         return () => {
             window.removeEventListener(GAME_ACTION_OVERLAY_STATE_EVENT, handleStateUpdate);
             window.removeEventListener('bsg:navigate', handleNavigate);
+            window.removeEventListener('bsg:profile-refresh', handleProfileRefresh);
         };
-    }, [navigate]);
+    }, [navigate, queryClient]);
 
     const rows = useMemo(() => Array.isArray(overlayState.rows) ? overlayState.rows : [], [overlayState.rows]);
     const hasButtons = useMemo(() => rows.some((row) => {

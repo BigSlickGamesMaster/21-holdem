@@ -503,12 +503,12 @@ createGameActionOverlayRow(id, buttonKeys = [], className = '') {
         } else if (this.sRaiseUiMode === 'builder') {
             rows.push(
                 this.createGameActionOverlayRow('raise-top', ['btn_min', 'btn_halfPot', 'btn_fullPot'], 'game-action-overlay__row--three game-action-overlay__row--preset'),
-                this.createGameActionOverlayRow('raise-bottom', ['btn_doubleDown', 'btn_cancel'], 'game-action-overlay__row--two'),
+                this.createGameActionOverlayRow('raise-bottom', ['btn_allIn', 'btn_doubleDown', 'btn_cancel'], 'game-action-overlay__row--three'),
             );
         } else if (this.container_buttons?.visible) {
             rows.push(
-                this.createGameActionOverlayRow('main-top', ['btn_fold', 'btn_call', 'btn_check'], 'game-action-overlay__row--three'),
-                this.createGameActionOverlayRow('main-bottom', ['btn_raise', 'btn_stand'], 'game-action-overlay__row--two'),
+                this.createGameActionOverlayRow('main-top', ['btn_fold', 'btn_call', 'btn_stand'], 'game-action-overlay__row--three'),
+                this.createGameActionOverlayRow('main-bottom', ['btn_check', 'btn_raise', 'btn_allInCommon'], 'game-action-overlay__row--three'),
             );
         }
 
@@ -524,7 +524,7 @@ createGameActionOverlayRow(id, buttonKeys = [], className = '') {
             message: this.sRaiseUiMode === 'builder'
                 ? ''
                 : (this.sRaiseUiMode === 'confirm'
-                    ? `Raise ${this.formatRaiseAmountLabel(this.oGameManager?.tempRaiseAmount)}`
+                    ? `${this.oGameManager?.tempRaiseIsAllIn ? 'All In' : 'Raise'} ${this.formatRaiseAmountLabel(this.oGameManager?.tempRaiseAmount)}`
                     : ''),
             rows: aVisibleRows,
             tableBankroll: Number.isFinite(tableBankroll) ? tableBankroll : null,
@@ -558,16 +558,19 @@ bindGameActionOverlayEvents() {
         switch (command) {
             case 'fold':
                 this.oSocketManager.emit(emitter.reqFold);
+                this.hideAllButtons();
                 break;
             case 'call':
                 if (this.oButtons?.btn_call?.bAllInMode) {
-                    this.openRaiseConfirm(this.getRaiseRequestAmountForAllIn());
+                    this.openRaiseConfirm(this.getRaiseRequestAmountForAllIn(), { bAllIn: true, source: 'main' });
                 } else {
                     this.oSocketManager.emit(emitter.reqCall);
+                    this.hideAllButtons();
                 }
                 break;
             case 'check':
                 this.oSocketManager.emit(emitter.reqCheck);
+                this.hideAllButtons();
                 break;
             case 'raise':
                 this.openRaiseBuilder();
@@ -581,16 +584,13 @@ bindGameActionOverlayEvents() {
                 this.hideAllButtons();
                 this.oSocketManager.emit(emitter.reqDoubleDown);
                 break;
-            case 'split':
-                this.hideAllButtons();
-                this.oSocketManager.emit(emitter.reqSplit);
-                break;
             case 'stand':
                 if (this.oButtons?.btn_stand?.bCallStandMode) {
                     this.oSocketManager.emit(emitter.reqCall, { bTakeCard: false });
                 } else {
                     this.oSocketManager.emit(emitter.reqStand);
                 }
+                this.hideAllButtons();
                 break;
             case 'minRaise':
                 this.openRaiseConfirm(this.oButtons?.btn_min?.nRaiseAmount);
@@ -601,19 +601,29 @@ bindGameActionOverlayEvents() {
             case 'fullPotRaise':
                 this.openRaiseConfirm(this.oButtons?.btn_fullPot?.nRaiseAmount);
                 break;
+            case 'allInRaise':
+                this.openRaiseConfirm(this.getRaiseRequestAmountForAllIn(), { bAllIn: true, source: 'builder' });
+                break;
+            case 'allIn':
+                this.openRaiseConfirm(this.getRaiseRequestAmountForAllIn(), { bAllIn: true, source: 'main' });
+                break;
             case 'cancelRaiseBuilder':
                 this.container_raise_buttons?.setVisible(false);
                 this.container_confirm_raise?.setVisible(false);
                 this.showAllButtons(this.oTurnContext?.aUserAction, this.oTurnContext?.nMinBet, this.oTurnContext?.toCallAmount);
                 break;
             case 'confirmRaise':
-                this.submitRaiseRequest({ bTakeCard: true });
+                this.confirmTakeCardRaiseRequest();
                 break;
             case 'standRaise':
                 this.submitRaiseRequest({ bTakeCard: false });
                 break;
             case 'cancelRaiseConfirm':
-                this.openRaiseBuilder();
+                if (this.oGameManager?.tempRaiseIsAllIn && this.sRaiseConfirmSource === 'main') {
+                    this.showAllButtons(this.oTurnContext?.aUserAction, this.oTurnContext?.nMinBet, this.oTurnContext?.toCallAmount);
+                } else {
+                    this.openRaiseBuilder();
+                }
                 break;
             default:
                 break;
@@ -840,15 +850,9 @@ getDeckCardPosition() {
 }
 
 getPotTargetPosition() {
-    const communityBounds = this.getCommunityCardBounds();
-    const deckAnchor = this.getDeckCardPosition();
-    const topGuideY = communityBounds
-        ? communityBounds.top - 220
-        : deckAnchor.y - 240;
-
     return {
         x: config.centerX,
-        y: Math.max(390, Math.min(topGuideY, 526)),
+        y: 390,
     };
 }
 
@@ -1069,6 +1073,27 @@ getRaiseRequestAmountForAllIn() {
     return myChips;
 }
 
+getDoubleDownAmount() {
+    return Math.max(0, Math.round(Number(this.oGameManager?.nMinRaiseAmount) || 0) * 2);
+}
+
+getMyCurrentHandTotal() {
+    const myPlayer = this.players?.get?.(this.iUserId);
+    const score = Number(myPlayer?.nCardScore);
+    return Number.isFinite(score) ? score : 0;
+}
+
+shouldWarnBeforeTakingCommunityCard() {
+    return this.getMyCurrentHandTotal() >= 19;
+}
+
+canStandThisRound() {
+    const nCommunityCards = Array.isArray(this.oGameManager?.aCommunityCards)
+        ? this.oGameManager.aCommunityCards.length
+        : 0;
+    return nCommunityCards > 0 || Number(this.nTableRound) > 1;
+}
+
 setPresetButtonState(button, { label, amount, visible = true, enabled = true }) {
     if (!button) return;
 
@@ -1086,13 +1111,12 @@ refreshRaisePresetLabels() {
     const btnAllIn = this.oButtons?.btn_allIn;
     if (!btnMin || !btnHalfPot || !btnFullPot) return false;
 
-    const { minRaise, potAmount, maxRaiseAmount } = this.getRaiseContext();
+    const { minRaise, potAmount, maxRaiseAmount, myChips } = this.getRaiseContext();
     const canAffordRaise = maxRaiseAmount >= minRaise && minRaise > 0;
 
     const desiredHalfPot = Math.max(minRaise, Math.round(potAmount / 2));
     const desiredFullPot = Math.max(minRaise, Math.round(potAmount));
-    const effectiveHalfPot = Math.min(desiredHalfPot, maxRaiseAmount);
-    const effectiveFullPot = Math.min(desiredFullPot, maxRaiseAmount);
+    const canAllInRaise = myChips > 0 && maxRaiseAmount > 0 && maxRaiseAmount < desiredFullPot;
 
     this.setPresetButtonState(btnMin, {
         label: 'MIN',
@@ -1103,24 +1127,24 @@ refreshRaisePresetLabels() {
 
     this.setPresetButtonState(btnHalfPot, {
         label: '1/2',
-        amount: effectiveHalfPot,
-        visible: canAffordRaise,
-        enabled: canAffordRaise && effectiveHalfPot >= minRaise,
+        amount: desiredHalfPot,
+        visible: canAffordRaise && maxRaiseAmount >= desiredHalfPot,
+        enabled: canAffordRaise && maxRaiseAmount >= desiredHalfPot,
     });
 
     this.setPresetButtonState(btnFullPot, {
         label: 'POT',
-        amount: effectiveFullPot,
-        visible: canAffordRaise,
-        enabled: canAffordRaise && effectiveFullPot >= minRaise,
+        amount: desiredFullPot,
+        visible: canAffordRaise && maxRaiseAmount >= desiredFullPot,
+        enabled: canAffordRaise && maxRaiseAmount >= desiredFullPot,
     });
 
     if (btnAllIn) {
         this.setPresetButtonState(btnAllIn, {
-            label: '',
-            amount: 0,
-            visible: false,
-            enabled: false,
+            label: 'All In',
+            amount: myChips,
+            visible: canAllInRaise,
+            enabled: canAllInRaise,
         });
     }
 
@@ -1132,7 +1156,7 @@ refreshRaisePresetLabels() {
         btnDoubleDown.setAlpha(canDD ? 1 : 0.45);
     }
 
-    return canAffordRaise;
+    return canAffordRaise || canAllInRaise;
 }
 
 openRaiseBuilder() {
@@ -1143,6 +1167,8 @@ openRaiseBuilder() {
         return false;
     }
 
+    this.oGameManager.tempRaiseIsAllIn = false;
+    this.sRaiseConfirmSource = 'builder';
     this.disableContainerButtons(this.container_buttons);
     this.container_buttons.setVisible(false);
     this.container_confirm_raise.setVisible(false);
@@ -1158,25 +1184,28 @@ openRaiseBuilder() {
     return true;
 }
 
-openRaiseConfirm(nRaiseAmount) {
+openRaiseConfirm(nRaiseAmount, options = {}) {
     const amount = Math.max(0, Math.round(Number(nRaiseAmount) || 0));
-    const { minRaise } = this.getRaiseContext();
-    if (amount < minRaise) {
+    const bAllIn = options?.bAllIn === true;
+    const { minRaise, myChips } = this.getRaiseContext();
+    if (!bAllIn && amount < minRaise) {
         this.prompt.showForSeconds('Raise must be at least the minimum bet.');
         return false;
     }
 
-    this.oGameManager.tempRaiseAmount = amount;
+    this.oGameManager.tempRaiseAmount = bAllIn ? myChips : amount;
+    this.oGameManager.tempRaiseIsAllIn = bAllIn;
+    this.sRaiseConfirmSource = options?.source || 'builder';
     this.disableContainerButtons(this.container_raise_buttons);
     this.container_raise_buttons.setVisible(false);
     this.container_confirm_raise.setVisible(true);
     this.oButtons?.btn_cancel?.setVisible(false);
     this.oButtons?.btn_confirmRaise?.setVisible(true);
-    this.oButtons?.btn_standRaise?.setVisible(true);
+    this.oButtons?.btn_standRaise?.setVisible(this.canStandThisRound());
     this.oButtons?.btn_cancelRaise?.setVisible(true);
     this.enableContainerButtons(this.container_confirm_raise);
     this.sRaiseUiMode = 'confirm';
-    this.setConsolePrompt('Confirm your raise');
+    this.setConsolePrompt(bAllIn ? 'Confirm all in' : 'Confirm your raise');
     this.syncGameActionOverlay();
     return true;
 }
@@ -1205,12 +1234,45 @@ handleActionError(sEventName, sErrorMessage) {
     this.restoreTurnUiAfterError(false);
 }
 
+confirmTakeCardRaiseRequest() {
+    if (!this.shouldWarnBeforeTakingCommunityCard()) {
+        this.submitRaiseRequest({ bTakeCard: true });
+        return;
+    }
+
+    const handTotal = this.getMyCurrentHandTotal();
+    const message = handTotal >= 21
+        ? `You're on ${handTotal}. Taking another card may bust your hand. Continue?`
+        : `You're on ${handTotal}. Take another community card?`;
+
+    this.popup.open({
+        confirm: true,
+        title: 'TAKE CARD?',
+        message,
+        confirmText: 'Take Card',
+        cancelText: 'Cancel',
+        callback: () => this.submitRaiseRequest({ bTakeCard: true }),
+    });
+}
+
 submitRaiseRequest(extraData = {}) {
     this.disableContainerButtons(this.container_confirm_raise);
     this.syncGameActionOverlay();
-    this.setConsolePrompt('Submitting raise');
+    const bAllIn = this.oGameManager?.tempRaiseIsAllIn === true;
+    const { toCallAmount, myChips } = this.getRaiseContext();
+    this.setConsolePrompt(bAllIn ? 'Submitting all in' : 'Submitting raise');
+
+    if (bAllIn && toCallAmount >= myChips) {
+        this.oSocketManager.emit(emitter.reqCall, {
+            ...extraData,
+            bAllIn: true,
+        });
+        return;
+    }
+
     this.oSocketManager.emit(emitter.reqRaise, {
-        nRaiseAmount: this.oGameManager.tempRaiseAmount,
+        nRaiseAmount: bAllIn ? myChips : this.oGameManager.tempRaiseAmount,
+        ...(bAllIn ? { bAllIn: true } : {}),
         ...extraData,
     });
 }
@@ -1789,8 +1851,8 @@ setConsolePrompt(label = 'Waiting for turn') {
         this.isFinishGame = true;
     }
 setButtons() {
-    this.container_buttons.buttonKeys = ['btn_fold', 'btn_call', 'btn_check', 'btn_raise', 'btn_split', 'btn_stand'];
-    this.container_raise_buttons.buttonKeys = ['btn_min', 'btn_halfPot', 'btn_fullPot', 'btn_doubleDown', 'btn_cancel'];
+    this.container_buttons.buttonKeys = ['btn_fold', 'btn_call', 'btn_check', 'btn_raise', 'btn_stand'];
+    this.container_raise_buttons.buttonKeys = ['btn_min', 'btn_halfPot', 'btn_fullPot', 'btn_allIn', 'btn_doubleDown', 'btn_cancel'];
     this.container_confirm_raise.buttonKeys = ['btn_confirmRaise', 'btn_standRaise', 'btn_cancelRaise'];
 
     this.oButtons = {
@@ -1799,7 +1861,6 @@ setButtons() {
         btn_check: this.createGameActionButtonState('check', 'Check', 'secondary'),
         btn_raise: this.createGameActionButtonState('raise', 'Raise', 'primary'),
         btn_doubleDown: this.createGameActionButtonState('doubleDown', 'Double Down', 'primary'),
-        btn_split: this.createGameActionButtonState('split', '', 'primary'),
         btn_stand: this.createGameActionButtonState('stand', 'Stand', 'secondary'),
         btn_min: this.createGameActionButtonState('minRaise', 'MIN', 'secondary'),
         btn_halfPot: this.createGameActionButtonState('halfPotRaise', '1/2 Pot', 'secondary'),
@@ -1814,58 +1875,6 @@ setButtons() {
     };
 
     this.layoutActionButtonGroups();
-}
-
-createFloatSplitButton() {
-    const btnW = 172;
-    const btnH = 66;
-    const r = 33;
-
-    const container = this.add.container(0, 0).setVisible(false);
-
-    const bg = this.add.graphics();
-    const drawDefault = () => {
-        bg.clear();
-        bg.fillStyle(0x061828, 0.90);
-        bg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, r);
-        bg.fillStyle(0x48d8ff, 0.08);
-        bg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, r);
-        bg.lineStyle(2.5, 0x48d8ff, 0.95);
-        bg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, r);
-        bg.lineStyle(1, 0xffffff, 0.10);
-        bg.strokeRoundedRect(-btnW / 2 + 2, -btnH / 2 + 2, btnW - 4, btnH - 4, Math.max(4, r - 2));
-    };
-    const drawHover = () => {
-        bg.clear();
-        bg.fillStyle(0x0d3a6e, 1);
-        bg.fillRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, r);
-        bg.lineStyle(3, 0x88eeff, 1);
-        bg.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, r);
-    };
-    drawDefault();
-
-    const label = this.add.text(0, 1, '', {
-        fontSize: '30px',
-        fontFamily: config.playerFontBold || 'Arial',
-        color: '#48d8ff',
-        fontStyle: 'bold',
-        resolution: 2,
-    }).setOrigin(0.5);
-
-    container.add(bg);
-    container.add(label);
-    container.setSize(btnW, btnH);
-    container.setInteractive({ useHandCursor: true });
-
-    container.on('pointerdown', () => {
-        if (!this.isMyTurn) return;
-        this.hideAllButtons();
-        this.oSocketManager.emit(emitter.reqSplit);
-    });
-    container.on('pointerover', drawHover);
-    container.on('pointerout', drawDefault);
-
-    this.floatSplitBtn = container;
 }
 
     setPotAmount() {
@@ -1962,8 +1971,6 @@ createFloatSplitButton() {
         this.setTable();
         this.setFooter();
         this.setButtons();
-        this.createFloatSplitButton();
-        this.container_community_cards.add(this.floatSplitBtn);
         this.createPlayerProfiles();
         this.setSceneDepths();
 
@@ -2064,8 +2071,8 @@ createFloatSplitButton() {
             : playersArray;
         const aIncomingHand = Array.isArray(aCardHand) ? aCardHand : [];
 
-        // Keep the player data snapshot in sync so canShowSplitAction() can read hole cards.
         if (myPlayer) myPlayer.aCardHand = aIncomingHand;
+        if (myPlayer) myPlayer.nCardScore = Number(nCardScore) || myPlayer.nCardScore;
 
         if (this.playerHandNeedsReset(myPlayer, aIncomingHand)) {
             myPlayer?.playerProfile?.container_cards?.removeAll(true);
@@ -2111,6 +2118,8 @@ createFloatSplitButton() {
 
         const container = targetContainer || player?.playerProfile?.container_cards;
         if (!container) return;
+        player?.playerProfile?.setVisible?.(true);
+        player?.playerProfile?.container_profile?.setVisible?.(true);
 
         const cardSpacing = 25;
         const cardTiltAngle = 15;
@@ -2161,14 +2170,7 @@ createFloatSplitButton() {
         // Don't wipe community cards while the hand-result display window is active
         if (!this.bShowingHandResult) {
             this.container_community_cards.setVisible(false);
-            if (this.floatSplitBtn) {
-                this.container_community_cards.remove(this.floatSplitBtn, false);
-                this.floatSplitBtn.setVisible(false);
-            }
             this.container_community_cards.removeAll(true);
-            if (this.floatSplitBtn) {
-                this.container_community_cards.add(this.floatSplitBtn);
-            }
         }
         this.oTable.close_deck_card.setVisible(false);
         this.aPlayerProfiles.forEach(player => {
@@ -2177,9 +2179,22 @@ createFloatSplitButton() {
         });
     }
     startGame() {
+        this.cancelHandResultCleanup();
         this.prompt.hide();
         this.oTable.container_private_table.setVisible(false);
         this.container_community_cards.setVisible(true);
+    }
+
+    cancelHandResultCleanup() {
+        if (this.handResultShowTimeout) {
+            clearTimeout(this.handResultShowTimeout);
+            this.handResultShowTimeout = null;
+        }
+        if (this.handResultClearTimeout) {
+            clearTimeout(this.handResultClearTimeout);
+            this.handResultClearTimeout = null;
+        }
+        this.bShowingHandResult = false;
     }
 
     resetCheckCommitments() {
@@ -2222,6 +2237,7 @@ createFloatSplitButton() {
     }
     async setGameData({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant, oGameInfo, oTutorial }) {
         try {
+            if (eState === 'playing') this.cancelHandResultCleanup();
             this.clearStagedBetPiles();
             this.oGameManager.oGameInfo = oGameInfo;
             this.oGameManager.nMaxPlayer = nMaxPlayer;
@@ -2248,6 +2264,7 @@ createFloatSplitButton() {
             this.setDealerAndBlind();
             this.syncTutorialState(this.oTutorialState);
             this.nTableRound = Number(nTableRound) || 1;
+            this.sActiveTurnKey = null;
             this.isOverlayReady = true;
             this.syncGameActionOverlay();
             // If resPlayerTurn arrived before setPlayersData finished, apply it now
@@ -2302,61 +2319,6 @@ createFloatSplitButton() {
                 action: 'doubleDown',
             });
         }
-    }
-    handleSplit(oData) {
-        const player = this.players.get(oData.iUserId);
-        if (!player) return;
-
-        // Update player state
-        player.bHasSplit = true;
-        if (player.iUserId === this.iUserId) {
-            const myPlayer = this.players.get(this.iUserId);
-            if (myPlayer) {
-                myPlayer.aCardHand = Array.isArray(oData.aCardHand) ? oData.aCardHand : myPlayer.aCardHand;
-                myPlayer.bHasSplit = true;
-            }
-            this.setMyPlayerData(oData);
-        }
-        player?.playerProfile?.setAmountIn(oData.nChips);
-
-        // Animate community card copy â†’ split hand container (visual: paired card starts the split hand)
-        if (oData.oCommunityCard) {
-            this.animateCard(oData.oCommunityCard, 1, player, 1, player?.playerProfile?.container_split_cards);
-        }
-
-        // Animate new main-hand private card â†’ main hand container
-        if (oData.oMainCard) {
-            this.animateCard(oData.oMainCard, 2, player, 2);
-        }
-
-        // Animate new split-hand private card â†’ split hand container
-        if (oData.oSplitCard) {
-            this.animateCard(oData.oSplitCard, 3, player, 3, player?.playerProfile?.container_split_cards);
-        }
-
-        // Update pot for split cost
-        const potIncrease = Math.max(0, Number(oData.nTableChips || 0) - Number(this.oGameManager.nPotAmount || 0));
-        if (potIncrease > 0) {
-            this.queuePotUpdate({
-                amount: potIncrease,
-                targetAmount: oData.nTableChips,
-                playerProfile: player?.playerProfile,
-                effectName: 'bigBet',
-            });
-        } else {
-            this.updatePotAmount(oData.nTableChips);
-        }
-
-        // Show split hand score badge
-        player?.playerProfile?.setSplitHand?.(oData.aSplitHand, oData.nSplitCardScore);
-
-        // Update main hand score display
-        this.syncPlayerScoreDisplay(player, oData.nCardScore, oData.aCardHand || []);
-
-        // Hide split button â€” player has split, no second split allowed
-        if (this.floatSplitBtn) this.floatSplitBtn.setVisible(false);
-
-        this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
     }
     handlePlayerBet(oData, sEventName) {
         const player = this.players.get(oData.iUserId);
@@ -2492,6 +2454,7 @@ createFloatSplitButton() {
     }
     handleCommunityCard(oData) {
         // A new community card has been dealt â€” reset check commitments for the next betting round.
+        this.sActiveTurnKey = null;
         this.resetCheckCommitments();
         const { aCommunityCard, aParticipant } = oData;
         const aUpdatedParticipants = Array.isArray(aParticipant) ? aParticipant : [];
@@ -2501,16 +2464,6 @@ createFloatSplitButton() {
         }, 1000);
         this.flushStagedBetsToPot().finally(() => {
             this.setCommunityCards(aCommunityCard, 'communityCard');
-            // Re-evaluate split button now that aCommunityCards is populated.
-            // setPlayerTurn may have already fired before this Promise resolved.
-            if (this.isMyTurn && this.floatSplitBtn) {
-                const canSplit = this.canShowSplitAction();
-                if (canSplit) {
-                    const cardPos = this.getCommunityCardPosition(0, 1);
-                    this.floatSplitBtn.setPosition(cardPos.x, cardPos.y - 120);
-                    this.floatSplitBtn.setVisible(true);
-                }
-            }
         });
         aUpdatedParticipants.forEach((participant) => {
             if (!participant || !this.players.has(participant.iUserId)) return;
@@ -2520,10 +2473,6 @@ createFloatSplitButton() {
             player?.playerProfile?.setAmountIn(participant.nChips);
 
             this.syncPlayerScoreDisplay(player, participant.nCardScore, participant.aCardHand);
-
-            if (participant.bHasSplit) {
-                player?.playerProfile?.setSplitHand?.(participant.aSplitHand, participant.nSplitCardScore);
-            }
 
             if (participant.iUserId === this.iUserId) {
                 this.setMyPlayerData(participant);
@@ -2537,7 +2486,7 @@ createFloatSplitButton() {
         const { scale: communityCardScale } = this.getCommunityCardLayoutMetrics();
 
         if (sType === 'communityCard') {
-            const nExistingCount = this.container_community_cards.list.filter(item => item !== this.floatSplitBtn).length;
+            const nExistingCount = this.container_community_cards.list.length;
             const aNewCards = aCommunityCards.filter(card =>
                 !this.oGameManager.aCommunityCards.some(existingCard => existingCard._id === card._id)
             );
@@ -2558,23 +2507,9 @@ createFloatSplitButton() {
                 }
             });
 
-            // If it's already the player's turn when the community card arrives,
-            // re-evaluate the split button (handles reconnect / reorder edge cases).
-            if (this.isMyTurn && this.floatSplitBtn) {
-                const canSplit = this.canShowSplitAction();
-                if (canSplit) {
-                    const cardPos = this.getCommunityCardPosition(0, 1);
-                    this.floatSplitBtn.setPosition(cardPos.x, cardPos.y - 120);
-                    this.floatSplitBtn.setVisible(true);
-                } else {
-                    this.floatSplitBtn.setVisible(false);
-                }
-            }
         }
         else {
             this.oGameManager.aCommunityCards = aCommunityCards;
-            // Remove floatSplitBtn before removeAll(true) to prevent it from being destroyed
-            if (this.floatSplitBtn) this.container_community_cards.remove(this.floatSplitBtn, false);
             this.container_community_cards.removeAll(true);
             aCommunityCards.forEach((card, index) => {
                 const nPosition = this.getCommunityCardPosition(index, aCommunityCards.length);
@@ -2584,7 +2519,6 @@ createFloatSplitButton() {
                 card_open.openCard();
                 this.container_community_cards.add(card_open);
             });
-            if (this.floatSplitBtn) this.container_community_cards.add(this.floatSplitBtn);
             this.updatePotPosition({ animate: false });
         }
     }
@@ -2663,6 +2597,7 @@ createFloatSplitButton() {
     }
     async setBoardState({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableFee, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant, oTutorial }) {
         try {
+            if (eState === 'playing') this.cancelHandResultCleanup();
             this.clearStagedBetPiles();
             this.oTutorialState = oTutorial || this.oTutorialState;
             this.iDealerId = iDealerId;
@@ -2690,6 +2625,7 @@ createFloatSplitButton() {
             this.setDealerAndBlind();
             this.syncTutorialState(this.oTutorialState);
             this.nTableRound = Number(nTableRound) || 1;
+            this.sActiveTurnKey = null;
             this.isOverlayReady = true;
             this.syncGameActionOverlay();
         } catch (error) {
@@ -2747,15 +2683,13 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
         lastPlayer?.playerProfile?.resetTurnTimer();
         return lastPlayer;
     }
-    async setPlayerTurn({ iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount, eSplitPhase }) {
+    async setPlayerTurn({ iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount, bAllInStandChoice }) {
         if (nRemainingInitializeTime > 0 || nRemainingRoundStartsIn > 0) {
             this.resetCheckCommitments();
             this.clearStagedBetPiles();
             this.aPlayerProfiles.forEach(player => {
                 player.setAlpha(1);
                 player.container_cards.removeAll(true);
-                player.container_split_cards?.removeAll(true);
-                player.container_split_cards?.setVisible(false);
                 player.hideBettingLabel();
                 player.clearScore?.();
             });
@@ -2773,19 +2707,27 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
         }
         // If player data isn't ready yet (join race condition), defer until setGameData finishes
         if (!this.players.get(iUserId) && iUserId === this.iUserId) {
-            this.oPendingTurn = { iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount, eSplitPhase };
+            this.oPendingTurn = { iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount, bAllInStandChoice };
             return;
-        }        await this.resetTurnTimer();
+        }
+        const sTurnKey = JSON.stringify({
+            iUserId,
+            nTableRound: this.nTableRound,
+            aUserAction: Array.isArray(aUserAction) ? aUserAction : [],
+            nMinBet: Number(nMinBet) || 0,
+            toCallAmount: Number(toCallAmount) || 0,
+            bAllInStandChoice: bAllInStandChoice === true,
+        });
+        if (this.sActiveTurnKey === sTurnKey && this.iLastTurnId === iUserId) {
+            return;
+        }
+        this.sActiveTurnKey = sTurnKey;
+        await this.resetTurnTimer();
         const player = await this.players.get(iUserId);
         this.isMyTurn = player?.iUserId === this.iUserId;
         this.iLastTurnId = iUserId;
         this.oGameManager.nMinRaiseAmount = nMinBet;
         this.focusFXOverlayPlayer(player?.playerProfile);
-
-        // Highlight the active split sub-hand for all visible profiles
-        if (player?.playerProfile) {
-            player.playerProfile.highlightActiveSplitHand(eSplitPhase || 'none');
-        }
 
         if (player?.playerProfile && ttl > 0) {
             const total = nTotalTurnTime > 0 ? nTotalTurnTime : ttl;
@@ -2793,7 +2735,7 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
         }
         if (player?.iUserId === this.iUserId) {
             this.syncGameActionOverlay();
-            this.showAllButtons(aUserAction, nMinBet, toCallAmount);
+            this.showAllButtons(aUserAction, nMinBet, toCallAmount, { bAllInStandChoice });
             if (this.isGuestTutorial) {
                 const sExpectedAction = this.getTutorialActionFromState();
                 this.emitTutorialOverlay({
@@ -2807,9 +2749,10 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
             }
         } else this.hideAllButtons();
     }
-showAllButtons(aUserAction, nMinBet, toCallAmount) {
+showAllButtons(aUserAction, nMinBet, toCallAmount, options = {}) {
     this.isMyTurn = true;
-    this.oTurnContext = { aUserAction, nMinBet, toCallAmount };
+    const bAllInStandChoice = options?.bAllInStandChoice === true;
+    this.oTurnContext = { aUserAction, nMinBet, toCallAmount, bAllInStandChoice };
     this.hideAllButtons();
     this.container_buttons.setVisible(true);
     this.setConsolePrompt('');
@@ -2822,7 +2765,11 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
     const callAmount = Number.isFinite(parsedCallAmount)
         ? parsedCallAmount
         : (Number.isFinite(fallbackCallAmount) ? fallbackCallAmount : 0);
-    const canAffordRaise = this.getRaiseContext().maxRaiseAmount >= (Number(nMinBet) || 0);
+    const { myChips, maxRaiseAmount, minRaise, potAmount } = this.getRaiseContext();
+    const canAffordRaise = maxRaiseAmount >= (Number(nMinBet) || 0);
+    const potRaiseTarget = Math.max(minRaise, Math.round(potAmount));
+    const canAllInRaise = myChips > 0 && maxRaiseAmount > 0 && maxRaiseAmount < potRaiseTarget;
+    const canStand = this.canStandThisRound();
     // If the local player previously checked and another player since raised,
     // they are committed to an additional community card â€” strip stand, raise, and direct call.
     const iAmCheckCommitted = this.hasRaiseSinceCheck(this.iUserId);
@@ -2835,20 +2782,21 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
             case 'c':
                 this.oButtons.btn_call.setVisible(true);
                 this.oButtons.btn_call.bAllInMode = false;
-                this.setCallButtonLabel(callAmount > 0 ? `Call ${_.formatCurrencyWithComa(callAmount)}` : 'Call');
+                this.setCallButtonLabel(bAllInStandChoice ? 'Confirm' : (callAmount > 0 ? `Call ${_.formatCurrencyWithComa(callAmount)}` : 'Call'));
                 break;
             case 'r':
-                this.oButtons.btn_raise.setVisible(canAffordRaise);
+                this.oButtons.btn_raise.setVisible(canAffordRaise || canAllInRaise);
                 break;
             case 's':
-                this.oButtons.btn_stand.setVisible(true);
-                this.oButtons.btn_stand.bCallStandMode = actions.includes('c') && callAmount > 0;
-                this.setStandButtonLabel(this.oButtons.btn_stand.bCallStandMode ? 'Call/Stand' : 'Stand');
+                if (canStand) {
+                    this.oButtons.btn_stand.setVisible(true);
+                    this.oButtons.btn_stand.bCallStandMode = actions.includes('c') && callAmount > 0;
+                    this.setStandButtonLabel(this.oButtons.btn_stand.bCallStandMode ? 'Call/Stand' : 'Stand');
+                }
                 break;
             case 'a':
-                this.oButtons.btn_call.setVisible(true);
-                this.oButtons.btn_call.bAllInMode = true;
-                this.setCallButtonLabel('All In');
+                this.oButtons.btn_allInCommon.setVisible(true);
+                this.oButtons.btn_allInCommon.nRaiseAmount = myChips;
                 break;
             case 'ck':
                 this.oButtons.btn_check.setVisible(true);
@@ -2862,72 +2810,29 @@ showAllButtons(aUserAction, nMinBet, toCallAmount) {
                 }
                 break;
             }
-            case 'sp': {
-                const canSplit = this.canShowSplitAction();
-                this.oButtons.btn_split.setVisible(canSplit);
-                if (this.floatSplitBtn) {
-                    if (canSplit) {
-                        const cardPos = this.getCommunityCardPosition(0, 1);
-                        this.floatSplitBtn.setPosition(cardPos.x, cardPos.y - 120);
-                        this.floatSplitBtn.setVisible(true);
-                    } else {
-                        this.floatSplitBtn.setVisible(false);
-                    }
-                }
-                const _myPlayer = this.players?.get?.(this.iUserId);
-                if (canSplit) {
-                    _myPlayer?.playerProfile?.showSplitPreview?.();
-                } else if (!_myPlayer?.bHasSplit) {
-                    _myPlayer?.playerProfile?.clearSplitHand?.();
-                }
-                break;
-            }
         }
     });
 
-    // Always show the split button on the first community card if a pair exists,
-    // regardless of whether the server sent 'sp' in aUserAction.
-    if (this.floatSplitBtn) {
-        const canSplit = this.canShowSplitAction();
-        if (canSplit) {
-            const cardPos = this.getCommunityCardPosition(0, 1);
-            this.floatSplitBtn.setPosition(cardPos.x, cardPos.y - 120);
-            this.floatSplitBtn.setVisible(true);
-        } else {
-            this.floatSplitBtn.setVisible(false);
-        }
+    if (canStand && actions.includes('c') && callAmount > 0 && !actions.includes('s')) {
+        this.oButtons.btn_stand.setVisible(true);
+        this.oButtons.btn_stand.bCallStandMode = true;
+        this.setStandButtonLabel('Stand');
     }
 
     this.layoutActionButtonGroups();
 }
 canShowDoubleDownAction() {
     const myPlayer = this.players?.get?.(this.iUserId);
-    if (myPlayer?.bHasSplit) return false;
     const nCardScore = Number(myPlayer?.nCardScore);
+    const { myChips } = this.getRaiseContext();
+    const nDoubleDownAmount = this.getDoubleDownAmount();
     // DD available when exactly 1 community card is on the table (round 2).
     // Use actual card count — nTableRound is only updated in setGameData/setBoardState,
     // not when resCommunityCard fires, so it lags behind when turn fires.
     const nCommCards = (this.oGameManager?.aCommunityCards || []).length;
     if (nCommCards !== 1) return false;
+    if (nDoubleDownAmount <= 0 || myChips < nDoubleDownAmount) return false;
     return Number.isFinite(nCardScore) && nCardScore >= 9 && nCardScore <= 12;
-}
-canShowSplitAction() {
-    // Split available when: 1 community card dealt, player not yet split,
-    // and their hole card (nLabel) matches the community card (nLabel).
-    const myPlayer = this.players?.get?.(this.iUserId);
-    if (!myPlayer || myPlayer.bHasSplit) return false;
-
-    const communityCards = Array.isArray(this.oGameManager?.aCommunityCards)
-        ? this.oGameManager.aCommunityCards
-        : [];
-
-    const holeCard = myPlayer?.aCardHand?.[0];
-    const communityCard = communityCards[0];
-
-    if (communityCards.length !== 1) return false;
-    if (!holeCard || !communityCard) return false;
-
-    return holeCard.nLabel === communityCard.nLabel;
 }
    hideAllButtons() {
     this.sRaiseUiMode = null;
@@ -2946,9 +2851,8 @@ canShowSplitAction() {
     this.setCallButtonLabel('Call');
     this.oButtons.btn_raise.setVisible(false);
     this.oButtons.btn_doubleDown.setVisible(false);
-    this.oButtons.btn_split.setVisible(false);
-    if (this.floatSplitBtn) this.floatSplitBtn.setVisible(false);
     this.oButtons.btn_allInCommon.setVisible(false);
+    this.oButtons.btn_allIn.setVisible(false);
     this.oButtons.btn_stand.setVisible(false);
     this.oButtons.btn_stand.bCallStandMode = false;
     this.setStandButtonLabel('Stand');
@@ -2961,6 +2865,10 @@ canShowSplitAction() {
     this.layoutActionButtonGroups();
 }
 setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust, sReason, oTutorial }) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('bsg:profile-refresh'));
+  }
+
   if (oTutorial) {
     this.oTutorialState = oTutorial;
     this.emitTutorialOverlay({
@@ -2985,8 +2893,12 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
   // timeout fires and clear oGameManager.aCommunityCards, so store locally.
   const _finalCommunityCards = [...(this.oGameManager.aCommunityCards || [])];
 
+  const nResultToken = Date.now();
+  this.nHandResultToken = nResultToken;
+
   // Show community cards immediately when round ends
-  setTimeout(() => {
+  this.handResultShowTimeout = setTimeout(() => {
+    if (this.nHandResultToken !== nResultToken || !this.bShowingHandResult) return;
     // Show community cards first for players to see final board
     if (_finalCommunityCards.length > 0) {
       this.setCommunityCards(_finalCommunityCards);
@@ -2995,8 +2907,11 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
   }, 500); // Show cards almost immediately
 
   // Clear everything after showing cards for longer
-  setTimeout(() => {
+  this.handResultClearTimeout = setTimeout(() => {
+    if (this.nHandResultToken !== nResultToken || !this.bShowingHandResult) return;
     this.bShowingHandResult = false;
+    this.handResultShowTimeout = null;
+    this.handResultClearTimeout = null;
     if (this.sPrivateCode) this.oTable.container_private_table.setVisible(true);
     const deckPosition = this.getDeckCardPosition();
     this.oTable.close_deck_card.setVisible(false).setPosition(deckPosition.x, deckPosition.y);
@@ -3132,12 +3047,6 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
         if (String(iUserId) === String(this.iUserId)) return; // already shown optimistically
         const player = this.players.get(String(iUserId));
         player?.playerProfile?.setEmojiDisplay(sEmoji);
-    }
-
-    handleSplitAutoFold({ iUserId, sMessage } = {}) {
-        if (String(iUserId) === String(this.iUserId)) {
-            this.prompt?.showForSeconds?.(sMessage || 'Your second split hand was auto-folded (bust).');
-        }
     }
 
     cleanupGameBindings() {

@@ -3,6 +3,7 @@ import React, { Suspense, useEffect } from 'react'
 import { Spinner } from 'react-bootstrap'
 import { MutationCache, QueryClient, QueryClientProvider } from 'react-query'
 const AllRoutes = React.lazy(() => import('./routes'))
+const APP_BUILD_VERSION = 'V1.22'
 
 export const queryClient = new QueryClient({
     defaultOptions: {
@@ -57,6 +58,9 @@ function App() {
                 }>
                     <AllRoutes />
                 </Suspense>
+                <div className='app-build-version' aria-label={`Build ${APP_BUILD_VERSION}`}>
+                    {APP_BUILD_VERSION}
+                </div>
             </GamePlayProvider>
         </QueryClientProvider>
     )

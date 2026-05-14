@@ -68,7 +68,7 @@ function MainLayout({ children }) {
         <div id={isGamePlay ? 'main-layout' : undefined} className={`main-layout ${isGamePlay ? 'gameplay-layout' : ''}`}>
             <div className='main-layout-background'></div>
             {!isGamePlay && !isLobby && <HeaderPrivate />}
-            <div className='lobby-topbar'>
+            {!isGamePlay && <div className='lobby-topbar'>
                     <Link to='/lobby' className='lobby-topbar__logo' aria-label="21 Hold'em home">
                         <img src={newBannerImg} alt="21 Hold'em" className='lobby-topbar__logo-img' />
                     </Link>
@@ -85,7 +85,7 @@ function MainLayout({ children }) {
                             <span className='lobby-topbar__bankroll-amount'>{_.formatCurrencyWithComa(Number(profileData?.nChips) || 0)}</span>
                         </span>
                     </button>
-                </div>
+                </div>}
             <div className={`main-container ${width ? !isOpen && 'active' : isOpen && 'active'}`}>
                 <div className='container-fluid'>
                     {/* <Breadcrumbs /> */}

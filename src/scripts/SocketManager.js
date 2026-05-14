@@ -116,14 +116,8 @@ export default class SocketManager {
             case 'resDoubledown':
                 this.oScene.handleDoubleDown(data.oData, data.sEventName);
                 break;
-            case 'resSplit':
-                this.oScene.handleSplit(data.oData);
-                break;
             case 'resReaction':
                 this.oScene.handleResReaction?.(data.oData);
-                break;
-            case 'resSplitAutoFold':
-                this.oScene.handleSplitAutoFold?.(data.oData);
                 break;
             case 'disconnect':
                 this.oScene.exitGame();

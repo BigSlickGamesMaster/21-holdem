@@ -44,11 +44,6 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.container_cards = scene.add.container(0, -44);
     this.container_profile.add(this.container_cards);
 
-    // Second card row for the split sub-hand
-    this.container_split_cards = scene.add.container(0, -22);
-    this.container_split_cards.setVisible(false);
-    this.container_profile.add(this.container_split_cards);
-
     this.container_profileImage = scene.add.container(0, 0);
     this.container_profile.add(this.container_profileImage);
 
@@ -257,25 +252,6 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setVisible(false);
     this.container_profile.add(this.score_bg);
 
-    // Split score badge — shown below main score when player has split
-    this.split_score_bg = scene.add
-      .image(100, -35, assets.score_bg)
-      .setScale(0.95)
-      .setTint(0x1a8040)
-      .setVisible(false);
-    this.container_profile.add(this.split_score_bg);
-
-    this.txt_splitScore = scene.add
-      .text(100, -35, 'SP', {
-        ...style,
-        fontSize: '26px',
-        fontStyle: 'bold',
-        color: '#aaffaa',
-      })
-      .setOrigin(0.5)
-      .setVisible(false);
-    this.container_profile.add(this.txt_splitScore);
-
     this.txt_score = scene.add
       .text(this.score_bg.x, this.score_bg.y, "0", {
         ...style,
@@ -341,51 +317,21 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.txt_score.setText("");
     this.score_bg.setVisible(false);
     this.txt_score.setVisible(false);
-    this.clearSplitHand();
-    this.container_split_cards?.removeAll(true);
-    this.container_split_cards?.setVisible(false);
     this.container_cards?.setAlpha(1);
-    this.container_split_cards?.setAlpha(1);
+    this.removeSplitArtifacts();
     this.setIdentityState('normal');
     this.profileRenderer.stopActivePulse();
     this.profileRenderer.setFrameColor(this.seatTheme.accentColor);
   }
-  clearSplitHand() {
-    if (this.split_score_bg) { this.split_score_bg.setAlpha(1); this.split_score_bg.setVisible(false); }
-    if (this.txt_splitScore) { this.txt_splitScore.setAlpha(1); this.txt_splitScore.setVisible(false); }
-  }
-  showSplitPreview() {
-    this.txt_splitScore.setText('');
-    this.split_score_bg.setAlpha(0.5);
-    this.txt_splitScore.setAlpha(0.5);
-    this.split_score_bg.setVisible(true);
-    this.txt_splitScore.setVisible(true);
-  }
-  setSplitHand(aSplitHand, nSplitCardScore) {
-    const score = Number(nSplitCardScore);
-    if (!Number.isFinite(score) || score <= 0) return;
-    const label = score > 21 ? `SP:BUST` : `SP:${score}`;
-    this.txt_splitScore.setText(label);
-    this.split_score_bg.setAlpha(1);
-    this.txt_splitScore.setAlpha(1);
-    this.split_score_bg.setVisible(true);
-    this.txt_splitScore.setVisible(true);
-    // Show the split card row if it has content
-    if (this.container_split_cards?.list?.length > 0) this.container_split_cards.setVisible(true);
-  }
-  // Dim the inactive sub-hand during split turns so the active one is obvious
-  highlightActiveSplitHand(eSplitPhase) {
-    if (!this.container_split_cards) return;
-    if (eSplitPhase === 'hand1') {
-      this.container_cards.setAlpha(1);
-      this.container_split_cards.setAlpha(0.4);
-    } else if (eSplitPhase === 'hand2') {
-      this.container_cards.setAlpha(0.4);
-      this.container_split_cards.setAlpha(1);
-    } else {
-      this.container_cards.setAlpha(1);
-      this.container_split_cards.setAlpha(1);
-    }
+  removeSplitArtifacts() {
+    this.split_score_bg?.destroy?.();
+    this.txt_splitScore?.destroy?.();
+    this.container_split_cards?.removeAll?.(true);
+    this.container_split_cards?.destroy?.();
+    this.split_score_bg = null;
+    this.txt_splitScore = null;
+    this.container_split_cards = null;
+    this.container_cards?.setAlpha?.(1);
   }
   setScore(nScore) {
     const parsedScore = Number(nScore);
@@ -425,6 +371,11 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     }
   }
   setBettingLabel(sBettingLabel, nAmount = null) {
+    if (!sBettingLabel && nAmount === null) {
+      this.hideBettingLabel();
+      return;
+    }
+    this.removeSplitArtifacts();
     this.updateBettingLabelLayout();
     this.container_bettingLabel.setVisible(true).setScale(0);
     if (this._bettingLabelTween) this._bettingLabelTween.stop();
@@ -455,6 +406,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
 
   hideBettingLabel() {
     this.container_bettingLabel.setVisible(false);
+    this.removeSplitArtifacts();
 
     // Clear texts so old values don’t remain
     this.txt_bettingLabel.setText("");
@@ -567,8 +519,6 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
   }
   hideWinnerPrompt() {
     this.container_cards.removeAll(true);
-    this.container_split_cards?.removeAll(true);
-    this.container_split_cards?.setVisible(false);
     this.scene.oAnimations.scale({
       aGameObjects: [this.container_winner],
       scaleX: 0,

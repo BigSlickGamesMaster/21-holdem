@@ -310,7 +310,7 @@ const Login = () => {
                         className='login-background-only__guest-link'
                         onClick={() => navigate('/guest')}
                     >
-                        Play as Guest
+                        Play as Guest V1.22
                     </button>
                 </div>
             </form>
