@@ -1,0 +1,48 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Deploy: Validate prod-like compose",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.prod-like.yml config",
+      "options": {
+        "cwd": "${workspaceFolder}/deploy"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Deploy: Start prod-like stack",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.prod-like.yml up -d --build",
+      "group": "build",
+      "options": {
+        "cwd": "${workspaceFolder}/deploy"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "Deploy: Stop prod-like stack",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.prod-like.yml down",
+      "options": {
+        "cwd": "${workspaceFolder}/deploy"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "shared"
+      }
+    }
+  ]
+}
