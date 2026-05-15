@@ -14,7 +14,7 @@ services:
     container_name: holdem-mongo-prod-like
     restart: unless-stopped
     ports:
-      - "192.168.0.111:27019:27017"
+      - "${DOCKER_HOST_IP}:27019:27017"
     volumes:
       - mongo_data:/data/db
 
@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "192.168.0.111:6382:6379"
+      - "${DOCKER_HOST_IP}:6382:6379"
     volumes:
       - redis_data:/data
 
@@ -40,7 +40,7 @@ services:
       - mongo
       - redis
     ports:
-      - "192.168.0.111:4100:4000"
+      - "${DOCKER_HOST_IP}:4100:4000"
 
   admin-backend:
     build:
@@ -54,34 +54,34 @@ services:
       - mongo
       - redis
     ports:
-      - "192.168.0.111:4151:3051"
+      - "${DOCKER_HOST_IP}:4151:3051"
 
   player-frontend:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.player-frontend
       args:
-        REACT_APP_API_ENDPOINT: http://192.168.0.111:4100
+        REACT_APP_API_ENDPOINT: http://${DOCKER_HOST_IP}:4100
         REACT_APP_ENVIRONMENT: "1"
     container_name: holdem-player-frontend-prod-like
     restart: unless-stopped
     depends_on:
       - game-backend
     ports:
-      - "192.168.0.111:3101:80"
+      - "${DOCKER_HOST_IP}:3101:80"
 
   admin-frontend:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.admin-frontend
       args:
-        REACT_APP_API_ENDPOINT: http://192.168.0.111:4151/api/v1/admin
+        REACT_APP_API_ENDPOINT: http://${DOCKER_HOST_IP}:4151/api/v1/admin
     container_name: holdem-admin-frontend-prod-like
     restart: unless-stopped
     depends_on:
       - admin-backend
     ports:
-      - "192.168.0.111:3102:80"
+      - "${DOCKER_HOST_IP}:3102:80"
 
 volumes:
   mongo_data:

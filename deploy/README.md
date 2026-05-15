@@ -2,14 +2,21 @@
 
 This folder provides a repo-local Docker stack that mirrors the production shape from `docs/LINUX_LIVE_DEPLOYMENT_GUIDE.md`, but uses local-safe ports so it can run beside existing dev services.
 
+## Host configuration
+
+- This stack reads `DOCKER_HOST_IP` from `deploy/.env`
+- Copy `deploy/.env.example` to `deploy/.env` to get started
+- Set it to the real host IP or DNS name your browser and API consumers should use
+- Do not rely on `localhost` for this production-like pipeline
+
 ## Services
 
-- MongoDB: `192.168.0.205:27019`
-- Redis: `192.168.0.205:6382`
-- Game backend: `http://192.168.0.205:4100`
-- Admin backend: `http://192.168.0.205:4151`
-- Player frontend: `http://192.168.0.205:3101`
-- Admin frontend: `http://192.168.0.205:3102`
+- MongoDB: `<docker-host-ip>:27019`
+- Redis: `<docker-host-ip>:6382`
+- Game backend: `http://<docker-host-ip>:4100`
+- Admin backend: `http://<docker-host-ip>:4151`
+- Player frontend: `http://<docker-host-ip>:3101`
+- Admin frontend: `http://<docker-host-ip>:3102`
 
 ## Start
 
