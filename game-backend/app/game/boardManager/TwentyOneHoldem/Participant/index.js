@@ -670,6 +670,11 @@ class Participant extends Service {
 
       if (playingPlayers.length === 1) return await this.oBoard.declareResult(playingPlayers, 'takeTurn: 1 player left');
 
+      if (this.isAllInLock && this.bPendingAllInStandChoice && !this.isLiveBettingSettled()) {
+        await this.oBoard.saveLogs([{ sAction: 'deferAllInStandChoiceUntilBettingSettled', eLogType: 'game', iUserId: this.iUserId }]);
+        return await this.passTurn();
+      }
+
       if (this.isAllInLock && this.bPendingAllInStandChoice) {
         this.oBoard.iUserTurn = this.iUserId;
         const { nTurnTime } = this.oBoard.oSetting;
@@ -926,6 +931,25 @@ class Participant extends Service {
     return await this.passTurn();
   }
 
+  isParticipantSettledForLiveBetting(participant) {
+    if (!participant || participant.eState !== 'playing') return true;
+    if (participant.isAllInLock) return true;
+    if (participant.bHasSplit) {
+      const hand1Settled = participant.bSplitHand1Locked || participant.nSplitHand1RoundCount > 0;
+      const hand2Settled = participant.bSplitHand2Locked || participant.nSplitHand2RoundCount > 0;
+      return hand1Settled && hand2Settled;
+    }
+
+    const bCheckOpenState = participant.aUserAction.includes('ck') && !participant.aUserAction.includes('c');
+    const nRequiredContribution = bCheckOpenState ? 0 : this.oBoard.nMinBet;
+    return participant.nPlayerTurnCount > 0 && participant.nLastBidChips >= nRequiredContribution;
+  }
+
+  isLiveBettingSettled() {
+    const aActiveParticipants = this.oBoard.aParticipant.filter(p => p.eState === 'playing');
+    return aActiveParticipants.every(participant => this.isParticipantSettledForLiveBetting(participant));
+  }
+
   async passTurn() {
     try {
       if (this.oBoard.eState !== 'playing') return false;
@@ -971,18 +995,9 @@ class Participant extends Service {
       const aActiveParticipants = this.oBoard.aParticipant.filter(p => p.eState === 'playing');
       if (aActiveParticipants.length === 1) return await this.oBoard.declareResult(aActiveParticipants, 'passTurn: 1 player left');
 
-      const bRoundSettled = aActiveParticipants.every(p => {
-        if (p.isAllInLock) return !p.bPendingAllInStandChoice;
-        if (p.bHasSplit) {
-          // A split player is settled when each hand has acted at least once or is locked
-          const hand1Settled = p.bSplitHand1Locked || p.nSplitHand1RoundCount > 0;
-          const hand2Settled = p.bSplitHand2Locked || p.nSplitHand2RoundCount > 0;
-          return hand1Settled && hand2Settled;
-        }
-        const bCheckOpenState = p.aUserAction.includes('ck') && !p.aUserAction.includes('c');
-        const nRequiredContribution = bCheckOpenState ? 0 : this.oBoard.nMinBet;
-        return p.nPlayerTurnCount > 0 && p.nLastBidChips >= nRequiredContribution;
-      });
+      const bLiveBettingSettled = this.isLiveBettingSettled();
+      const bAllAllInChoicesSettled = aActiveParticipants.every(p => !p.isAllInLock || !p.bPendingAllInStandChoice);
+      const bRoundSettled = bLiveBettingSettled && bAllAllInChoicesSettled;
       if (bRoundSettled) return this.oBoard.dealCommunityCard();
 
       const nextParticipant = this.oBoard.getNextParticipant(this.nSeat);

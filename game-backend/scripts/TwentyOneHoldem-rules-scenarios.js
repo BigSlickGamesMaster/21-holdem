@@ -159,7 +159,7 @@ async function allInConfirmChoiceClearsPendingState() {
 async function botAllInStandChoiceAutoConfirms() {
   const board = createFakeBoard([
     participantData({ iUserId: 'bot-allin', eUserType: 'bot', nChips: 0, isAllInLock: true, bPendingAllInStandChoice: true, aUserAction: ['c', 's'], nCardScore: 12 }),
-    participantData({ iUserId: 'caller', nSeat: 2 }),
+    participantData({ iUserId: 'caller', nSeat: 2, nLastBidChips: 100, nPlayerTurnCount: 1 }),
   ]);
   const bot = board.aParticipant[0];
   let passed = false;
@@ -196,6 +196,52 @@ async function allInStandChoiceTimeoutConfirmsInsteadOfFolding() {
   assert.equal(passed, true);
 }
 
+async function allInConfirmChoiceWaitsForLiveBettingToSettle() {
+  const board = createFakeBoard([
+    participantData({
+      iUserId: 'allin',
+      nChips: 0,
+      isAllInLock: true,
+      bPendingAllInStandChoice: true,
+      aUserAction: ['c', 's'],
+      nLastBidChips: 0,
+      nPlayerTurnCount: 0,
+    }),
+    participantData({
+      iUserId: 'caller',
+      nSeat: 2,
+      nChips: 1000,
+      nLastBidChips: 100,
+      nPlayerTurnCount: 0,
+      aUserAction: ['c', 'f'],
+    }),
+    participantData({
+      iUserId: 'raiser',
+      nSeat: 3,
+      nChips: 1000,
+      nLastBidChips: 200,
+      nPlayerTurnCount: 1,
+      aUserAction: ['c', 'f'],
+    }),
+  ], { nMinBet: 200 });
+  const allInPlayer = board.aParticipant[0];
+  let emittedTurn = false;
+  let passed = false;
+  board.emit = async (eventName) => {
+    if (eventName === 'resPlayerTurn') emittedTurn = true;
+  };
+  allInPlayer.passTurn = async () => {
+    passed = true;
+    return true;
+  };
+
+  await allInPlayer.takeTurn();
+
+  assert.equal(emittedTurn, false);
+  assert.equal(passed, true);
+  assert.equal(allInPlayer.bPendingAllInStandChoice, true);
+}
+
 async function raiseFromCheckStateReopensCallForOtherPlayers() {
   const board = createFakeBoard([
     participantData({ iUserId: 'opener', nChips: 1000, nLastBidChips: 100, aUserAction: ['ck', 'r', 'f'] }),
@@ -223,6 +269,7 @@ const scenarios = [
   ['all-in Confirm choice clears pending state', allInConfirmChoiceClearsPendingState],
   ['bot all-in Stand/Confirm choice auto-confirms', botAllInStandChoiceAutoConfirms],
   ['all-in Stand/Confirm timeout confirms instead of folding', allInStandChoiceTimeoutConfirmsInsteadOfFolding],
+  ['all-in Confirm choice waits for live betting to settle', allInConfirmChoiceWaitsForLiveBettingToSettle],
   ['raise from check state reopens call for other players', raiseFromCheckStateReopensCallForOtherPlayers],
 ];
 

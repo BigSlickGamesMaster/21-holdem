@@ -28,7 +28,7 @@ class AwsSdk {
       sFileName = sFileName.replace('/', '-');
       sFileName = sFileName.replace(/\s/gi, '-');
 
-      if (!isModified) sFileName = `Pokerjack_${Date.now()}_${sFileName}`;
+      if (!isModified) sFileName = `TwentyOneHoldem_${Date.now()}_${sFileName}`;
 
       return {
         sUrl: await getSignedUrl(this.client, new PutObjectCommand({ Bucket: sBucketName, Key: path + sFileName, ContentType: sContentType }), { expiresIn: 10000 }),

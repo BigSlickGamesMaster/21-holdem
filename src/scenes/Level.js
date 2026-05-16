@@ -610,7 +610,9 @@ bindGameActionOverlayEvents() {
             case 'cancelRaiseBuilder':
                 this.container_raise_buttons?.setVisible(false);
                 this.container_confirm_raise?.setVisible(false);
-                this.showAllButtons(this.oTurnContext?.aUserAction, this.oTurnContext?.nMinBet, this.oTurnContext?.toCallAmount);
+                this.showAllButtons(this.oTurnContext?.aUserAction, this.oTurnContext?.nMinBet, this.oTurnContext?.toCallAmount, {
+                    bAllInStandChoice: this.oTurnContext?.bAllInStandChoice,
+                });
                 break;
             case 'confirmRaise':
                 this.confirmTakeCardRaiseRequest();
@@ -620,7 +622,9 @@ bindGameActionOverlayEvents() {
                 break;
             case 'cancelRaiseConfirm':
                 if (this.oGameManager?.tempRaiseIsAllIn && this.sRaiseConfirmSource === 'main') {
-                    this.showAllButtons(this.oTurnContext?.aUserAction, this.oTurnContext?.nMinBet, this.oTurnContext?.toCallAmount);
+                    this.showAllButtons(this.oTurnContext?.aUserAction, this.oTurnContext?.nMinBet, this.oTurnContext?.toCallAmount, {
+                        bAllInStandChoice: this.oTurnContext?.bAllInStandChoice,
+                    });
                 } else {
                     this.openRaiseBuilder();
                 }
@@ -1218,7 +1222,9 @@ restoreTurnUiAfterError(preferRaiseBuilder = false) {
         return;
     }
 
-    this.showAllButtons(this.oTurnContext.aUserAction, this.oTurnContext.nMinBet, this.oTurnContext.toCallAmount);
+    this.showAllButtons(this.oTurnContext.aUserAction, this.oTurnContext.nMinBet, this.oTurnContext.toCallAmount, {
+        bAllInStandChoice: this.oTurnContext?.bAllInStandChoice,
+    });
 }
 
 handleActionError(sEventName, sErrorMessage) {
@@ -2773,6 +2779,7 @@ showAllButtons(aUserAction, nMinBet, toCallAmount, options = {}) {
     // If the local player previously checked and another player since raised,
     // they are committed to an additional community card â€” strip stand, raise, and direct call.
     const iAmCheckCommitted = this.hasRaiseSinceCheck(this.iUserId);
+    const bRaisedAfterMyCheck = iAmCheckCommitted && callAmount > 0 && !bAllInStandChoice;
     const actions = Array.isArray(aUserAction) ? aUserAction : [];
     actions.forEach(action => {
         switch (action) {
@@ -2782,13 +2789,13 @@ showAllButtons(aUserAction, nMinBet, toCallAmount, options = {}) {
             case 'c':
                 this.oButtons.btn_call.setVisible(true);
                 this.oButtons.btn_call.bAllInMode = false;
-                this.setCallButtonLabel(bAllInStandChoice ? 'Confirm' : (callAmount > 0 ? `Call ${_.formatCurrencyWithComa(callAmount)}` : 'Call'));
+                this.setCallButtonLabel(bAllInStandChoice || bRaisedAfterMyCheck ? 'Confirm' : (callAmount > 0 ? `Call ${_.formatCurrencyWithComa(callAmount)}` : 'Call'));
                 break;
             case 'r':
-                this.oButtons.btn_raise.setVisible(canAffordRaise || canAllInRaise);
+                this.oButtons.btn_raise.setVisible(!bRaisedAfterMyCheck && (canAffordRaise || canAllInRaise));
                 break;
             case 's':
-                if (canStand) {
+                if (canStand && !bRaisedAfterMyCheck) {
                     this.oButtons.btn_stand.setVisible(true);
                     this.oButtons.btn_stand.bCallStandMode = actions.includes('c') && callAmount > 0;
                     this.setStandButtonLabel(this.oButtons.btn_stand.bCallStandMode ? 'Call/Stand' : 'Stand');
@@ -2813,7 +2820,7 @@ showAllButtons(aUserAction, nMinBet, toCallAmount, options = {}) {
         }
     });
 
-    if (canStand && actions.includes('c') && callAmount > 0 && !actions.includes('s')) {
+    if (canStand && actions.includes('c') && callAmount > 0 && !actions.includes('s') && !bRaisedAfterMyCheck) {
         this.oButtons.btn_stand.setVisible(true);
         this.oButtons.btn_stand.bCallStandMode = true;
         this.setStandButtonLabel('Stand');
