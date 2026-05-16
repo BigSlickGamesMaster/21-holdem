@@ -21,7 +21,7 @@ const DEFAULT_BOARD_PROTOTYPES = [
     nMaxPlayer: 9,
     nMinBuyIn: 1000,
     nMinBet: 50,
-    ePokerType: 'pokerJack',
+    ePokerType: 'TwentyOneHoldem',
     eStatus: 'y',
   },
   {
@@ -30,7 +30,7 @@ const DEFAULT_BOARD_PROTOTYPES = [
     nMaxPlayer: 9,
     nMinBuyIn: 5000,
     nMinBet: 125,
-    ePokerType: 'pokerJack',
+    ePokerType: 'TwentyOneHoldem',
     eStatus: 'y',
   },
   {
@@ -39,7 +39,7 @@ const DEFAULT_BOARD_PROTOTYPES = [
     nMaxPlayer: 9,
     nMinBuyIn: 25000,
     nMinBet: 500,
-    ePokerType: 'pokerJack',
+    ePokerType: 'TwentyOneHoldem',
     eStatus: 'y',
   },
 ];

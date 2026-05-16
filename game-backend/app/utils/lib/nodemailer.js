@@ -17,12 +17,12 @@ const getTemplate = (filename, body) => {
 const collection = {
   verification: body => ({
     sTemplate: 'verification',
-    subject: 'Verify Your Email Address for PokerJack',
+    subject: 'Verify Your Email Address for 21 Hold'em',
     html: getTemplate('account_activation.html', body),
   }),
   forgotPassword: body => ({
     sTemplate: 'forgot-password',
-    subject: 'Reset Your Password for PokerJack',
+    subject: 'Reset Your Password for 21 Hold'em',
     html: getTemplate('forgot_password.html', body),
   }),
 };

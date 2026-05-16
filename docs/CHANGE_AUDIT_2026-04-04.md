@@ -177,8 +177,8 @@
 - `src/prefabs/PlayerProfile.js`
 - `src/scripts/GameManager.js`
 - `src/scripts/SocketManager.js`
-- `game-backend/app/game/boardManager/pokerjack/Board/index.js`
-- `game-backend/app/game/boardManager/pokerjack/Participant/index.js`
+- `game-backend/app/game/boardManager/TwentyOneHoldem/Board/index.js`
+- `game-backend/app/game/boardManager/TwentyOneHoldem/Participant/index.js`
 
 ## 11. FX Overlay / Audio / Chip Animation System
 

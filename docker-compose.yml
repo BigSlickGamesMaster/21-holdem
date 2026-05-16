@@ -66,6 +66,7 @@ services:
       WATCHPACK_POLLING: "true"
       REACT_APP_API_ENDPOINT: ""
       REACT_APP_PROXY_TARGET: http://game-backend:4000
+      REACT_APP_STRIPE_PUBLISHABLE_KEY: ${REACT_APP_STRIPE_PUBLISHABLE_KEY:-}
     volumes:
       - ./src:/app/src
       - /app/node_modules

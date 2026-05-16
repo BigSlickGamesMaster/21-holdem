@@ -1,13 +1,13 @@
 module.exports = {
   apps: [
     {
-      name: 'Poker-jack-admin-be',
+      name: '21-holdem-admin-be',
       script: './index.js',
       interpreter: 'node',
-      cwd: '/home/ubuntu/PokerJackWebGame/Poker-jack-admin-be',
-      pid_file: './.pm2/pids/poker-jack-admin-be.pid',
-      out_file: './.pm2/logs/poker-jack-admin-be.log',
-      error_file: './.pm2/logs/poker-jack-admin-be.err',
+      cwd: '/home/ubuntu/TwentyOneHoldemWebGame/21-holdem-admin-be',
+      pid_file: './.pm2/pids/21-holdem-admin-be.pid',
+      out_file: './.pm2/logs/21-holdem-admin-be.log',
+      error_file: './.pm2/logs/21-holdem-admin-be.err',
       log_date_format: 'DD-MM-YYYY HH:mm:ss SSS',
       merge_logs: true,
       watch: true,

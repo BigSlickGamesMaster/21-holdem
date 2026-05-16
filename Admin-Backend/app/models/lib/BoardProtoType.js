@@ -11,8 +11,8 @@ const BoardProtoTypeSchema = new mongoose.Schema(
     nMinBet: { type: Number, default: 0 },
     ePokerType: {
       type: String,
-      enum: ['pokerJack'],
-      default: 'pokerJack',
+      enum: ['TwentyOneHoldem'],
+      default: 'TwentyOneHoldem',
     },
     eStatus: {
       type: String,

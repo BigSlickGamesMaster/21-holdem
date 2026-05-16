@@ -2,7 +2,7 @@
 /* eslint-disable class-methods-use-this */
 const { PokerFinishGame, PokerBoard, Setting, User, Analytics } = require('../../models');
 const { redis, mongodb, deck } = require('../../utils');
-const PokerJackBoard = require('./pokerjack/Board');
+const TwentyOneHoldemBoard = require('./TwentyOneHoldem/Board');
 
 class BoardManager {
   constructor() {
@@ -59,7 +59,7 @@ class BoardManager {
         iUserTurn: '',
         eState: 'waiting',
         eTableMode: options.eTableMode || oProtoData.eTableMode || 'live',
-        ePokerType: oProtoData.ePokerType || 'pokerJack',
+        ePokerType: oProtoData.ePokerType || 'TwentyOneHoldem',
         oSocketId: {},
         aDeck: deck.getDeck(1),
         oTutorial: options.oTutorial || null,
@@ -133,8 +133,8 @@ class BoardManager {
     log.cyan('Very Bad 🚀 ~ file: index.js:141 ~ BoardManager ~ generateClass ~ oBoardData:', oBoardData.ePokerType);
     let boardClass;
     switch (oBoardData.ePokerType) {
-      case 'pokerJack':
-        boardClass = new PokerJackBoard(oBoardData);
+      case 'TwentyOneHoldem':
+        boardClass = new TwentyOneHoldemBoard(oBoardData);
         break;
       default:
         log.red('Invalid boardType while generating class');

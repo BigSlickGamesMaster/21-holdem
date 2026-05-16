@@ -1,4 +1,4 @@
-1. Poker Jack [ Rules ]
+1. 21 Hold'em [ Rules ]
 
 - First Turn Assign to Dealer, small blind and big blind.
 - collect boot amount from all participant.
@@ -16,7 +16,7 @@
 - What if when player all in chips, then what will be the next action?
 
 3. [Game Pot Split Amount Logic]
-   mare ak game che pokerjack ana mate winning amout distribute mate function bnava nu che
+   mare ak game che TwentyOneHoldem ana mate winning amout distribute mate function bnava nu che
    gameflow kaik aa mujab che total 9 participant che pela badha ne ak ak card aavse pachi user na turn aavse first turn ma user DD kri sake
    DD kre to player no score lock thay jase have jo user DD na kre to community card aavse total 3 card aavse ane round wise (matlab badha player no turn) aavi jay pachi ak ak community card khulse
    have community card open thaya pachi user no tuen aave tyare tene stand no opetion aavse jo a stand kre to ano score bhi lock thay jase

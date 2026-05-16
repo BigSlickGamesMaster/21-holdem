@@ -310,7 +310,7 @@ class InMemoryRedis {
     let payload;
 
     const [iBoardId, scheduler, sTaskName, iUserId, sGame, sHostIp] = String(message).split(':');
-    if (channel === '__keyevent@0__:expired' && sGame === 'pokerJack') {
+    if (channel === '__keyevent@0__:expired' && sGame === 'TwentyOneHoldem') {
       if (scheduler !== 'scheduler') return false;
       if (process.env.HOST && sHostIp !== process.env.HOST) return false;
       nextChannel = sTaskName;

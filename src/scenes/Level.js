@@ -2926,7 +2926,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       player.setAlpha(1);
       player.container_cards.removeAll(true);
       player.hideBettingLabel();
-      player.clearScore?.();
+      player.unlockScoreDisplay?.({ clear: true });
     });
     this.prompt.hide();
   }, 6000); // Keep cards visible longer (was 7000, now cards show from 500ms to 6000ms)
@@ -2950,6 +2950,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
     player?.playerProfile?.setAmountIn(participant?.nChips);
     participant.iUserId == this.iUserId && this.setAmountIn(participant?.nChips);
     this.syncPlayerScoreDisplay(player, participant.nCardScore, participant.aCardHand, { forceReveal: true });
+    player?.playerProfile?.lockScoreDisplay(participant.nCardScore);
     setTimeout(() => {
       player?.playerProfile?.container_cards.removeAll(true);
       participant.aCardHand.forEach(cardData => {
@@ -2977,6 +2978,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       
       setTimeout(() => {
         participant.iUserId == this.iUserId && this.oSoundManager.playSound(this.oSoundManager.winCoin_sound, false);
+                player?.playerProfile?.showWinAmountPopup(participant.nWinningAmount || 0);
                 nRemainingPot = Math.max(0, nRemainingPot - Math.max(0, Number(participant.nWinningAmount) || 0));
                 this.queuePotPayout({
                     amount: participant.nWinningAmount || 0,

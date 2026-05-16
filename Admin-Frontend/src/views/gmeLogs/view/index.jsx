@@ -14,7 +14,7 @@ const ViewGameLogs = () => {
   console.log(viewData)
 
   // const boardTypeList = [
-  //   { name: '21 Hold-em', value: 'pokerJack' },
+  //   { name: '21 Hold-em', value: 'TwentyOneHoldem' },
   //   // { name: 'Time Based', value: 'cash' },
   // ]
 

@@ -23,9 +23,9 @@ controllers.listGameLogs = async (req, res) => {
       dEndDate.setDate(dEndDate.getDate() + 1);
       match.$and = [{ dCreatedDate: { $gte: dStartDate } }, { dCreatedDate: { $lte: dEndDate } }];
     }
-    if (body.eBoardType === 'pokerJackPrivate') {
+    if (body.eBoardType === 'TwentyOneHoldemPrivate') {
       match.sPrivateCode = { $ne: null };
-    } else if (body.eBoardType === 'pokerJackPublic') {
+    } else if (body.eBoardType === 'TwentyOneHoldemPublic') {
       match.sPrivateCode = { $eq: null };
     }
 

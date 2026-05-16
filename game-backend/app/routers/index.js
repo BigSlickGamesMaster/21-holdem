@@ -29,7 +29,12 @@ class Router {
     this.app.use(helmet());
     this.app.use(cors(this.corsOptions));
     this.app.use(compression());
-    this.app.use(bodyParser.json({ limit: '16mb' }));
+    this.app.use(bodyParser.json({
+      limit: '16mb',
+      verify: (req, res, buf) => {
+        if (req.originalUrl === '/api/v1/shop/stripe/webhook') req.rawBody = buf;
+      },
+    }));
     this.app.use(express.static('./seeds'));
     this.app.use(
       bodyParser.urlencoded({

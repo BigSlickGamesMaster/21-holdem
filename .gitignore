@@ -36,3 +36,7 @@ Admin-Backend/.pm2/
 docs/backups/
 debug.log
 *.code-workspace
+!.vscode/
+!.vscode/tasks.json
+!.vscode/extensions.json
+!bigslick-pipeline.code-workspace

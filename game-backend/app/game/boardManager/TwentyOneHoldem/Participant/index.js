@@ -30,9 +30,8 @@ class Participant extends Service {
         this.nChips = 0;
         this.isAllInLock = true;
         if (!bCallStand) {
-          this.bPendingAllInStandChoice = true;
-          this.nPlayerTurnCount = 0;
-          this.aUserAction = ['s', 'f'];
+          this.bPendingAllInStandChoice = false;
+          this.aUserAction = ['c', 'f'];
         }
       }
 
@@ -72,6 +71,7 @@ class Participant extends Service {
           nLastBidChips: nCallAmount,
           nChips: this.nChips,
           nMinBet: this.oBoard.nMinBet,
+          bAllIn: this.isAllInLock || undefined,
         });
         await this.oBoard.saveLogs([{ sAction: 'call+stand', eLogType: 'game', iUserId: this.iUserId, nCallAmount }]);
       } else {
@@ -81,6 +81,7 @@ class Participant extends Service {
           nLastBidChips: nCallAmount,
           nChips: this.nChips,
           nMinBet: this.oBoard.nMinBet,
+          bAllIn: this.isAllInLock || undefined,
         });
         await this.oBoard.saveLogs([{ sAction: 'call', eLogType: 'game', iUserId: this.iUserId, nCallAmount }]);
       }
@@ -100,19 +101,21 @@ class Participant extends Service {
 
       if (this.isDoubleDownLock || this.isAllInLock) return callback({ error: 'Locked players cannot raise while standing/doubledown' });
 
-      const bShortAllInCallMode = this.aUserAction.includes('a') && !this.aUserAction.includes('r');
-      if (bShortAllInCallMode) return await this.allInShortCall({ bStandMode: this.isDoubleDownLock }, callback);
-
       const bRaiseStand = oData?.bTakeCard === false;
+      const bAllIn = oData?.bAllIn === true;
+      const bShortAllInCallMode = this.aUserAction.includes('a') && !this.aUserAction.includes('r');
+      if (bShortAllInCallMode) return await this.allInShortCall({ bStandMode: bRaiseStand || this.isDoubleDownLock }, callback);
+      if (this.hasActiveAllInOpponent()) return callback({ error: 'Raise is unavailable after a player is all-in' });
+
       const nRaiseAmount = Number(oData.nRaiseAmount);
       if (!Number.isFinite(nRaiseAmount) || nRaiseAmount <= 0) return callback({ error: 'Raise amount is invalid' });
-      if (nRaiseAmount < this.oBoard.nMinBet) return callback({ error: 'Raise amount is should not be less than min bet' });
-      if (nRaiseAmount > this.oBoard.nMaxBet) return callback({ error: 'Raise amount is should not be greater than max bet' });
+      if (!bAllIn && nRaiseAmount < this.oBoard.nMinBet) return callback({ error: 'Raise amount is should not be less than min bet' });
+      if (!bAllIn && nRaiseAmount > this.oBoard.nMaxBet) return callback({ error: 'Raise amount is should not be greater than max bet' });
 
       const bCheckOpenState = this.aUserAction.includes('ck') && !this.aUserAction.includes('c');
       const nToCallAmount = bCheckOpenState ? 0 : Math.max(this.oBoard.nMinBet - this.nLastBidChips, 0);
       const nTotalDebit = nToCallAmount + nRaiseAmount;
-      const nNextMinBet = bCheckOpenState ? nRaiseAmount : this.oBoard.nMinBet + nRaiseAmount;
+      const nNextMinBet = (Number(this.nLastBidChips) || 0) + nTotalDebit;
       if (this.nChips < nTotalDebit) {
         if (this.nChips <= nToCallAmount) {
           return await this.allInShortCall({ bStandMode: bRaiseStand }, callback);
@@ -138,9 +141,8 @@ class Participant extends Service {
           this.nStandAtRound = this.oBoard.nTableRound;
           this.aUserAction = ['c', 'f'];
         } else {
-          this.bPendingAllInStandChoice = true;
-          this.nPlayerTurnCount = 0;
-          this.aUserAction = ['s', 'f'];
+          this.bPendingAllInStandChoice = false;
+          this.aUserAction = ['c', 'f'];
         }
 
         await this.recordTransaction({
@@ -212,9 +214,8 @@ class Participant extends Service {
         this.nChips = 0;
         this.isAllInLock = true;
         if (!bRaiseStand) {
-          this.bPendingAllInStandChoice = true;
-          this.nPlayerTurnCount = 0;
-          this.aUserAction = ['s', 'f'];
+          this.bPendingAllInStandChoice = false;
+          this.aUserAction = ['c', 'f'];
         }
       }
 
@@ -255,6 +256,7 @@ class Participant extends Service {
           nLastBidChips: nTotalDebit,
           nChips: this.nChips,
           nMinBet: this.oBoard.nMinBet,
+          bAllIn: this.isAllInLock || undefined,
         });
         await this.oBoard.saveLogs([{ sAction: 'raise+stand', eLogType: 'game', iUserId: this.iUserId, nRaiseAmount, nToCallAmount, nTotalDebit }]);
       } else {
@@ -264,6 +266,7 @@ class Participant extends Service {
           nLastBidChips: nTotalDebit,
           nChips: this.nChips,
           nMinBet: this.oBoard.nMinBet,
+          bAllIn: this.isAllInLock || undefined,
         });
         await this.oBoard.saveLogs([{ sAction: 'raise', eLogType: 'game', iUserId: this.iUserId, nRaiseAmount, nToCallAmount, nTotalDebit }]);
       }
@@ -384,10 +387,9 @@ class Participant extends Service {
         this.bPendingAllInStandChoice = false;
         this.nStandAtRound = this.oBoard.nTableRound;
       } else {
-        this.bPendingAllInStandChoice = true;
-        this.nPlayerTurnCount = 0;
+        this.bPendingAllInStandChoice = false;
       }
-      this.aUserAction = bStandMode ? ['c', 'f'] : ['s', 'f'];
+      this.aUserAction = ['c', 'f'];
 
       await this.recordTransaction({
         iUserId: this.iUserId,
@@ -595,6 +597,11 @@ class Participant extends Service {
     try {
       if (this.oBoard.eState !== 'playing' || this.eState !== 'playing') return false;
 
+      if (this.isAllInLock && this.bPendingAllInStandChoice) {
+        await this.oBoard.saveLogs([{ sAction: 'allInStandChoiceTimeoutConfirm', eLogType: 'game', iUserId: this.iUserId }]);
+        return await this.check({}, () => {});
+      }
+
       const { nMaxTurnMissAllowed } = this.oBoard.oSetting;
 
       this.nTurnMissed += 1;
@@ -632,6 +639,12 @@ class Participant extends Service {
       // Player has acted on their current turn; prevent stale timeout fold on this turn.
       await this.oBoard.deleteScheduler('assignTurnTimeout', this.iUserId);
 
+      if (this.isAllInLock && this.bPendingAllInStandChoice) {
+        this.bPendingAllInStandChoice = false;
+        this.aUserAction = ['c', 'f'];
+        await this.oBoard.update({ aParticipant: [this.toJSON()] });
+      }
+
       if (this.bHasSplit && this.eSplitPhase) {
         await this.advanceSplitPhase();
       } else {
@@ -663,7 +676,7 @@ class Participant extends Service {
         const bTutorialTurn = this.oBoard?.isTutorialTable?.() === true;
 
         this.nPlayerTurnCount += 1;
-        this.aUserAction = ['s', 'f'];
+        this.aUserAction = ['c', 's'];
 
         const turnScheduler = await this.oBoard.getScheduler('assignTurnTimeout');
         if (turnScheduler) await this.oBoard.deleteScheduler('assignTurnTimeout');
@@ -681,6 +694,7 @@ class Participant extends Service {
           bAllInStandChoice: true,
         });
         await this.oBoard.saveLogs([{ sAction: 'assignAllInStandChoice', eLogType: 'game', iUserId: this.oBoard.iUserTurn }]);
+        if (this.isAutomatedPlayer()) await this.playAutomatedAllInStandChoice();
         return true;
       }
 
@@ -718,14 +732,14 @@ class Participant extends Service {
       const nToCallAmount = bCheckOpenState ? 0 : Math.max(this.oBoard.nMinBet - this.nLastBidChips, 0);
       if (nToCallAmount === 0) this.aUserAction = this.aUserAction.map(action => (action === 'c' ? 'ck' : action));
       else this.aUserAction = this.aUserAction.map(action => (action === 'ck' ? 'c' : action));
+      if (this.hasActiveAllInOpponent()) this.aUserAction = this.aUserAction.filter(action => action !== 'r');
 
       if (this.nChips < nToCallAmount) this.aUserAction = ['f', 'a'];
       // Safety net: chips exactly 0 after a raise/call — ensure all-in lock is honoured
       if (this.nChips === 0 && nToCallAmount > 0) {
         this.isAllInLock = true;
-        this.bPendingAllInStandChoice = true;
-        this.aUserAction = ['s', 'f'];
-        this.nPlayerTurnCount = 0;
+        this.bPendingAllInStandChoice = false;
+        this.aUserAction = ['c', 'f'];
         await this.oBoard.update({ aParticipant: [this.toJSON()] });
         return await this.passTurn();
       }
@@ -735,7 +749,7 @@ class Participant extends Service {
         iUserId: this.iUserId,
         ttl: bTutorialTurn ? null : nTurnTime,
         nTotalTurnTime: bTutorialTurn ? null : nTurnTime,
-        aUserAction: this.aUserAction,
+        aUserAction: this.getAvailableTurnActions(),
         nMinBet: this.oBoard.nMinBet,
         toCallAmount: nToCallAmount,
         eSplitPhase: this.eSplitPhase ?? null,
@@ -748,6 +762,22 @@ class Participant extends Service {
     } catch (error) {
       console.log('takeTurn', error);
     }
+  }
+
+  async playAutomatedAllInStandChoice() {
+    const noop = () => {};
+    const nDecisionDelay = _.randomBetween(650, 950);
+
+    await _.delay(nDecisionDelay);
+    await this.waitForGuestResume();
+
+    if (this.oBoard.eState !== 'playing' || this.eState !== 'playing') return false;
+    if (!this.hasValidTurn() || !this.isAllInLock || !this.bPendingAllInStandChoice) return false;
+
+    const score = Number(this.nCardScore) || 0;
+    const oBotProfile = this.getBotStyleProfile();
+    if (this.aUserAction.includes('s') && score >= oBotProfile.nFallbackStandScore) return await this.stand({}, noop);
+    return await this.check({}, noop);
   }
 
   getAutomatedRaiseAmount(toCallAmount = 0) {

@@ -1,7 +1,7 @@
 {
-  "name": "poker_jack",
+  "name": "twenty_one_holdem",
   "version": "1.0.0",
-  "description": "poker Jack game backend",
+  "description": "21 Hold'em game backend",
   "main": "index.js",
   "scripts": {
     "dev": "node index.js",
@@ -9,7 +9,8 @@
     "seed:bots": "node app/utils/lib/ensure-bots-cli.js",
     "lint": "eslint . --ext .js --max-warnings=0",
     "lint:fix": "eslint . --ext .js --fix",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test:rules",
+    "test:rules": "node scripts/TwentyOneHoldem-rules-scenarios.js"
   },
   "keywords": [],
   "author": "",
@@ -48,7 +49,8 @@
     "redlock": "^5.0.0-beta.2",
     "socket.io": "^4.8.1",
     "socket.io-redis": "^6.1.1",
-    "square": "^40.0.0"
+    "square": "^40.0.0",
+    "stripe": "^22.1.1"
   },
   "directories": {
     "doc": "docs"

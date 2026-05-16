@@ -115,6 +115,10 @@ class Board extends Service {
           participant.nLastBidChips = 0;
           participant.nPlayerTurnCount = 0;
           participant.aUserAction = participant.aUserAction.map(action => (action === 'c' ? 'ck' : action === 'd' ? 's' : action));
+          if (participant.isAllInLock && !participant.isDoubleDownLock) {
+            participant.bPendingAllInStandChoice = true;
+            participant.aUserAction = ['c', 's'];
+          }
           // Reset per-round split counters so round-settled check works each betting round
           if (participant.bHasSplit) {
             if (!participant.bSplitHand1Locked) participant.nSplitHand1RoundCount = 0;

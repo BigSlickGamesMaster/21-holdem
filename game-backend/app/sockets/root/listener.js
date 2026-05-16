@@ -64,9 +64,6 @@ class PlayerListener {
       case 'reqForcePair':
         this.forcePair(oData, participant, callback);
         break;
-      case 'reqSplit':
-        this.split(oData, participant, callback);
-        break;
       default:
         log.red('Unknown event:: ', sEventName);
         callback({ error: `Unknown event:: ${sEventName}` });
@@ -176,17 +173,6 @@ class PlayerListener {
       callback(null, { success: true });
     } catch (error) {
       console.log('Error in PlayerListener reaction method:', error);
-      this.logError(error, callback);
-    }
-  }
-
-  async split(oData, participant, callback) {
-    try {
-      log.green('## split called from user', this.iUserId);
-      if (!participant.hasValidTurn()) return this.logError(messages.not_found('participant'), callback);
-      participant.split(oData, callback);
-    } catch (error) {
-      console.log('Error in PlayerListener split method:', error);
       this.logError(error, callback);
     }
   }

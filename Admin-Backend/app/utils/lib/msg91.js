@@ -29,7 +29,7 @@ Msg91.prototype.sendOTP = function(type, body, callback) {
             },
         };
 
-        const data = { company_name: 'pokerjack' };
+        const data = { company_name: '21 Hold'em' };
 
         _.request(data, options, (error, response) => {
             log.red('error ::', error);
@@ -56,7 +56,7 @@ Msg91.prototype.verifyOTP = function(type, body, callback) {
             headers: {},
         };
 
-        const data = { company_name: 'pokerjack' };
+        const data = { company_name: '21 Hold'em' };
 
         _.request(data, options, (error, response) => {
             if (error) return callback ? callback(error) : reject(error);

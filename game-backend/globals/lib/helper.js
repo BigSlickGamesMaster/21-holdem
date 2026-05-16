@@ -351,11 +351,11 @@ _.getProtoKey = iProtoId => `${iProtoId}:proto`;
 
 _.getTableCounterKey = id => `${id}:counter`;
 
-_.getBoardKey = iBoardId => `${iBoardId.toString()}:pokerJack`;
+_.getBoardKey = iBoardId => `${iBoardId.toString()}:TwentyOneHoldem`;
 
-_.getSchedulerKey = (sTask, iBoardId = '', iUserId = '', host = process.env.HOST) => `${iBoardId}:scheduler:${sTask}:${iUserId}:pokerJack:${host}`;
+_.getSchedulerKey = (sTask, iBoardId = '', iUserId = '', host = process.env.HOST) => `${iBoardId}:scheduler:${sTask}:${iUserId}:TwentyOneHoldem:${host}`;
 
-_.getSchedulerKeyWithOutHost = (sTask, iBoardId = '', iUserId = '') => `${iBoardId}:scheduler:${sTask}:${iUserId}:pokerJack:*`;
+_.getSchedulerKeyWithOutHost = (sTask, iBoardId = '', iUserId = '') => `${iBoardId}:scheduler:${sTask}:${iUserId}:TwentyOneHoldem:*`;
 
 _.generateRandomUserName = function () {
   let text = '';

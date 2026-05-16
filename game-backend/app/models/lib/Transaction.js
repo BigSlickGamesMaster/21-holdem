@@ -17,6 +17,8 @@ const Transaction = new mongoose.Schema(
     sRemarks: { type: String },
     nGameRound: { type: Number },
     sSquareTransactionId: { type: String }, // only for square transaction
+    sStripeSessionId: { type: String },
+    sStripePaymentIntentId: { type: String },
     // Keeping some fields from the original model for backward compatibility
     iDoneBy: mongoose.Schema.Types.ObjectId,
     sDescription: String,
@@ -27,7 +29,7 @@ const Transaction = new mongoose.Schema(
     },
     eMode: {
       type: String,
-      enum: ['admin', 'user', 'game', 'IAP', 'DR', 'manual', 'square'],
+      enum: ['admin', 'user', 'game', 'IAP', 'DR', 'manual', 'square', 'stripe'],
       default: 'game',
     },
     eStatus: {
@@ -40,5 +42,6 @@ const Transaction = new mongoose.Schema(
 );
 
 Transaction.index({ iUserId: 1, dCreatedDate: 1 });
+Transaction.index({ sStripeSessionId: 1 });
 
 module.exports = mongoose.model('transaction', Transaction);

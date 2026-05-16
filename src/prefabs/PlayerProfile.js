@@ -88,6 +88,8 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
 
     this.container_winner = createPromptContainer("winner");
     this.container_bust = createPromptContainer("bust");
+    this.container_winAmountPopup = null;
+    this.bScoreLocked = false;
 
     this.container_bettingLabel = scene.add.container(0, 0).setVisible(false);
     this.container_profile.add(this.container_bettingLabel);
@@ -314,6 +316,10 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     };
   }
   clearScore() {
+    if (this.bScoreLocked) return;
+    this.forceClearScore();
+  }
+  forceClearScore() {
     this.txt_score.setText("");
     this.score_bg.setVisible(false);
     this.txt_score.setVisible(false);
@@ -322,6 +328,16 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.setIdentityState('normal');
     this.profileRenderer.stopActivePulse();
     this.profileRenderer.setFrameColor(this.seatTheme.accentColor);
+  }
+  lockScoreDisplay(nScore) {
+    const parsedScore = Number(nScore);
+    if (!Number.isFinite(parsedScore) || parsedScore <= 0) return;
+    this.bScoreLocked = true;
+    this.setScore(parsedScore);
+  }
+  unlockScoreDisplay({ clear = false } = {}) {
+    this.bScoreLocked = false;
+    if (clear) this.forceClearScore();
   }
   removeSplitArtifacts() {
     this.split_score_bg?.destroy?.();
@@ -487,6 +503,68 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       onComplete: () => {},
     });
   }
+  showWinAmountPopup(nAmount = 0) {
+    const nWinAmount = Math.max(0, Math.round(Number(nAmount) || 0));
+    if (!nWinAmount) return;
+
+    this.hideWinAmountPopup();
+
+    const sAmount = `+${_.formatCurrencyWithComa(nWinAmount)}`;
+    const popup = this.scene.add.container(0, -34).setAlpha(0).setScale(0.9);
+    const bg = this.scene.add.graphics();
+    const text = this.scene.add.text(0, 0, sAmount, {
+      fontFamily: config.playerFontBold || config.playerFont,
+      fontSize: this.isLocalSeat ? "38px" : "34px",
+      fontStyle: "bold",
+      color: "#fff4b8",
+      stroke: "#173a23",
+      strokeThickness: 7,
+      align: "center",
+    }).setOrigin(0.5);
+
+    const nWidth = Math.max(116, text.width + 34);
+    const nHeight = Math.max(48, text.height + 18);
+    bg.fillStyle(0x082414, 0.82);
+    bg.fillRoundedRect(-nWidth / 2, -nHeight / 2, nWidth, nHeight, 14);
+    bg.lineStyle(2, 0xf4d66a, 0.95);
+    bg.strokeRoundedRect(-nWidth / 2, -nHeight / 2, nWidth, nHeight, 14);
+    bg.fillStyle(0xffffff, 0.10);
+    bg.fillRoundedRect((-nWidth / 2) + 4, (-nHeight / 2) + 4, nWidth - 8, Math.min(15, nHeight - 8), 10);
+
+    popup.add([bg, text]);
+    this.container_profile.add(popup);
+    this.container_winAmountPopup = popup;
+
+    this.scene.tweens.add({
+      targets: popup,
+      y: popup.y - 74,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 360,
+      ease: "Back.Out",
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: popup,
+          y: popup.y - 42,
+          alpha: 0,
+          duration: 1150,
+          delay: 650,
+          ease: "Sine.easeIn",
+          onComplete: () => {
+            if (this.container_winAmountPopup === popup) this.container_winAmountPopup = null;
+            popup.destroy();
+          },
+        });
+      },
+    });
+  }
+  hideWinAmountPopup() {
+    if (!this.container_winAmountPopup) return;
+    this.scene.tweens.killTweensOf(this.container_winAmountPopup);
+    this.container_winAmountPopup.destroy();
+    this.container_winAmountPopup = null;
+  }
   showBustPrompt() {
     this.setIdentityState('bust');
     this.profileRenderer.setFrameColor(0x882222);
@@ -518,6 +596,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     });
   }
   hideWinnerPrompt() {
+    this.hideWinAmountPopup();
     this.container_cards.removeAll(true);
     this.scene.oAnimations.scale({
       aGameObjects: [this.container_winner],

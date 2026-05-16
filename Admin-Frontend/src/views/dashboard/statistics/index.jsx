@@ -36,7 +36,7 @@ const Statistics = () => {
   })
 
   useEffect(() => {
-    document.title = 'Statistics | Poker Jack'
+    document.title = 'Statistics | 21 Hold'em'
   }, [])
   return (
     <>

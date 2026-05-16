@@ -9,7 +9,7 @@ import { chips1, chips2, chips3, chips4, chips5 } from 'assets/images/shop/shop'
 import { getDailyRewards, updateDailyRewards } from 'query/dailyRewards.query';
 import { getTables, joinTable } from 'query/gameTable.query';
 import { getProfile } from 'query/profile.query';
-import { buyChips, getChips } from 'query/shop.query';
+import { buyChips, confirmPayment, getChips } from 'query/shop.query';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -65,7 +65,9 @@ function sortTablesByPriority(a, b) {
 const PLAYER_OPTIONS = [4, 6, 9];
 const BUY_IN_OPTIONS = [1000, 5000, 15000, 20000];
 const LOBBY_TAB_IDS = ['lobby-live-tables', 'lobby-missions', 'lobby-private-table', 'lobby-player-profile', 'lobby-shop', 'lobby-settings'];
-const stripePromise = loadStripe('pk_live_51RKUWDCjGp9Y7z5pfEw3AFjBJPli82C2xV3NJLsSwl0KBdRlhfDJg4u5qLX9GKZmbfb6nKYc6jljLeZ3yxTPnn1M00FddDWVLA');
+const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
+    ? loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY)
+    : Promise.resolve(null);
 
 function hashSeed(seed = '') {
     return String(seed || '21-holdem')
@@ -200,8 +202,12 @@ const Dashboard = () => {
         onSuccess: async (response) => {
             const payload = response?.data;
 
-            if (payload?.status === 200 && payload?.data?.sessionId) {
+            if (response?.status === 200 && payload?.data?.sessionId) {
                 const stripe = await stripePromise;
+                if (!stripe) {
+                    ReactToastify('Stripe publishable key is not configured', 'error');
+                    return;
+                }
                 const { error } = await stripe.redirectToCheckout({ sessionId: payload.data.sessionId });
                 if (error) ReactToastify(error.message || 'Stripe redirect failed', 'error');
                 return;
@@ -244,6 +250,28 @@ const Dashboard = () => {
             setActiveTab(sRequestedTab);
         }
     }, [location.search]);
+
+    useEffect(() => {
+        const oParams = new URLSearchParams(location.search);
+        const sCheckoutStatus = oParams.get('checkout');
+        const sSessionId = oParams.get('session_id');
+        if (sCheckoutStatus !== 'success' || !sSessionId) return;
+
+        confirmPayment({ session_id: sSessionId })
+            .then((response) => {
+                ReactToastify(response?.data?.message || 'Payment confirmed', 'success');
+                queryClient.invalidateQueries('profileData');
+                queryClient.invalidateQueries('getProfile');
+            })
+            .catch((error) => {
+                ReactToastify(error?.response?.data?.message || 'Unable to confirm payment', 'error');
+            })
+            .finally(() => {
+                oParams.delete('checkout');
+                oParams.delete('session_id');
+                navigate(`/lobby?${oParams.toString()}`, { replace: true });
+            });
+    }, [location.search, navigate, queryClient]);
 
     useEffect(() => {
         const dashboardNode = dashboardRef.current;

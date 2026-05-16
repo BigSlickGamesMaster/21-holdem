@@ -51,6 +51,20 @@ class Service {
     if (['playing', 'initialized', 'finished'].includes(this.oBoard.eState)) return this.sendTurnInfo();
   }
 
+  hasActiveAllInOpponent() {
+    return this.oBoard.aParticipant.some(participant =>
+      String(participant.iUserId) !== String(this.iUserId) &&
+      participant.eState === 'playing' &&
+      participant.isAllInLock
+    );
+  }
+
+  getAvailableTurnActions() {
+    const aActions = Array.isArray(this.aUserAction) ? [...this.aUserAction] : [];
+    if (!this.hasActiveAllInOpponent()) return aActions;
+    return aActions.filter(action => action !== 'r');
+  }
+
   async sendTurnInfo() {
     const { nTurnTime, nTurnBuffer } = this.oBoard.oSetting;
     const bTutorialTurn = this.oBoard?.isTutorialTable?.() === true;
@@ -59,7 +73,7 @@ class Service {
     const turnInfo = {
       iUserId: this.oBoard.iUserTurn,
       nTotalTurnTime: bTutorialTurn ? null : nTurnTime - nTurnBuffer,
-      aUserAction: this.aUserAction,
+      aUserAction: this.getAvailableTurnActions(),
       nMinBet: this.oBoard.nMinBet,
       toCallAmount,
     };

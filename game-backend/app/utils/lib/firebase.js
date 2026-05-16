@@ -40,12 +40,12 @@
 // };
 
 // operations.generateLink = (id, code) => {
-//   const image = 'https://pokerjack-admin-panel.s3.ap-south-1.amazonaws.com/pokerjack.png';
+//   const image = 'https://TwentyOneHoldem-admin-panel.s3.ap-south-1.amazonaws.com/TwentyOneHoldem.png';
 //   const title = 'My referral Link';
 //   const description = `Register with my referral code ${code} and get instant bonus`;
-//   const _base = 'https://pokerjack.page.link';
+//   const _base = 'https://TwentyOneHoldem.page.link';
 //   const referral = `http://localhost:4000/download.html?iReferredBy=${id}`;
-//   // const apn = 'com.profuse.pokerjack';
+//   // const apn = 'com.profuse.TwentyOneHoldem';
 //   const ibi = '';
 //   const isi = '';
 //   const URL = `${_base}?link=${referral}&ibi=${ibi}&ipbi=${ibi}&isi=${isi}&st=${title}&sd=${description}&si=${image}`;

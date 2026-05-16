@@ -8,7 +8,7 @@
 - Audit date: `2026-04-05`
 - Verification status at audit time:
 - `npm run build` passes
-- `node --check` passes for `game-backend/app/game/boardManager/pokerjack/Participant/index.js`
+- `node --check` passes for `game-backend/app/game/boardManager/TwentyOneHoldem/Participant/index.js`
 - Game backend restarted successfully and `http://127.0.0.1:4000/ping` returned `200 {}`
 - Known caveat: the repo still has pre-existing ESLint warnings outside the scope of this audit
 
@@ -44,7 +44,7 @@
 - this auto-lock is now removed for normal raise/call paths so action can come back correctly
 - Relevant files:
 - `src/scenes/Level.js`
-- `game-backend/app/game/boardManager/pokerjack/Participant/index.js`
+- `game-backend/app/game/boardManager/TwentyOneHoldem/Participant/index.js`
 
 ## 3. Player Totals / Showdown Visibility
 

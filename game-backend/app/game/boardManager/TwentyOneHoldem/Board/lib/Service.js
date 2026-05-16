@@ -106,11 +106,33 @@ class Service {
         return this.setSchedular('refundOnLongWait', '', this.oSetting.nMaxWaitingTime);
       }
 
+      this.aCommunityCard = [];
+      this.aDeck = deck.getDeck(1);
+      this.nTableChips = 0;
+      this.nMaxBet = 0;
+      this.nTableRound = 1;
+
       if (this.isTutorialTable()) this.prepareTutorialHand();
 
       this.eState = 'playing';
       this.aParticipant = this.aParticipant.map(p => {
         p.eState = 'playing';
+        p.aCardHand = [];
+        p.nCardScore = 0;
+        p.nLastBidChips = 0;
+        p.nTotalBidChips = 0;
+        p.nWinningAmount = 0;
+        p.nPlayerTurnCount = 0;
+        p.nStandAtRound = 0;
+        p.isDoubleDownLock = false;
+        p.isAllInLock = false;
+        p.bPendingAllInStandChoice = false;
+        p.bHasAceAndBust = false;
+        p.bHasSplit = false;
+        p.aSplitHand = [];
+        p.nSplitCardScore = 0;
+        p.eSplitPhase = null;
+        p.aUserAction = ['c', 'r', 'f'];
         return p;
       });
 
@@ -140,6 +162,10 @@ class Service {
         iBigBlindId: this.iBigBlindId,
         eState: this.eState,
         aDeck: this.aDeck,
+        aCommunityCard: this.aCommunityCard,
+        nTableChips: this.nTableChips,
+        nMaxBet: this.nMaxBet,
+        nTableRound: this.nTableRound,
         oTutorial: this.oTutorial,
         aParticipant: this.aParticipant,
       });
@@ -218,7 +244,7 @@ class Service {
   }
 
   async addParticipant(oUserData) {
-    log.green('Add Participant in PokerJack Game: ');
+    log.green('Add Participant in TwentyOneHoldem Game: ');
     try {
       const _userData = {
         ...oUserData,

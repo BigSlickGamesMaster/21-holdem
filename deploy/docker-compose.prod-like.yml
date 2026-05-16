@@ -63,6 +63,7 @@ services:
       args:
         REACT_APP_API_ENDPOINT: http://${DOCKER_HOST_IP}:4100
         REACT_APP_ENVIRONMENT: "1"
+        REACT_APP_STRIPE_PUBLISHABLE_KEY: ${REACT_APP_STRIPE_PUBLISHABLE_KEY:-}
     container_name: holdem-player-frontend-prod-like
     restart: unless-stopped
     depends_on:

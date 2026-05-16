@@ -10,8 +10,8 @@ const GameLogsFilter = ({ animatedComponents, requestParams, setRequestParams })
 
   const statusOptions = [
     { label: 'All', value: '' },
-    { label: 'Public', value: 'pokerJackPublic' },
-    { label: 'Private', value: 'pokerJackPrivate' },
+    { label: 'Public', value: 'TwentyOneHoldemPublic' },
+    { label: 'Private', value: 'TwentyOneHoldemPrivate' },
   ]
 
   return (
