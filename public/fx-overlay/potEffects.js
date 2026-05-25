@@ -364,6 +364,22 @@
     return true;
   }
 
+  function clearPotStack() {
+    potStackState.amount = 0;
+    potStackState.visibleCount = 0;
+    if (potStackState.shadow) {
+      removeNode(potStackState.shadow);
+      potStackState.shadow = null;
+    }
+    potStackState.chips.forEach(removeNode);
+    potStackState.chips = [];
+    if (potStackState.layer) {
+      removeNode(potStackState.layer);
+      potStackState.layer = null;
+    }
+    return true;
+  }
+
   function renderPotStack(anchor, amount) {
     var targetCount = getPotStackChipCount(amount);
     var count = potStackState.visibleCount;
@@ -512,6 +528,7 @@
   }
 
   global.__FXOverlayModules.potEffects = {
+    clearPotStack: clearPotStack,
     clearSpotlight: clearSpotlight,
     pulse: pulse,
     setPotStackAmount: setPotStackAmount,

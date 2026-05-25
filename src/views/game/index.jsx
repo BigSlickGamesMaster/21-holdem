@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import PropTypes from 'prop-types';
 import Phaser from "phaser";
 import Preload from "../../scenes/Preload";
 import Level from "../../scenes/Level";
@@ -7,6 +8,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import game_bg from '../../assets/images/bg/game_bg.png';
 import portrait_table from '../../assets/images/gameplay/portrate_table.png';
 import GameActionOverlay from "./GameActionOverlay";
+import { hideGameActionOverlay } from "../../scripts/gameActionOverlayBridge";
 
 class Boot extends Phaser.Scene {
     constructor() {
@@ -82,6 +84,8 @@ function Game({ isPausedExternally = false }) {
         phaserGameRef.current = game;
 
         return () => {
+            hideGameActionOverlay();
+            window.dispatchEvent(new CustomEvent('bsg:profile-refresh'));
             phaserGameRef.current = null;
             game.destroy(true);
         };
@@ -116,5 +120,13 @@ function Game({ isPausedExternally = false }) {
         </div>
     );
 }
+
+Game.propTypes = {
+    isPausedExternally: PropTypes.bool,
+};
+
+Game.defaultProps = {
+    isPausedExternally: false,
+};
 
 export default Game;

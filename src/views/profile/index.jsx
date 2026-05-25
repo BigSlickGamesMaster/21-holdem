@@ -9,8 +9,24 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 import _ from "scripts/helper";
 import { ReactToastify, removeCookie } from "shared/utils";
-import { buildAvatarOptions, getAvatarImageSrc } from "shared/constants/builtInAvatars";
+import { buildAvatarOptions, getAvatarImageSrc, INITIALS_AVATAR_VALUE, isInitialsAvatar } from "shared/constants/builtInAvatars";
 import iconSettings from '../../assets/images/icons/working/stats.png';
+
+function getPlayerInitials(name = "") {
+    const words = String(name || "")
+        .replace(/[^a-zA-Z0-9]+/g, " ")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+
+    if (!words.length) return "--";
+    if (words.length > 1) return `${words[0][0]}${words[1][0]}`.toUpperCase();
+
+    const compact = words[0].replace(/[^a-zA-Z0-9]/g, "");
+    if (!compact) return "--";
+    if (compact.length === 1) return compact[0].toUpperCase();
+    return `${compact[0]}${compact[compact.length - 1]}`.toUpperCase();
+}
 
 const Profile = () => {
     const [payload, setPayload] = useState({});
@@ -22,7 +38,9 @@ const Profile = () => {
     const { data: profileData, isLoading: isProfileDataLoading } = useQuery("getProfile", getProfile, {
         select: (data) => data?.data?.data,
         onSuccess: (response) => {
-            const selectedAvatar = getAvatarImageSrc(response?.sAvatar, response?.sUserName);
+            const selectedAvatar = isInitialsAvatar(response?.sAvatar)
+                ? INITIALS_AVATAR_VALUE
+                : getAvatarImageSrc(response?.sAvatar, response?.sUserName);
             reset({
                 sAvatar: selectedAvatar,
             })
@@ -78,7 +96,9 @@ const Profile = () => {
         isDirty && mutateProfileUpdate(payload);
     }
 
-    const previewAvatar = getAvatarImageSrc(watchedAvatar || profileData?.sAvatar, profileData?.sUserName);
+    const bPreviewInitials = isInitialsAvatar(watchedAvatar || profileData?.sAvatar);
+    const previewAvatar = bPreviewInitials ? '' : getAvatarImageSrc(watchedAvatar || profileData?.sAvatar, profileData?.sUserName);
+    const sPreviewInitials = getPlayerInitials(profileData?.sUserName);
     const nHandsPlayed = Number(profileData?.nGamePlayed) || 0;
     const nWins = Number(profileData?.nGameWon) || 0;
     const nWinRate = nHandsPlayed ? Math.round((nWins / nHandsPlayed) * 100) : 0;
@@ -179,14 +199,18 @@ const Profile = () => {
                                     <Row>
                                         <Col xl={4}>
                                             <div className="avatar">
-                                                <img
-                                                    src={previewAvatar}
-                                                    alt="avatar"
-                                                    draggable='false'
-                                                    onError={(event) => {
-                                                        event.currentTarget.src = getAvatarImageSrc("", profileData?.sUserName);
-                                                    }}
-                                                />
+                                                {bPreviewInitials ? (
+                                                    <span className="avatar-initials">{sPreviewInitials}</span>
+                                                ) : (
+                                                    <img
+                                                        src={previewAvatar}
+                                                        alt="avatar"
+                                                        draggable='false'
+                                                        onError={(event) => {
+                                                            event.currentTarget.src = getAvatarImageSrc("", profileData?.sUserName);
+                                                        }}
+                                                    />
+                                                )}
                                             </div>
                                             <div className="avatar-name">{profileData?.sUserName}</div>
                                             <Form.Group>
@@ -260,14 +284,18 @@ const Profile = () => {
                                                             >
                                                                 <div className="avatar-select-image">
                                                                     {avatar?.selected && <FontAwesomeIcon icon={faCircleCheck} className="select-icon" />}
-                                                                    <img
-                                                                        src={avatar?.sPath}
-                                                                        alt={"avatar option"}
-                                                                        draggable='false'
-                                                                        onError={(event) => {
-                                                                            event.currentTarget.src = getAvatarImageSrc("", avatar?.label || avatar?.id);
-                                                                        }}
-                                                                    />
+                                                                    {avatar?.isInitials ? (
+                                                                        <span className="avatar-initials">{sPreviewInitials}</span>
+                                                                    ) : (
+                                                                        <img
+                                                                            src={avatar?.sPath}
+                                                                            alt={"avatar option"}
+                                                                            draggable='false'
+                                                                            onError={(event) => {
+                                                                                event.currentTarget.src = getAvatarImageSrc("", avatar?.label || avatar?.id);
+                                                                            }}
+                                                                        />
+                                                                    )}
                                                                 </div>
                                                                 {/* Avatar label removed for cleaner UI */}
                                                             </div>

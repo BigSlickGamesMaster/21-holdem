@@ -70,9 +70,6 @@ export default class Settings extends Phaser.GameObjects.Container {
             window.FXOverlayUI?.toggleBugPanel?.();
         });
         this.add(this.btn_reportBug);
-
-        const version = scene.add.text(0, this.btn_reportBug.y + 54, `Version ${config.version}`, { ...style, fontSize: '14px' }).setOrigin(0.5);
-        this.add(version);
     }
     switchAnimation = (switcher, x, texture) => {
         this.scene.tweens.add({

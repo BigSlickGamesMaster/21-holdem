@@ -563,6 +563,9 @@ bindGameActionOverlayEvents() {
             case 'call':
                 if (this.oButtons?.btn_call?.bAllInMode) {
                     this.openRaiseConfirm(this.getRaiseRequestAmountForAllIn(), { bAllIn: true, source: 'main' });
+                } else if (this.oTurnContext?.bAllInStandChoice && Number(this.oTurnContext?.toCallAmount) <= 0) {
+                    this.oSocketManager.emit(emitter.reqCheck);
+                    this.hideAllButtons();
                 } else {
                     this.oSocketManager.emit(emitter.reqCall);
                     this.hideAllButtons();
@@ -998,9 +1001,11 @@ clearFXOverlayPotAnchor() {
         if (!overlay || typeof overlay.clearAnchor !== 'function') return false;
         overlay.clearAnchor('pot');
         overlay.clearAnchor('table');
+        overlay.clearAnchor('potPile');
         overlay.clearAnchor('betSource');
         overlay.clearAnchor('activePlayer');
         overlay.clearAnchor('mySeat');
+        overlay.clear?.();
         return true;
     } catch (_error) {
         return false;
@@ -1841,8 +1846,19 @@ setConsolePrompt(label = 'Waiting for turn') {
         this.updateFooterStackLayout();
     }
     reqLeaveGame() {
-        this.oSocketManager.emit(emitter.reqLeave);
-        this.time.delayedCall(150, () => this.exitGame());
+        this.bLeaveRequested = true;
+        let bExited = false;
+        const finishExit = () => {
+            if (bExited) return;
+            bExited = true;
+            this.exitGame();
+        };
+
+        this.oSocketManager.emit(emitter.reqLeave, {}, () => {
+            this.refreshGlobalProfileState();
+            finishExit();
+        });
+        this.time.delayedCall(900, finishExit);
     }
     reqDiscardCard(iCardId) {
         this.oSocketManager.emit(emitter.reqDiscardCard, { iCardId: iCardId });
@@ -1933,7 +1949,7 @@ setButtons() {
         bg.setDisplaySize(config.width, config.height);
         this.container_body.add(bg);
         this.table = this.add.image(config.centerX, config.centerY + 8 + tableImageOffsetY, assets.table);
-        const tableCoverScale = Math.max(config.width / this.table.width, config.height / this.table.height) * 0.9;
+        const tableCoverScale = Math.max(config.width / this.table.width, config.height / this.table.height) * 0.92;
         this.table.setScale(tableCoverScale);
         this.container_body.add(this.table);
         this.container_header = this.add.container(0, 0);
@@ -2061,11 +2077,91 @@ setButtons() {
             if (document.visibilityState === 'hidden') this.exitGame();
         };
         this.popStateHandler = () => this.exitGame();
+        this.sideBetsChangeHandler = (event) => this.handleSideBetsChange(event?.detail);
         // Exit game on tab hide or browser back â€” prevents desync and seat abuse.
         window.addEventListener('visibilitychange', this.visibilityChangeHandler);
         window.addEventListener('popstate', this.popStateHandler);
+        window.addEventListener('bsg:side-bets-change', this.sideBetsChangeHandler);
         this.events.once('shutdown', this.cleanupGameBindings, this);
         this.events.once('destroy', this.cleanupGameBindings, this);
+    }
+    emitConsoleCards() {
+        if (typeof window === 'undefined') return;
+        const myPlayer = this.players?.get?.(this.iUserId);
+        const aCommunityCards = Array.isArray(this.oGameManager?.aCommunityCards) ? this.oGameManager.aCommunityCards : [];
+        const bSideBetLive = myPlayer?.eState === 'playing' && !myPlayer?.isDoubleDownLock;
+        const nStandAtRound = Math.max(1, Number(myPlayer?.nStandAtRound) || 1);
+        const nEligibleCommunityCards = bSideBetLive ? aCommunityCards.length : Math.max(0, nStandAtRound - 1);
+        window.dispatchEvent(new CustomEvent('bsg:console-cards', {
+            detail: {
+                hand: Array.isArray(myPlayer?.aCardHand) ? myPlayer.aCardHand : [],
+                community: aCommunityCards,
+                sideBetCommunity: aCommunityCards.slice(0, nEligibleCommunityCards),
+                sideBetLive: bSideBetLive,
+                score: Number(myPlayer?.nCardScore) || 0,
+            },
+        }));
+    }
+    handleSideBetsChange(detail = {}) {
+        if (!this.oSocketManager || !this.iUserId) return;
+        const bets = detail?.bets;
+        if (!bets || typeof bets !== 'object') return;
+        const sSerializedBets = JSON.stringify(bets);
+        if (sSerializedBets === this.sLastSideBetsSent) return;
+        this.sLastSideBetsSent = sSerializedBets;
+        this.oSocketManager.emit('reqSideBets', { bets });
+    }
+    handleSideBetsState(oData = {}) {
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('bsg:side-bets-server-state', {
+                detail: {
+                    bets: oData?.bets || {},
+                    total: Number(oData?.total) || 0,
+                    results: oData?.results || null,
+                },
+            }));
+        }
+        if (Number.isFinite(Number(oData?.nChips))) {
+            this.oGameManager.nMyPlayerChips = Number(oData.nChips);
+            this.setAmountIn(Number(oData.nChips));
+        }
+    }
+    emitSideBetConfig(detail = {}) {
+        if (typeof window === 'undefined') return;
+        const nSmallBlind = Number(detail.nMinBet || this.oGameManager?.oGameInfo?.nSmallBlindAmount || 0);
+        const nBigBlind = Number(detail.nBigBlindAmount || this.oGameManager?.oGameInfo?.nBigBlindAmount || (nSmallBlind * 2) || 0);
+        window.dispatchEvent(new CustomEvent('bsg:side-bet-config', {
+            detail: {
+                bigBlind: nBigBlind > 0 ? nBigBlind : 100,
+            },
+        }));
+    }
+    emitSideBetWindow(visible, seconds = 0) {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent('bsg:side-bet-window', {
+            detail: {
+                visible: Boolean(visible),
+                seconds: Math.max(0, Number(seconds) || 0),
+            },
+        }));
+    }
+    emitConsoleTurnTimer(active, remainingMs = 0, totalMs = 0) {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent('bsg:console-turn-timer', {
+            detail: {
+                active: Boolean(active),
+                remainingMs: Math.max(0, Number(remainingMs) || 0),
+                totalMs: Math.max(0, Number(totalMs) || 0),
+            },
+        }));
+    }
+    emitConsoleWin(amount = 0) {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent('bsg:console-win', {
+            detail: {
+                amount: Math.max(0, Number(amount) || 0),
+            },
+        }));
     }
     setCardHand({ aCardHand, nCardScore }) {
         this.oTable.container_private_table.setVisible(false);
@@ -2079,6 +2175,7 @@ setButtons() {
 
         if (myPlayer) myPlayer.aCardHand = aIncomingHand;
         if (myPlayer) myPlayer.nCardScore = Number(nCardScore) || myPlayer.nCardScore;
+        this.emitConsoleCards();
 
         if (this.playerHandNeedsReset(myPlayer, aIncomingHand)) {
             myPlayer?.playerProfile?.container_cards?.removeAll(true);
@@ -2107,7 +2204,8 @@ setButtons() {
                     return;
                 }
 
-                if (player?.playerProfile?.container_cards?.list?.length >= aIncomingHand.length) return;
+                if (cardIndex > 0) return;
+                if (player?.playerProfile?.container_cards?.list?.length >= 1) return;
 
                 this.animateCard({
                     ...cardData,
@@ -2124,13 +2222,26 @@ setButtons() {
 
         const container = targetContainer || player?.playerProfile?.container_cards;
         if (!container) return;
-        player?.playerProfile?.setVisible?.(true);
-        player?.playerProfile?.container_profile?.setVisible?.(true);
+        if (!player?.playerProfile?.bSuppressProfileDisplay) {
+            player?.playerProfile?.setVisible?.(true);
+            player?.playerProfile?.container_profile?.setVisible?.(true);
+        }
 
-        const cardSpacing = 25;
+        const bProfileCard = !targetContainer && container === player?.playerProfile?.container_cards;
+        const bLocalPlayer = player?.iUserId === this.iUserId;
+        const cardSpacing = bProfileCard && bLocalPlayer ? 34 : 25;
         const cardTiltAngle = 15;
         const cardCount = container.list.length;
         const card = new Card(this, 0, 0, cardData.eSuit, cardData.nLabel, cardData.nValue, cardData._id);
+
+        if (bProfileCard && !bLocalPlayer) {
+            const nOpponentAngle = player?.playerProfile?.isRightSideSeat ? -16 : 16;
+            card.setScale(0.62);
+            card.setAngle(nOpponentAngle);
+        } else if (bProfileCard && bLocalPlayer) {
+            card.setScale(0.46);
+            card.setY(-22);
+        }
 
         if (cardCount > 0) {
             const totalWidth = (cardCount + 1) * cardSpacing;
@@ -2142,9 +2253,11 @@ setButtons() {
                 existingCard.setX(startX + index * cardSpacing);
                 existingCard.setAngle(cardTiltAngle * (index - cardCount / 2));
             });
+        } else if (bProfileCard && !bLocalPlayer) {
+            card.setX(0);
         }
 
-        container.setVisible(true);
+        container.setVisible(!container.bSuppressSeatCardDisplay);
         container.add(card);
         // Open own cards regardless of which container they went into
         const cardsList = container.list || [];
@@ -2156,6 +2269,7 @@ setButtons() {
                 card.closeCard();
             }
         }
+        if (container.bSuppressSeatCardDisplay) container.setVisible(false);
     }
     waitingForGameStart({ nInitializeTimer, nRoundStartsIn }) {
         this.prompt.hide();
@@ -2183,6 +2297,7 @@ setButtons() {
             player.container_cards.removeAll(true).setVisible(false);
             player.clearScore?.();
         });
+        this.emitConsoleCards();
     }
     startGame() {
         this.cancelHandResultCleanup();
@@ -2246,6 +2361,8 @@ setButtons() {
             if (eState === 'playing') this.cancelHandResultCleanup();
             this.clearStagedBetPiles();
             this.oGameManager.oGameInfo = oGameInfo;
+            this.emitSideBetConfig({ nMinBet, nBigBlindAmount: oGameInfo?.nBigBlindAmount });
+            if (eState === 'playing') this.emitSideBetWindow(false);
             this.oGameManager.nMaxPlayer = nMaxPlayer;
             this.oGameManager.oSetting = oSetting;
             this.oTutorialState = oTutorial || null;
@@ -2333,6 +2450,12 @@ setButtons() {
         const isAllInAction = (sEventName === 'resRaise' || sEventName === 'resCall') && Number(oData.nChips) === 0;
         const aParticipantAdjustments = Array.isArray(oData.aParticipantAdjustments) ? oData.aParticipantAdjustments : [];
 
+        if (sEventName === 'resStand') {
+            player.isDoubleDownLock = true;
+            player.bPendingAllInStandChoice = false;
+            player.nStandAtRound = Number(oData.nStandAtRound) || this.nTableRound || 1;
+            if (player.iUserId === this.iUserId) this.emitConsoleCards();
+        }
         player?.playerProfile?.setAmountIn(oData.nChips);
         player?.iUserId == this.iUserId && this.setMyPlayerData(oData);
         aParticipantAdjustments.forEach((participantData) => this.applyParticipantAdjustment(participantData));
@@ -2432,12 +2555,10 @@ setButtons() {
         const player = this.players.get(iUserId);
         if (eState === 'fold') {
             playAudio && this.oSoundManager.playSound(this.oSoundManager.fold_sound, false);
+            player?.playerProfile?.container_cards?.removeAll(true).setVisible(false);
             player?.playerProfile.setFolded();
             player?.playerProfile.setVisible(true);
             iUserId !== this.iUserId && player?.playerProfile.setBettingLabel('Fold');
-            iUserId == this.iUserId && player?.playerProfile?.container_cards.list.forEach(card => {
-                card.closeCard();
-            });
         } else if (eState === 'leave') {
             player?.playerProfile.setLeave();
             if (iUserId == this.iUserId) {
@@ -2453,6 +2574,7 @@ setButtons() {
             }
             this.players.delete(iUserId);
         } else if (eState === 'bust') {
+            player?.playerProfile?.container_cards?.removeAll(true).setVisible(false);
             player?.playerProfile.showBustPrompt();
             player?.playerProfile.setVisible(true);
             iUserId !== this.iUserId && player?.playerProfile.setBettingLabel('Bust');
@@ -2503,6 +2625,7 @@ setButtons() {
                     const nTargetPosition = this.getCommunityCardPosition(nTargetIndex, nExistingCount + aNewCards.length);
 
                     this.oGameManager.aCommunityCards.push(card);
+                    this.emitConsoleCards();
 
                     const card_open = new Card(this, nTargetPosition.x, nTargetPosition.y, card.eSuit, card.nLabel, card.nValue, card._id, card.isJoker);
                     card_open.setScale(communityCardScale);
@@ -2516,6 +2639,7 @@ setButtons() {
         }
         else {
             this.oGameManager.aCommunityCards = aCommunityCards;
+            this.emitConsoleCards();
             this.container_community_cards.removeAll(true);
             aCommunityCards.forEach((card, index) => {
                 const nPosition = this.getCommunityCardPosition(index, aCommunityCards.length);
@@ -2539,6 +2663,7 @@ setButtons() {
         }
 
         this.syncPlayerScoreDisplay(myPlayer, nCardScore, myPlayerData?.aCardHand);
+        this.emitConsoleCards();
     }
     applyParticipantAdjustment(participantData) {
         const iUserId = participantData?.iUserId;
@@ -2606,6 +2731,8 @@ setButtons() {
             if (eState === 'playing') this.cancelHandResultCleanup();
             this.clearStagedBetPiles();
             this.oTutorialState = oTutorial || this.oTutorialState;
+            this.emitSideBetConfig({ nMinBet });
+            if (eState === 'playing') this.emitSideBetWindow(false);
             this.iDealerId = iDealerId;
             this.iBigBlindId = iBigBlindId;
             this.iSmallBlindId = iSmallBlindId;
@@ -2682,6 +2809,7 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
         this.syncGameActionOverlay();
     }
     async resetTurnTimer() {
+        this.emitConsoleTurnTimer(false);
         if (this.iLastTurnId === this.iUserId) this.hideAllButtons();
         this.clearFXOverlayFocus();
         if (!this.iLastTurnId) return undefined;
@@ -2690,6 +2818,7 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
         return lastPlayer;
     }
     async setPlayerTurn({ iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount, bAllInStandChoice }) {
+        this.emitSideBetConfig({ nMinBet });
         if (nRemainingInitializeTime > 0 || nRemainingRoundStartsIn > 0) {
             this.resetCheckCommitments();
             this.clearStagedBetPiles();
@@ -2711,6 +2840,7 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
             nRemainingRoundStartsIn > 0 && this.waitingForNextRoundStart(Math.round(nRemainingRoundStartsIn / 1000));
             return;
         }
+        this.emitSideBetWindow(false);
         // If player data isn't ready yet (join race condition), defer until setGameData finishes
         if (!this.players.get(iUserId) && iUserId === this.iUserId) {
             this.oPendingTurn = { iUserId, ttl, initialValue, nTotalTurnTime, aUserAction, nMinBet, nGraceTime, eTurnType, nRemainingInitializeTime, nRemainingRoundStartsIn, nTableChips, toCallAmount, bAllInStandChoice };
@@ -2738,6 +2868,9 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
         if (player?.playerProfile && ttl > 0) {
             const total = nTotalTurnTime > 0 ? nTotalTurnTime : ttl;
             player.playerProfile.startTurnTimer(ttl, total);
+            if (player.iUserId === this.iUserId) {
+                this.emitConsoleTurnTimer(true, ttl, total);
+            }
         }
         if (player?.iUserId === this.iUserId) {
             this.syncGameActionOverlay();
@@ -2936,6 +3069,8 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       player.unlockScoreDisplay?.({ clear: true });
     });
     this.prompt.hide();
+    const nSideBetSeconds = Math.floor(Math.max(0, (Number(nRoundStartsIn) || 0) - 6000) / 1000);
+    if (nSideBetSeconds > 0) this.emitSideBetWindow(true, nSideBetSeconds);
   }, 6000); // Keep cards visible longer (was 7000, now cards show from 500ms to 6000ms)
 
   const allPlayersBust = bAllPlayerBust || bAllPlayersBust;
@@ -2985,6 +3120,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       
       setTimeout(() => {
         participant.iUserId == this.iUserId && this.oSoundManager.playSound(this.oSoundManager.winCoin_sound, false);
+                if (participant.iUserId === this.iUserId) this.emitConsoleWin(participant.nWinningAmount || 0);
                 player?.playerProfile?.showWinAmountPopup(participant.nWinningAmount || 0);
                 nRemainingPot = Math.max(0, nRemainingPot - Math.max(0, Number(participant.nWinningAmount) || 0));
                 this.queuePotPayout({
@@ -3067,6 +3203,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
         this.clearFXOverlayPotAnchor();
         if (this.visibilityChangeHandler) window.removeEventListener('visibilitychange', this.visibilityChangeHandler);
         if (this.popStateHandler) window.removeEventListener('popstate', this.popStateHandler);
+        if (this.sideBetsChangeHandler) window.removeEventListener('bsg:side-bets-change', this.sideBetsChangeHandler);
         if (this.handleGameUILayoutUpdate) window.removeEventListener(GAME_UI_LAYOUT_EVENT, this.handleGameUILayoutUpdate);
         if (this.handleGameActionOverlayCommand) window.removeEventListener(GAME_ACTION_OVERLAY_COMMAND_EVENT, this.handleGameActionOverlayCommand);
         if (this.handleEmojiSent) window.removeEventListener('bsg:emoji-sent', this.handleEmojiSent);
@@ -3074,8 +3211,22 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
         hideGameActionOverlay();
         this.oSocketManager?.destroy?.();
     }
+    refreshGlobalProfileState() {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent('bsg:profile-refresh'));
+    }
     exitGame() {
         const fallbackPath = this.fallbackPath || '/lobby';
+        if (!this.bLeaveRequested && this.oSocketManager?.socket?.connected) {
+            this.bLeaveRequested = true;
+            this.oSocketManager.emit(emitter.reqLeave, {}, () => {
+                this.refreshGlobalProfileState();
+            });
+        }
+        this.nOverlayTableBankroll = null;
+        if (this.oGameManager) this.oGameManager.nMyPlayerChips = 0;
+        hideGameActionOverlay();
+        this.refreshGlobalProfileState();
         window.dispatchEvent(new CustomEvent('bsg:navigate', { detail: { path: fallbackPath } }));
         window.setTimeout(() => {
             const fallbackRoute = fallbackPath.split('?')[0];

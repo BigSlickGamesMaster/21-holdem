@@ -116,23 +116,8 @@ class Service {
 
       this.eState = 'playing';
       this.aParticipant = this.aParticipant.map(p => {
+        p.resetForNextHand?.();
         p.eState = 'playing';
-        p.aCardHand = [];
-        p.nCardScore = 0;
-        p.nLastBidChips = 0;
-        p.nTotalBidChips = 0;
-        p.nWinningAmount = 0;
-        p.nPlayerTurnCount = 0;
-        p.nStandAtRound = 0;
-        p.isDoubleDownLock = false;
-        p.isAllInLock = false;
-        p.bPendingAllInStandChoice = false;
-        p.bHasAceAndBust = false;
-        p.bHasSplit = false;
-        p.aSplitHand = [];
-        p.nSplitCardScore = 0;
-        p.eSplitPhase = null;
-        p.aUserAction = ['c', 'r', 'f'];
         return p;
       });
 

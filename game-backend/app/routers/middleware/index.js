@@ -94,6 +94,18 @@ middleware.isAuthenticated = async (req, res, next) => {
   }
 };
 
+middleware.isTokenAuthenticated = async (req, res, next) => {
+  try {
+    const user = await getAuthenticatedUserFromRequest(req, res);
+    if (!user) return;
+
+    req.user = user;
+    next();
+  } catch (error) {
+    res.reply(messages.server_error(), error.toString());
+  }
+};
+
 middleware.isGuestAuthenticated = async (req, res, next) => {
   try {
     const user = await getAuthenticatedUserFromRequest(req, res);

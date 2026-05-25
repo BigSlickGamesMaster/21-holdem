@@ -4,6 +4,63 @@ const { PokerFinishGame, PokerBoard, BoardProtoType, Transaction, User, Setting,
 const systemBots = require('../../../../utils/lib/system-bots');
 
 const MAX_COMMUNITY_CARDS = 5;
+const SIDE_BET_PAYOUTS = {
+  'twenty-one': 3,
+  flush: 4,
+  straight: 5,
+  'straight-flush': 10,
+};
+
+function getCardRank(card) {
+  const nLabel = Number(card?.nLabel);
+  if (nLabel === 1) return 14;
+  return nLabel;
+}
+
+function hasRun(cards = [], nMinimumLength = 3) {
+  const ranks = [...new Set(cards.map(getCardRank).filter(rank => rank > 0))].sort((a, b) => a - b);
+  if (ranks.includes(14)) ranks.unshift(1);
+
+  let nRun = 1;
+  for (let index = 1; index < ranks.length; index++) {
+    if (ranks[index] === ranks[index - 1] + 1) {
+      nRun++;
+      if (nRun >= nMinimumLength) return true;
+    } else if (ranks[index] !== ranks[index - 1]) {
+      nRun = 1;
+    }
+  }
+  return false;
+}
+
+function hasFlush(cards = [], nMinimumLength = 3) {
+  const suitCounts = cards.reduce((accumulator, card) => {
+    const suit = String(card?.eSuit || '').toLowerCase();
+    if (!suit) return accumulator;
+    accumulator[suit] = (accumulator[suit] || 0) + 1;
+    return accumulator;
+  }, {});
+  return Object.values(suitCounts).some(count => count >= nMinimumLength);
+}
+
+function hasStraightFlush(cards = [], nMinimumLength = 3) {
+  const cardsBySuit = cards.reduce((accumulator, card) => {
+    const suit = String(card?.eSuit || '').toLowerCase();
+    if (!suit) return accumulator;
+    if (!accumulator[suit]) accumulator[suit] = [];
+    accumulator[suit].push(card);
+    return accumulator;
+  }, {});
+  return Object.values(cardsBySuit).some(suitedCards => suitedCards.length >= nMinimumLength && hasRun(suitedCards, nMinimumLength));
+}
+
+function getSideBetEligibleCommunityCards(participant, communityCards = []) {
+  if (!participant?.isDoubleDownLock) return Array.isArray(communityCards) ? communityCards : [];
+
+  const nStandAtRound = Math.max(1, Number(participant.nStandAtRound) || 1);
+  const nEligibleCommunityCards = Math.max(0, nStandAtRound - 1);
+  return (Array.isArray(communityCards) ? communityCards : []).slice(0, nEligibleCommunityCards);
+}
 
 class Board extends Service {
   async collectBootAmount() {
@@ -34,6 +91,45 @@ class Board extends Service {
         if (participant.eState !== 'playing') continue;
 
         const multiplier = blindMultipliers[participant.iUserId];
+        const nReservedBlind = multiplier ? this.nMinBet * multiplier : 0;
+        const oRequestedSideBets = participant.sanitizeSideBets?.(participant.oSideBets || {}) || {};
+        const nRequestedSideBetTotal = participant.getSideBetTotal?.(oRequestedSideBets) || 0;
+        if (nRequestedSideBetTotal > 0) {
+          let nRemainingSideBetBudget = Math.max(0, (Number(participant.nChips) || 0) - nReservedBlind);
+          const oCommittedSideBets = {};
+
+          for (const [sBetType, nAmount] of Object.entries(oRequestedSideBets)) {
+            const nCommitAmount = Math.min(Math.max(Number(nAmount) || 0, 0), nRemainingSideBetBudget);
+            oCommittedSideBets[sBetType] = nCommitAmount;
+            nRemainingSideBetBudget -= nCommitAmount;
+          }
+
+          const nCommittedSideBetTotal = participant.getSideBetTotal(oCommittedSideBets);
+          if (nCommittedSideBetTotal > 0) {
+            await participant.updateUser({ $inc: { nChips: -nCommittedSideBetTotal, nTotalBetAmount: nCommittedSideBetTotal } });
+            participant.nChips -= nCommittedSideBetTotal;
+            participant.oCommittedSideBets = oCommittedSideBets;
+            participant.oSideBets = oCommittedSideBets;
+            participant.bSideBetsQueuedForNextHand = false;
+
+            await participant.recordTransaction({
+              iUserId: participant.iUserId,
+              iBoardId: this._id,
+              nAmount: nCommittedSideBetTotal,
+              eType: 'debit',
+              eMode: 'side_bet',
+              eStatus: 'Success',
+              nGameRound: this.nGameRound,
+            });
+
+            await participant.emit('resSideBets', {
+              bets: participant.oSideBets,
+              total: nCommittedSideBetTotal,
+              nChips: participant.nChips,
+            });
+          }
+        }
+
         if (multiplier) {
           const betAmount = this.nMinBet * multiplier;
 
@@ -47,7 +143,7 @@ class Board extends Service {
             participant.isAllInLock = true;
             participant.bPendingAllInStandChoice = true;
             participant.nPlayerTurnCount = 0;
-            participant.aUserAction = ['s', 'f'];
+            participant.aUserAction = ['c', 's'];
           }
 
           await participant.recordTransaction({
@@ -257,6 +353,91 @@ class Board extends Service {
     }
   }
 
+  evaluateSideBets(participant) {
+    const oCommittedSideBets = participant.sanitizeSideBets?.(participant.oCommittedSideBets || {}) || {};
+    const nStake = participant.getSideBetTotal?.(oCommittedSideBets) || 0;
+    if (!nStake) return null;
+
+    const aEligibleCommunityCards = getSideBetEligibleCommunityCards(participant, this.aCommunityCard);
+    const cards = [
+      ...(Array.isArray(participant.aCardHand) ? participant.aCardHand : []),
+      ...aEligibleCommunityCards,
+    ];
+    const bTwentyOne = Number(participant.nCardScore) === 21;
+    const bHasMinimumSideBetCards = cards.length >= 3;
+    const bFlush = bHasMinimumSideBetCards && hasFlush(cards, 3);
+    const bStraightFlush = bHasMinimumSideBetCards && hasStraightFlush(cards, 3);
+    const bStraight = bHasMinimumSideBetCards && (bStraightFlush || hasRun(cards, 3));
+
+    const aResults = [];
+    let nTotalCredit = 0;
+
+    const addResult = (sBetType, bWon, nMultiplier) => {
+      const nAmount = Math.max(0, Number(oCommittedSideBets[sBetType]) || 0);
+      if (!nAmount) return;
+      const nWinAmount = bWon ? nAmount * nMultiplier : 0;
+      const nCreditAmount = bWon ? nAmount + nWinAmount : 0;
+      nTotalCredit += nCreditAmount;
+      aResults.push({
+        type: sBetType,
+        stake: nAmount,
+        won: bWon,
+        multiplier: bWon ? nMultiplier : 0,
+        winAmount: nWinAmount,
+        creditAmount: nCreditAmount,
+      });
+    };
+
+    addResult('twenty-one', bTwentyOne, SIDE_BET_PAYOUTS['twenty-one']);
+    addResult('flush', bFlush, SIDE_BET_PAYOUTS.flush);
+    addResult('straight', bStraight, bStraightFlush ? SIDE_BET_PAYOUTS['straight-flush'] : SIDE_BET_PAYOUTS.straight);
+
+    return {
+      stake: nStake,
+      creditAmount: nTotalCredit,
+      results: aResults,
+      qualifiers: {
+        twentyOne: bTwentyOne,
+        flush: bFlush,
+        straight: bStraight,
+        straightFlush: bStraightFlush,
+        eligibleCommunityCards: aEligibleCommunityCards.length,
+      },
+    };
+  }
+
+  async resolveSideBets() {
+    for (const participant of this.aParticipant) {
+      const oSideBetResult = this.evaluateSideBets(participant);
+      if (!oSideBetResult) continue;
+
+      participant.oSideBetResult = oSideBetResult;
+      if (oSideBetResult.creditAmount > 0) {
+        participant.nChips += oSideBetResult.creditAmount;
+        participant.nWinningAmount += oSideBetResult.creditAmount;
+        await participant.updateUser({ $inc: { nChips: oSideBetResult.creditAmount, nTotalWinningAmount: oSideBetResult.creditAmount } });
+        await participant.recordTransaction({
+          iUserId: participant.iUserId,
+          iBoardId: this._id,
+          nAmount: oSideBetResult.creditAmount,
+          eType: 'credit',
+          eMode: 'side_bet',
+          eStatus: 'Success',
+          nGameRound: this.nGameRound,
+        });
+      }
+
+      if (!participant.bSideBetsQueuedForNextHand) participant.oSideBets = {};
+      participant.oCommittedSideBets = {};
+      await participant.emit('resSideBets', {
+        bets: participant.oSideBets || {},
+        total: participant.getSideBetTotal?.(participant.oSideBets || {}) || 0,
+        nChips: participant.nChips,
+        results: oSideBetResult,
+      });
+    }
+  }
+
   async declareResult(aWinner, functionCalledFrom) {
     try {
       const turnScheduler = await this.getScheduler('assignTurnTimeout');
@@ -420,10 +601,14 @@ class Board extends Service {
       }
       // ------------------------------ End of Pot Distribution ------------------------------
 
+      await this.resolveSideBets();
+
       await this.update({ aParticipant: this.aParticipant.map(p => p.toJSON()), eState: this.eState });
 
+      const nClientShowdownMs = 6000;
+      const nSideBetWindowMs = 10000;
       const resultData = {
-        nRoundStartsIn: bTutorialCompleted ? 0 : this.oSetting.nRoundStartsIn + 4000,
+        nRoundStartsIn: bTutorialCompleted ? 0 : nClientShowdownMs + nSideBetWindowMs,
         aParticipant: this.aParticipant.map(p => ({
           iUserId: p.iUserId,
           eState: p.eState,
@@ -431,6 +616,7 @@ class Board extends Service {
           nChips: p.nChips,
           aCardHand: p.aCardHand,
           nCardScore: p.nCardScore,
+          oSideBetResult: p.oSideBetResult,
         })),
         nTableChips: 0,
         oTutorial:
@@ -477,21 +663,7 @@ class Board extends Service {
       const aAutoTopUp = [];
 
       for (const participant of this.aParticipant) {
-        participant.aCardHand = [];
-        participant.aUserAction = ['c', 'r', 'f'];
-        participant.nCardScore = 0;
-        participant.isDoubleDownLock = false;
-        participant.isAllInLock = false;
-        participant.bPendingAllInStandChoice = false;
-        participant.bHasAceAndBust = false;
-        participant.nStandAtRound = 0;
-        participant.nLastBidChips = 0;
-        participant.nTotalBidChips = 0;
-        participant.nWinningAmount = 0;
-        participant.nPlayerTurnCount = 0;
-        participant.bHasSplit = false;
-        participant.aSplitHand = [];
-        participant.nSplitCardScore = 0;
+        participant.resetForNextHand?.();
 
         if (participant.bNextTurnLeave) {
           // Bots on a live table get refilled and re-seated instead of leaving

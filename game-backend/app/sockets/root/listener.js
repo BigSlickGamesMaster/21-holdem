@@ -61,6 +61,9 @@ class PlayerListener {
       case 'reqReaction':
         this.reaction(oData, participant, callback);
         break;
+      case 'reqSideBets':
+        this.sideBets(oData, participant, callback);
+        break;
       case 'reqForcePair':
         this.forcePair(oData, participant, callback);
         break;
@@ -174,6 +177,15 @@ class PlayerListener {
     } catch (error) {
       console.log('Error in PlayerListener reaction method:', error);
       this.logError(error, callback);
+    }
+  }
+
+  async sideBets(oData, participant, callback) {
+    try {
+      await participant.setSideBets(oData?.bets || {});
+      callback(null, { success: true });
+    } catch (error) {
+      this.logError(error.message || error, callback);
     }
   }
 

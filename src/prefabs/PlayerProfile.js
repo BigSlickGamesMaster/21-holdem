@@ -4,9 +4,18 @@ import config from "../scripts/config";
 import _ from "../scripts/helper";
 import ProfileRenderer from "./ProfileRenderer";
 
-// Single neutral theme — warm casino gold
-const NEUTRAL_SEAT_THEME = { accentColor: 0xd4af6a, accentHex: '#d4af6a', suit: '\u2660' };
-const SEAT_THEMES = Array(9).fill(NEUTRAL_SEAT_THEME);
+// Seat accents rotate through a fixed palette so colors are varied but stable.
+const SEAT_THEMES = [
+  { accentColor: 0xd4af6a, accentHex: '#d4af6a', suit: '\u2660' },
+  { accentColor: 0x58c7ff, accentHex: '#58c7ff', suit: '\u2663' },
+  { accentColor: 0xff6b8a, accentHex: '#ff6b8a', suit: '\u2665' },
+  { accentColor: 0x7ee081, accentHex: '#7ee081', suit: '\u2666' },
+  { accentColor: 0xc38cff, accentHex: '#c38cff', suit: '\u2660' },
+  { accentColor: 0xffb15c, accentHex: '#ffb15c', suit: '\u2663' },
+  { accentColor: 0x5eead4, accentHex: '#5eead4', suit: '\u2665' },
+  { accentColor: 0xf7e36b, accentHex: '#f7e36b', suit: '\u2666' },
+  { accentColor: 0x9bb6ff, accentHex: '#9bb6ff', suit: '\u2660' },
+];
 
 export default class PlayerProfile extends Phaser.GameObjects.Container {
   constructor(scene, x, y, nPlayerIndex) {
@@ -15,10 +24,11 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.scene = scene;
     this.nPlayerIndex = nPlayerIndex;
     this.isLocalSeat = nPlayerIndex === 0;
+    this.bSuppressProfileDisplay = this.isLocalSeat;
     this.seatTheme = SEAT_THEMES[nPlayerIndex % SEAT_THEMES.length];
     this.isRightSideSeat = !this.isLocalSeat && x > (config.centerX + 32);
-    this.profileScaleBoost = 1.18;
-    this.baseProfileScale = this.isLocalSeat ? 0.84 : 0.552;
+    this.profileScaleBoost = 1.133;
+    this.baseProfileScale = this.isLocalSeat ? 0.756 : 0.497;
     const style = {
       fontSize: "20px",
       fontFamily: config.playerFont,
@@ -41,7 +51,8 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setScale(this.baseProfileScale * this.profileScaleBoost);
     this.add(this.container_profile);
 
-    this.container_cards = scene.add.container(0, -44);
+    this.container_cards = scene.add.container(0, -44).setVisible(false);
+    this.container_cards.bSuppressSeatCardDisplay = false;
     this.container_profile.add(this.container_cards);
 
     this.container_profileImage = scene.add.container(0, 0);
@@ -120,7 +131,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setOrigin(0.5);
     this.container_bettingLabel.add(this.txt_bettingAmount);
 
-    const profileSize = 156;
+    const profileSize = 140;
     const profileOffsetY = -6;
     this.profileSize = profileSize;
     this.profileOffsetY = profileOffsetY;
@@ -137,9 +148,9 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
 
     const identityPanelY = this.isLocalSeat ? 66 : 74;
     const identityPanelWidth = 194;
-    const identityPanelHeight = this.isLocalSeat ? 52 : 66;
-    const nameY = this.isLocalSeat ? -2 : -14;
-    const bankrollY = 16;
+    const identityPanelHeight = this.isLocalSeat ? 46 : 50;
+    const nameY = 0;
+    const bankrollY = 8;
     this.container_identity = scene.add.container(0, identityPanelY);
     this.container_profile.add(this.container_identity);
 
@@ -163,7 +174,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     };
     this._drawIdentityPanel();
 
-    this.profileBorder = scene.add.graphics();
+    this.profileBorder = scene.add.graphics().setVisible(false);
     this.container_profile.addAt(this.profileBorder, 0);
     this._drawProfileBorder = () => {
       if (!this.profileRenderer || !this.profileBorder) return;
@@ -193,23 +204,62 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       this.profileBorder.lineStyle(1, 0xffffff, 0.10);
       this.profileBorder.strokeRoundedRect(x + 2, y + 2, width - 4, height - 4, Math.max(6, r - 2));
     };
-    this._drawProfileBorder();
+    this._drawProfileBorder = () => {};
+    this.profileBorder.clear();
+
+    this.card_icon = scene.add.container(0, -(identityPanelHeight / 2) - 13);
+    this.card_icon_bg = scene.add.graphics();
+    this.card_icon_rank_top = scene.add.text(-9, -13, "21", {
+      fontSize: "9px",
+      fontFamily: config.playerFontBold,
+      fontStyle: "bold",
+      color: "#123047",
+      resolution: 2,
+    }).setOrigin(0, 0);
+    this.card_icon_rank_bottom = scene.add.text(9, 13, "21", {
+      fontSize: "9px",
+      fontFamily: config.playerFontBold,
+      fontStyle: "bold",
+      color: "#123047",
+      resolution: 2,
+    }).setOrigin(1, 1).setAngle(180);
+    this.card_icon_suit = scene.add.text(0, 0, this.seatTheme.suit, {
+      fontSize: "16px",
+      fontFamily: "Arial, sans-serif",
+      fontStyle: "bold",
+      color: this.seatTheme.suit === '\u2665' || this.seatTheme.suit === '\u2666' ? "#c52e3d" : "#123047",
+      resolution: 2,
+    }).setOrigin(0.5, 0.52);
+    this.card_icon.add([this.card_icon_bg, this.card_icon_rank_top, this.card_icon_rank_bottom, this.card_icon_suit]);
+    this._drawCardIcon = () => {
+      this.card_icon_bg.clear();
+      this.card_icon_bg.fillStyle(0xfffbef, 1);
+      this.card_icon_bg.fillRoundedRect(-13, -17, 26, 34, 5);
+      this.card_icon_bg.lineStyle(1.5, this.seatTheme.accentColor, 0.9);
+      this.card_icon_bg.strokeRoundedRect(-13, -17, 26, 34, 5);
+      this.card_icon_bg.lineStyle(1, 0x123047, 0.2);
+      this.card_icon_bg.strokeRoundedRect(-10, -14, 20, 28, 3);
+    };
+    this._drawCardIcon();
+    this.card_icon.setVisible(false);
+    this.container_identity.add(this.card_icon);
 
     this.txt_name = scene.add
-      .text(0, nameY, "waiting...", {
+      .text(0, nameY, "", {
         ...style,
         color: '#f0e0bb',
-        fontSize: "28px",
+        fontSize: "1px",
         fontStyle: "bold",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setVisible(false);
     this.container_identity.add(this.txt_name);
 
     this.txt_waiting = scene.add
       .text(0, nameY, "waiting...", {
         ...style,
         color: '#f0e0bb',
-        fontSize: "28px",
+        fontSize: "24px",
         fontStyle: "bold",
       })
       .setOrigin(0.5)
@@ -219,7 +269,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.chip_icon = scene.add
       .image(-70, bankrollY, assets.chip_icon)
       .setScale(0.82)
-      .setVisible(!this.isLocalSeat);
+      .setVisible(true);
     this.container_identity.add(this.chip_icon);
 
     this.txt_price = scene.add
@@ -231,7 +281,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
         color: "#ffffff",
       })
       .setOrigin(0, 0.5)
-      .setVisible(!this.isLocalSeat);
+      .setVisible(true);
     this.container_identity.add(this.txt_price);
 
     this.self_bankroll_base = this.identity_panel;
@@ -299,8 +349,20 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
 
     this.updateBettingLabelLayout();
   }
+  applyProfileSuppression() {
+    if (!this.bSuppressProfileDisplay) return;
+    this.container_profile?.setVisible(false);
+    this.container_emptySpot?.setVisible(false);
+  }
+  setVisible(value) {
+    super.setVisible(value);
+    this.applyProfileSuppression();
+    return this;
+  }
   setProfile({ sUserName, sAvatar, eUserType }) {
-    this.txt_name.setText(_.appendSuffix(_.getFirstCapital(sUserName)));
+    this.setAlpha(1);
+    this.container_cards?.setVisible(false);
+    this.txt_name.setText("");
     this.setProfileImage(sAvatar, sUserName, eUserType);
     // this.container_blind.setVisible(oBlind.isDealer || oBlind.isSmallBlind || oBlind.isBigBlind);
     // this.txt_blind.setText(oBlind.isSmallBlind ? 'SB' : oBlind.isBigBlind ? 'BB' : 'D');
@@ -309,6 +371,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.hideWaiting();
     this.setIdentityState('normal');
     this.startIdleFloat();
+    this.applyProfileSuppression();
     return {
       name: this.txt_name,
       profile: this.profile,
@@ -450,12 +513,14 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.txt_name.setVisible(false);
     this.chip_icon.setVisible(false);
     this.txt_price.setVisible(false);
+    this.card_icon.setVisible(false);
     this.txt_waiting.setVisible(true);
   }
   hideWaiting() {
-    this.txt_name.setVisible(true);
-    this.chip_icon.setVisible(!this.isLocalSeat);
-    this.txt_price.setVisible(!this.isLocalSeat);
+    this.txt_name.setVisible(false);
+    this.chip_icon.setVisible(true);
+    this.txt_price.setVisible(true);
+    this.card_icon.setVisible(false);
     this.txt_waiting.setVisible(false);
   }
   setAmountIn(nAmountIn) {
@@ -471,6 +536,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     return null;
   }
   setProfileImage(url, name, eUserType = "user") {
+    void eUserType;
     this.profileRenderer.setProfileImage(url, name, { showImage: true, seatIndex: this.nPlayerIndex });
   }
   resTurnTimer = () => this.profileRenderer.resTurnTimer();
@@ -535,21 +601,27 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.container_profile.add(popup);
     this.container_winAmountPopup = popup;
 
+    const nRiseDistance = this.isLocalSeat ? 54 : 74;
+    const nExitDistance = this.isLocalSeat ? 30 : 42;
+    const nIntroDuration = this.isLocalSeat ? 560 : 360;
+    const nHoldDelay = this.isLocalSeat ? 1900 : 650;
+    const nExitDuration = this.isLocalSeat ? 1800 : 1150;
+
     this.scene.tweens.add({
       targets: popup,
-      y: popup.y - 74,
+      y: popup.y - nRiseDistance,
       alpha: 1,
       scaleX: 1,
       scaleY: 1,
-      duration: 360,
+      duration: nIntroDuration,
       ease: "Back.Out",
       onComplete: () => {
         this.scene.tweens.add({
           targets: popup,
-          y: popup.y - 42,
+          y: popup.y - nExitDistance,
           alpha: 0,
-          duration: 1150,
-          delay: 650,
+          duration: nExitDuration,
+          delay: nHoldDelay,
           ease: "Sine.easeIn",
           onComplete: () => {
             if (this.container_winAmountPopup === popup) this.container_winAmountPopup = null;

@@ -34,6 +34,11 @@ export const BUILT_IN_AVATARS = avatarContext
 export const DEFAULT_BUILT_IN_AVATARS = BUILT_IN_AVATARS.slice(0, 12)
 
 export const DEFAULT_PROFILE_BANNER = BUILT_IN_AVATARS[0]?.sPath || '';
+export const INITIALS_AVATAR_VALUE = '__player_initials__';
+
+export function isInitialsAvatar(src = '') {
+  return String(src || '') === INITIALS_AVATAR_VALUE;
+}
 
 export function getBuiltInAvatar(seed = '', seatIndex = -1) {
   if (!DEFAULT_BUILT_IN_AVATARS.length) {
@@ -51,6 +56,8 @@ export function getBuiltInAvatar(seed = '', seatIndex = -1) {
 }
 
 export function getAvatarImageSrc(src, seed = '', seatIndex = -1) {
+  if (isInitialsAvatar(src)) return '';
+
   if (!src || isLegacyBuiltInAvatar(src)) {
     return getBuiltInAvatar(seed, seatIndex).sPath || DEFAULT_PROFILE_BANNER;
   }
@@ -70,7 +77,8 @@ export function getAvatarTextureKey(src, seed = '') {
 export function buildAvatarOptions(aAvatarList = [], sAvatar = '') {
   const avatars = [];
   const seen = new Set();
-  const normalizedSelectedAvatar = getAvatarImageSrc(sAvatar);
+  const useInitials = isInitialsAvatar(sAvatar);
+  const normalizedSelectedAvatar = useInitials ? INITIALS_AVATAR_VALUE : getAvatarImageSrc(sAvatar);
 
   const addAvatar = avatar => {
     if (!avatar?.sPath || seen.has(avatar.sPath)) return;
@@ -80,6 +88,13 @@ export function buildAvatarOptions(aAvatarList = [], sAvatar = '') {
       selected: avatar.sPath === normalizedSelectedAvatar,
     });
   };
+
+  addAvatar({
+    id: 'profile-image-initials',
+    label: 'Initials',
+    sPath: INITIALS_AVATAR_VALUE,
+    isInitials: true,
+  });
 
   BUILT_IN_AVATARS.forEach(addAvatar);
   (aAvatarList || []).forEach((item, index) => addAvatar({

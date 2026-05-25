@@ -43,6 +43,7 @@ const HeaderPrivate = () => {
             if (response?.status === 200) {
                 setModalShow(false);
                 queryClient.invalidateQueries("profileData");
+                queryClient.invalidateQueries("layout-profile");
                 queryClient.invalidateQueries("getTables");
                 ReactToastify(response?.data?.message, 'success');
             }
@@ -53,9 +54,20 @@ const HeaderPrivate = () => {
         onError: (error) => {
             setModalShow(false);
             queryClient.invalidateQueries("profileData");
+            queryClient.invalidateQueries("layout-profile");
             ReactToastify(error?.response?.data?.message, 'error');
         }
     });
+
+    useEffect(() => {
+        const handleProfileRefresh = () => {
+            queryClient.invalidateQueries("profileData");
+            queryClient.invalidateQueries("layout-profile");
+        };
+
+        window.addEventListener('bsg:profile-refresh', handleProfileRefresh);
+        return () => window.removeEventListener('bsg:profile-refresh', handleProfileRefresh);
+    }, [queryClient]);
 
     useEffect(() => {
         setIsNavbarCollapsed(true);

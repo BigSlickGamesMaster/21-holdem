@@ -57,6 +57,8 @@ const LEGACY_BOARD_MIN_BET_UPDATES = {
 };
 
 async function syncDefaultBoardPrototypes() {
+  await BoardProtoType.collection.updateMany({ ePokerType: 'pokerJack' }, { $set: { ePokerType: 'TwentyOneHoldem' } });
+
   for (const oPrototype of DEFAULT_BOARD_PROTOTYPES) {
     const oExistingPrototype = await BoardProtoType.findOne({ sName: oPrototype.sName }).lean();
     if (!oExistingPrototype) {

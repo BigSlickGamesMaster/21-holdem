@@ -1,23 +1,22 @@
-import React, { Suspense, useContext, useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 // import Breadcrumbs from '../../shared/components/'
 import useMediaQuery from '../../shared/hooks/useMediaQuery'
 import { Spinner } from 'react-bootstrap'
 import HeaderPrivate from 'shared/components/Header/Private'
-import { GamePlayContext } from 'context/gamePlayContext'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { getCookie, ReactToastify } from 'shared/utils'
-import { useQuery } from 'react-query'
-import { io } from 'socket.io-client'
+import { getCookie } from 'shared/utils'
+import { useQuery, useQueryClient } from 'react-query'
 import { getProfile } from 'query/profile.query'
 import { getAvatarImageSrc } from 'shared/constants/builtInAvatars'
 import newBannerImg from '../../assets/images/bg/new-banner.png'
 import _ from 'scripts/helper'
 
 function MainLayout({ children }) {
-    const [isOpen, setIsOpen] = useState(true)
+    const [isOpen] = useState(true)
     const location = useLocation()
     const navigate = useNavigate()
+    const queryClient = useQueryClient()
     const width = useMediaQuery('(max-width: 300px)')
 
     const [isGamePlay, setIsGamePlay] = useState(false)
@@ -27,12 +26,43 @@ function MainLayout({ children }) {
         getPath === '/game' ? setIsGamePlay(true) : setIsGamePlay(false)
     }, [getPath])
 
+    useEffect(() => {
+        if (getPath === '/game') return
+
+        window.FXOverlay?.clear?.()
+        window.FXOverlay?.clearAnchor?.('pot')
+        window.FXOverlay?.clearAnchor?.('table')
+        window.FXOverlay?.clearAnchor?.('potPile')
+        window.FXOverlay?.clearAnchor?.('betSource')
+        window.FXOverlay?.clearAnchor?.('activePlayer')
+        window.FXOverlay?.clearAnchor?.('mySeat')
+        window.FXOverlay?.clearFocus?.()
+        window.FXOverlay?.setPotAmount?.(0)
+        window.FXOverlay?.disable?.()
+
+        document.querySelectorAll('.login-background-only__chip-field, .login-background-only__chip').forEach((node) => node.remove())
+    }, [getPath])
+
     const isLobby = getPath === '/lobby'
+    const sActiveLobbyTab = isLobby ? new URLSearchParams(location.search).get('tab') || 'lobby-live-tables' : ''
+    const sBackgroundScene = isLobby
+        ? sActiveLobbyTab.replace(/^lobby-/, '').replace(/[^a-z0-9]+/g, '-')
+        : getPath.replace(/^\//, '').replace(/[^a-z0-9]+/g, '-') || 'home'
 
     const { data: profileResp } = useQuery('layout-profile', getProfile, { enabled: !!getCookie('sAuthToken'), staleTime: 60000 })
     const profileData = profileResp?.data?.data
     const sAvatarSrc = getAvatarImageSrc(profileData?.sAvatar, profileData?.sUserName)
     const sDisplayName = profileData?.sUserName || ''
+
+    useEffect(() => {
+        const handleProfileRefresh = () => {
+            queryClient.invalidateQueries('layout-profile')
+            queryClient.invalidateQueries('profileData')
+        }
+
+        window.addEventListener('bsg:profile-refresh', handleProfileRefresh)
+        return () => window.removeEventListener('bsg:profile-refresh', handleProfileRefresh)
+    }, [queryClient])
 
     // const socket = new io('http://192.168.11.56:3050', {
     //     transports: ["websocket", "polling"],
@@ -65,7 +95,10 @@ function MainLayout({ children }) {
     // }, [socket, getCookie('sAuthToken')])
 
     return (
-        <div id={isGamePlay ? 'main-layout' : undefined} className={`main-layout ${isGamePlay ? 'gameplay-layout' : ''}`}>
+        <div
+            id={isGamePlay ? 'main-layout' : undefined}
+            className={`main-layout main-layout--scene-${sBackgroundScene} ${isGamePlay ? 'gameplay-layout' : ''}`}
+        >
             <div className='main-layout-background'></div>
             {!isGamePlay && !isLobby && <HeaderPrivate />}
             {!isGamePlay && <div className='lobby-topbar'>

@@ -3,8 +3,10 @@ const { Setting, Transaction, User } = require('../../../../models');
 
 const controllers = {};
 
+const STRIPE_NOT_CONFIGURED_MESSAGE = 'Stripe checkout is not configured';
+
 function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY is not configured');
+  if (!process.env.STRIPE_SECRET_KEY) throw new Error(STRIPE_NOT_CONFIGURED_MESSAGE);
   return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
@@ -70,11 +72,31 @@ controllers.buyItem = async (req, res) => {
     const item = await getShopItemByPrice(body.nPrice);
     if (!item) return res.reply(messages.invalid_req('nPrice'));
 
-    const stripe = getStripe();
     const nPrice = Number(item.nPrice);
     const nChips = Number(item.nChips);
     if (!nPrice || nPrice <= 0) return res.reply(messages.invalid_req('nPrice'));
     if (!nChips || nChips <= 0) return res.reply(messages.invalid_req('nChips'));
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      const user = await User.findById(req.user._id, { nChips: 1 }).lean();
+      const nPreviousChips = Number(user?.nChips) || 0;
+      const nNewChips = nPreviousChips + nChips;
+      const transaction = await Transaction.create({
+        iUserId: req.user._id,
+        nAmount: nChips,
+        nPreviousChips,
+        nNewChips,
+        eType: 'credit',
+        eMode: 'manual',
+        eStatus: 'Success',
+        sDescription: `Local shop credit for ${nChips} chips`,
+      });
+
+      await User.updateOne({ _id: req.user._id }, { $inc: { nChips } });
+      return res.reply(messages.success('Purchase successful'), { transaction });
+    }
+
+    const stripe = getStripe();
 
     const transaction = await Transaction.create({
       iUserId: req.user._id,
@@ -117,6 +139,9 @@ controllers.buyItem = async (req, res) => {
     return res.reply(messages.success('Stripe checkout created'), { sessionId: session.id });
   } catch (error) {
     console.log('controllers.buyItem error ::', error);
+    if (error.message === STRIPE_NOT_CONFIGURED_MESSAGE) {
+      return res.reply(messages.customCodeAndMessage(503, STRIPE_NOT_CONFIGURED_MESSAGE));
+    }
     return res.reply(messages.server_error('buyItem'), error.message || error);
   }
 };

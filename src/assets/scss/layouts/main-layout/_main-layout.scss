@@ -1,16 +1,80 @@
 .main-layout {
+	--main-layout-tint: 48, 111, 214;
 	position: relative;
 	min-height: 100dvh;
-	background: transparent;
+	background: #020915;
+
+	&--scene-missions {
+		--main-layout-tint: 226, 169, 35;
+	}
+
+	&--scene-private-table {
+		--main-layout-tint: 190, 42, 40;
+	}
+
+	&--scene-shop {
+		--main-layout-tint: 46, 178, 88;
+	}
+
+	&--scene-live-tables {
+		--main-layout-tint: 48, 111, 214;
+	}
+
+	&--scene-player-profile,
+	&--scene-profile {
+		--main-layout-tint: 186, 98, 34;
+	}
+
+	&--scene-settings {
+		--main-layout-tint: 108, 126, 196;
+	}
 
 	.main-layout-background {
 		position: fixed;
 		inset: 0;
 		z-index: -1;
 		pointer-events: none;
-		background:
-			radial-gradient(circle at 50% -12%, rgba(120, 176, 235, 0.18) 0%, rgba(120, 176, 235, 0) 28%),
-			linear-gradient(180deg, rgba(2, 17, 33, 0.98) 0%, rgba(4, 20, 39, 1) 100%);
+		background: #020915 url('../../../images/bg/login_bg_new.png') no-repeat center center / cover;
+
+		&::after {
+			content: '';
+			position: absolute;
+			inset: 0;
+			background:
+				radial-gradient(circle at 50% 12%, rgba(var(--main-layout-tint), 0.22) 0%, rgba(var(--main-layout-tint), 0) 38%),
+				linear-gradient(180deg, rgba(2, 9, 21, 0.12) 0%, rgba(2, 9, 21, 0.36) 100%);
+			transition: background 240ms ease;
+		}
+	}
+
+	&--scene-live-tables,
+	&--scene-missions,
+	&--scene-private-table,
+	&--scene-shop,
+	&--scene-player-profile,
+	&--scene-profile,
+	&--scene-settings {
+		.main-layout-background {
+			background:
+				radial-gradient(circle at 50% -8%, rgba(var(--main-layout-tint), 0.24) 0%, rgba(var(--main-layout-tint), 0) 30%),
+				linear-gradient(180deg, rgba(2, 17, 33, 0.94) 0%, rgba(4, 20, 39, 0.98) 100%),
+				url('../../../images/ui/table_selection_bg.png') repeat top center / 420px auto;
+
+			&::before {
+				content: '';
+				position: absolute;
+				inset: 0;
+				background:
+					repeating-linear-gradient(
+						135deg,
+						rgba(170, 224, 255, 0.025) 0px,
+						rgba(170, 224, 255, 0.025) 10px,
+						rgba(170, 224, 255, 0) 10px,
+						rgba(170, 224, 255, 0) 22px
+					);
+				pointer-events: none;
+			}
+		}
 	}
 
 	.main-container,

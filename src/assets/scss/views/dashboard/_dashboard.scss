@@ -5653,11 +5653,26 @@ $nav-button-font:   13px;
             margin-left: 0;
         }
 
-        img {
+        img,
+        .dashboard-hub__table-card-initials {
             width: 100%;
             height: 100%;
-            object-fit: cover;
             display: block;
+        }
+
+        .dashboard-hub__table-card-initials {
+            display: grid;
+            place-items: center;
+            background:
+                radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 34%),
+                linear-gradient(145deg, var(--seat-color, #58c7ff) 0%, rgba(6, 18, 31, 0.78) 118%);
+            color: #06101c;
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: 0;
+            line-height: 1;
+            text-transform: uppercase;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.34);
         }
 
         &.is-empty {
@@ -6657,9 +6672,9 @@ $nav-button-font:   13px;
         z-index: 1;
         display: grid;
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: minmax(154px, auto);
+        grid-template-rows: minmax(123px, auto);
         align-items: center;
-        min-height: 176px;
+        min-height: 141px;
         padding: 0;
         overflow: visible;
 
@@ -6668,8 +6683,8 @@ $nav-button-font:   13px;
             position: absolute;
             left: 50%;
             top: 58%;
-            width: min(92vw, 620px);
-            height: min(46vw, 230px);
+            width: min(74vw, 496px);
+            height: min(37vw, 184px);
             border-radius: 50%;
             background:
                 radial-gradient(ellipse at center, rgba(0, 0, 0, 0.88) 0%, rgba(14, 20, 32, 0.66) 34%, rgba(58, 74, 96, 0.14) 56%, rgba(0, 0, 0, 0) 78%);
@@ -6690,7 +6705,7 @@ $nav-button-font:   13px;
     &__carousel-track {
         position: relative;
         z-index: 1;
-        height: clamp(154px, 31vw, 218px);
+        height: clamp(123px, 25vw, 174px);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -6717,8 +6732,8 @@ $nav-button-font:   13px;
         position: absolute;
         left: 50%;
         top: 50%;
-        width: clamp(171px, 42vw, 264px);
-        height: clamp(171px, 42vw, 264px);
+        width: clamp(137px, 34vw, 211px);
+        height: clamp(137px, 34vw, 211px);
         padding: 0;
         border: 0;
         border-radius: 0;
@@ -6889,13 +6904,13 @@ $nav-button-font:   13px;
     @include media-min(md) {
         &__icon-carousel {
             grid-template-columns: minmax(0, 1fr);
-            grid-template-rows: minmax(202px, auto);
-            min-height: 226px;
+            grid-template-rows: minmax(162px, auto);
+            min-height: 181px;
             padding: 0;
         }
 
         &__carousel-track {
-            height: 204px;
+            height: 163px;
         }
 
         &__viewport-window::before {
@@ -6907,13 +6922,13 @@ $nav-button-font:   13px;
 
     @include media-min(lg) {
         &__icon-carousel {
-            grid-template-rows: minmax(210px, auto);
-            min-height: 232px;
+            grid-template-rows: minmax(168px, auto);
+            min-height: 186px;
             padding: 0;
         }
 
         &__carousel-track {
-            height: 196px;
+            height: 157px;
         }
 
         &__viewport-window::before {
@@ -6923,8 +6938,8 @@ $nav-button-font:   13px;
         }
 
         &__carousel-item {
-            width: 152px;
-            height: 152px;
+            width: 122px;
+            height: 122px;
         }
 
     }
@@ -7035,11 +7050,11 @@ $nav-button-font:   13px;
     }
 
     .dashboard-hub__icon-carousel {
-        min-height: clamp(176px, 38vw, 240px);
+        min-height: clamp(141px, 30vw, 192px);
 
         &::before {
-            width: min(82vw, 520px);
-            height: min(26vw, 132px);
+            width: min(66vw, 416px);
+            height: min(21vw, 106px);
             background:
                 radial-gradient(ellipse at center, rgba(0, 0, 0, 0.88) 0%, rgba(12, 17, 26, 0.62) 40%, rgba(var(--dashboard-theme-rgb), 0.2) 62%, rgba(0, 0, 0, 0) 80%);
             filter: blur(18px);
@@ -7052,8 +7067,8 @@ $nav-button-font:   13px;
             left: 50%;
             top: 64%;
             z-index: 0;
-            width: min(78vw, 500px);
-            height: min(18vw, 92px);
+            width: min(62vw, 400px);
+            height: min(14vw, 74px);
             border-radius: 50%;
             background:
                 linear-gradient(90deg, rgba(var(--dashboard-theme-rgb), 0) 0%, rgba(var(--dashboard-theme-accent-rgb), 0.24) 48%, rgba(var(--dashboard-theme-rgb), 0) 100%);

@@ -1,6 +1,22 @@
 import Phaser from "phaser";
 import assets from "../scripts/assets";
-import { getAvatarImageSrc, getAvatarTextureKey, getBuiltInAvatar } from "../shared/constants/builtInAvatars";
+import { getAvatarImageSrc, getAvatarTextureKey } from "../shared/constants/builtInAvatars";
+
+function getPlayerInitials(name = "") {
+  const words = String(name || "")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (!words.length) return "--";
+  if (words.length > 1) return `${words[0][0]}${words[1][0]}`.toUpperCase();
+
+  const compact = words[0].replace(/[^a-zA-Z0-9]/g, "");
+  if (!compact) return "--";
+  if (compact.length === 1) return compact[0].toUpperCase();
+  return `${compact[0]}${compact[compact.length - 1]}`.toUpperCase();
+}
 
 export default class ProfileRenderer extends Phaser.GameObjects.Container {
   constructor(scene, x, y, { isLocalSeat = false, profileSize = 92, profileOffsetY = 0, seatTheme = null } = {}) {
@@ -14,6 +30,7 @@ export default class ProfileRenderer extends Phaser.GameObjects.Container {
     this.frameDiameter = profileSize + (isLocalSeat ? 18 : 12);
     this.maskDiameter = profileSize - (isLocalSeat ? 10 : 8);
     this.pendingTextureKey = "";
+    this.showingInitials = true;
 
     this._frameColor = seatTheme?.accentColor || 0xf5c842;
     this._seatSuit = seatTheme?.suit || '\u2660';
@@ -21,15 +38,25 @@ export default class ProfileRenderer extends Phaser.GameObjects.Container {
     this.shell = scene.add.container(0, this.profileOffsetY);
     this.backdrop = scene.add.graphics();
     this.avatar = scene.add.image(0, 0, assets.profile_picture).setOrigin(0.5);
+    this.initialsText = scene.add
+      .text(0, 0, "--", {
+        fontSize: isLocalSeat ? '41px' : '32px',
+        fontFamily: 'Arial, sans-serif',
+        fontStyle: '900',
+        color: '#fff4c2',
+        stroke: '#08131f',
+        strokeThickness: isLocalSeat ? 6 : 4,
+        align: 'center',
+        resolution: 2,
+      })
+      .setOrigin(0.5);
     this.frameOverlay = scene.add.graphics();
-    this.timer = scene.add
-      .image(0, 0, assets.timer)
-      .setScale(this.isLocalSeat ? 0.7 : 0.5)
-      .setVisible(false);
     this.timerGlow = scene.add.graphics().setVisible(false);
 
     this.shell.add(this.backdrop);
     this.shell.add(this.avatar);
+    this.shell.add(this.initialsText);
+    this.shell.add(this.timerGlow);
     this.shell.add(this.frameOverlay);
 
     // Suit badge: themed card suit symbol on the frame bottom-right edge
@@ -46,39 +73,38 @@ export default class ProfileRenderer extends Phaser.GameObjects.Container {
     this.shell.add(this._suitText);
 
     this.add(this.shell);
-    this.add(this.timer);
-    this.add(this.timerGlow);
+    this.timer = this.timerGlow;
 
     this.redraw();
   }
 
   setProfileImage(url, name, { showImage = true, seatIndex = -1 } = {}) {
+    const source = showImage ? getAvatarImageSrc(url, name, seatIndex) : "";
     this.profileName = name;
-    this.avatar.setVisible(showImage);
+    this.initialsText.setText(getPlayerInitials(name));
 
-    if (!showImage) {
-      this.avatar.setTexture(assets.profile_picture);
+    if (source && this.useAvailableTexture(source, name)) {
+      this.showingInitials = false;
+      this.avatar.setVisible(true);
+      this.initialsText.setVisible(false);
       this.redraw();
       return;
     }
 
-    const directSource = getAvatarImageSrc(url, name, seatIndex);
-    const fallbackSource = getBuiltInAvatar(name, seatIndex)?.sPath || "";
-
-    if (this.useAvailableTexture(directSource, name)) return;
-    if (this.useAvailableTexture(fallbackSource, name)) return;
-
-    this.avatar.setTexture(assets.profile_picture);
-    this.redraw();
-
-    if (directSource) {
-      this.loadRuntimeTexture(directSource, name);
+    if (source) {
+      this.showingInitials = false;
+      this.avatar.setVisible(true);
+      this.initialsText.setVisible(false);
+      this.avatar.setTexture(assets.profile_picture);
+      this.loadRuntimeTexture(source, name);
+      this.redraw();
       return;
     }
 
-    if (fallbackSource) {
-      this.loadRuntimeTexture(fallbackSource, name);
-    }
+    this.showingInitials = true;
+    this.avatar.setVisible(false);
+    this.initialsText.setVisible(true);
+    this.redraw();
   }
 
   useAvailableTexture(src, seed) {
@@ -87,6 +113,8 @@ export default class ProfileRenderer extends Phaser.GameObjects.Container {
     const builtInTextureKey = getAvatarTextureKey(src, seed);
     if (builtInTextureKey && this.scene.textures.exists(builtInTextureKey)) {
       this.avatar.setTexture(builtInTextureKey);
+      this.avatar.setVisible(true);
+      this.initialsText.setVisible(false);
       this.redraw();
       return true;
     }
@@ -94,6 +122,8 @@ export default class ProfileRenderer extends Phaser.GameObjects.Container {
     const runtimeTextureKey = this.getRuntimeTextureKey(src);
     if (this.scene.textures.exists(runtimeTextureKey)) {
       this.avatar.setTexture(runtimeTextureKey);
+      this.avatar.setVisible(true);
+      this.initialsText.setVisible(false);
       this.redraw();
       return true;
     }
@@ -138,6 +168,8 @@ export default class ProfileRenderer extends Phaser.GameObjects.Container {
       if (!this.avatar || !this.scene.textures.exists(runtimeTextureKey)) return;
 
       this.avatar.setTexture(runtimeTextureKey);
+      this.avatar.setVisible(true);
+      this.initialsText.setVisible(false);
       this.redraw();
     });
     this.scene.load.once(Phaser.Loader.Events.LOAD_ERROR, () => {
@@ -164,13 +196,21 @@ export default class ProfileRenderer extends Phaser.GameObjects.Container {
 
     this.avatar.setDisplaySize(sourceWidth * coverScale, sourceHeight * coverScale);
 
-    // Backdrop: dark filled circle behind avatar
+    // Backdrop: compact colored initials fallback, or dark matte behind selected avatar art.
     this.backdrop.clear();
-    this.backdrop.fillStyle(0x111111, 0.96);
+    this.backdrop.fillStyle(0x06121f, 0.96);
     this.backdrop.fillCircle(0, 0, outerRadius);
 
-    if (!this.avatar.visible) {
-      this.backdrop.fillStyle(0x1a1714, 1);
+    if (this.showingInitials) {
+      const accentColor = this._frameColor || 0xf5c842;
+      this.backdrop.fillStyle(accentColor, 1);
+      this.backdrop.fillCircle(0, 0, clipRadius);
+      this.backdrop.fillStyle(0xffffff, 0.28);
+      this.backdrop.fillCircle(-clipRadius * 0.28, -clipRadius * 0.34, clipRadius * 0.38);
+      this.backdrop.fillStyle(0x06121f, 0.18);
+      this.backdrop.fillCircle(clipRadius * 0.26, clipRadius * 0.34, clipRadius * 0.74);
+    } else {
+      this.backdrop.fillStyle(0x111111, 1);
       this.backdrop.fillCircle(0, 0, clipRadius);
     }
 
@@ -235,9 +275,7 @@ export default class ProfileRenderer extends Phaser.GameObjects.Container {
   startTurnTimer(ttl, totalTime) {
     this.resetTurnTimer();
 
-    const radius = (this.frameDiameter / 2) + (this.isLocalSeat ? 10 : 7);
-    const lineWidth = this.isLocalSeat ? 8 : 5;
-    const cy = this.profileOffsetY;
+    const radius = Math.max(8, this.maskDiameter / 2 - 2);
     const startAngle = -Math.PI / 2; // 12 o'clock
 
     const endTime = Date.now() + ttl;
@@ -268,15 +306,18 @@ export default class ProfileRenderer extends Phaser.GameObjects.Container {
       const endArc = startAngle + fraction * Math.PI * 2;
 
       this.timerGlow.clear();
-      // Dim track
-      this.timerGlow.lineStyle(lineWidth, 0xffffff, 0.12);
-      this.timerGlow.strokeCircle(0, cy, radius);
-      // Active arc
+      this.timerGlow.fillStyle(0x020913, 0.22);
+      this.timerGlow.fillCircle(0, 0, radius);
+
       if (fraction > 0) {
-        this.timerGlow.lineStyle(lineWidth, color, 0.92);
+        this.timerGlow.fillStyle(color, 0.34);
         this.timerGlow.beginPath();
-        this.timerGlow.arc(0, cy, radius, startAngle, endArc, false);
-        this.timerGlow.strokePath();
+        this.timerGlow.moveTo(0, 0);
+        this.timerGlow.arc(0, 0, radius, startAngle, endArc, false);
+        this.timerGlow.closePath();
+        this.timerGlow.fillPath();
+        this.timerGlow.fillStyle(0xffffff, 0.08);
+        this.timerGlow.fillCircle(-radius * 0.32, -radius * 0.34, radius * 0.38);
       }
       this.timerGlow.setVisible(true);
 
@@ -290,17 +331,15 @@ export default class ProfileRenderer extends Phaser.GameObjects.Container {
   }
 
   setTimerTint(color = 0xf2d57e, alpha = 0.28) {
-    const radius = (this.frameDiameter / 2) + (this.isLocalSeat ? 10 : 7);
+    const radius = Math.max(8, this.maskDiameter / 2 - 2);
     this.timerGlow.clear();
-    this.timerGlow.lineStyle(this.isLocalSeat ? 8 : 6, color, alpha);
-    this.timerGlow.strokeCircle(0, this.profileOffsetY, radius);
+    this.timerGlow.fillStyle(color, alpha);
+    this.timerGlow.fillCircle(0, 0, radius);
     this.timerGlow.setVisible(true);
   }
 
   resetTurnTimer() {
     clearInterval(this.turnInterval);
-    this.timer.clearTint();
-    this.timer.setVisible(false);
     this.timerGlow.clear();
     this.timerGlow.setVisible(false);
   }

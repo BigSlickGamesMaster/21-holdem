@@ -29,7 +29,7 @@ const Transaction = new mongoose.Schema(
     },
     eMode: {
       type: String,
-      enum: ['admin', 'user', 'game', 'IAP', 'DR', 'manual', 'square', 'stripe'],
+      enum: ['admin', 'user', 'game', 'IAP', 'DR', 'manual', 'square', 'stripe', 'side_bet'],
       default: 'game',
     },
     eStatus: {

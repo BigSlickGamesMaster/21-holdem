@@ -53,6 +53,7 @@ export default class SocketManager {
     emit(sEventName, oData = {}, callback) {
         this.socket.emit(this.iBoardId, { sEventName, oData }, (error, response) => {
             this.onCallBackReceive(sEventName, response, error);
+            if (typeof callback === 'function') callback(error, response);
         });
     };
     onReqJoinBoard(callback) {
@@ -119,6 +120,9 @@ export default class SocketManager {
             case 'resReaction':
                 this.oScene.handleResReaction?.(data.oData);
                 break;
+            case 'resSideBets':
+                this.oScene.handleSideBetsState?.(data.oData);
+                break;
             case 'disconnect':
                 this.oScene.exitGame();
                 break;
@@ -143,6 +147,9 @@ export default class SocketManager {
                 break;
             case 'reqDoubleDown':
                 this.oScene.handleActionError?.('reqDoubleDown', error.error);
+                break;
+            case 'reqSideBets':
+                if (error?.error) this.oScene.handleActionError?.('reqSideBets', error.error);
                 break;
             default:
                 break;

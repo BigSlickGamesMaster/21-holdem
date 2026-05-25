@@ -34,6 +34,10 @@ class Service {
     this.nTotalBidChips = oParticipantData.nTotalBidChips ?? 0;
     this.nStandAtRound = oParticipantData.nStandAtRound;
     this.nWinningAmount = oParticipantData.nWinningAmount ?? 0;
+    this.oSideBets = oParticipantData.oSideBets ?? {};
+    this.oCommittedSideBets = oParticipantData.oCommittedSideBets ?? {};
+    this.oSideBetResult = oParticipantData.oSideBetResult ?? null;
+    this.bSideBetsQueuedForNextHand = oParticipantData.bSideBetsQueuedForNextHand ?? false;
     this.nPlayerTurnCount = oParticipantData.nPlayerTurnCount ?? 0;
     this.dGameStartedAt = oParticipantData.dGameStartedAt ?? Date.now();
     this.oBoard = oBoard;
@@ -41,6 +45,31 @@ class Service {
 
   get gameState() {
     return this.oBoard.toJSON();
+  }
+
+  resetForNextHand() {
+    this.aCardHand = [];
+    this.aUserAction = ['c', 'r', 'f'];
+    this.nCardScore = 0;
+    this.isDoubleDownLock = false;
+    this.isAllInLock = false;
+    this.bPendingAllInStandChoice = false;
+    this.bHasAceAndBust = false;
+    this.nStandAtRound = 0;
+    this.nLastBidChips = 0;
+    this.nTotalBidChips = 0;
+    this.nWinningAmount = 0;
+    this.oCommittedSideBets = {};
+    this.oSideBetResult = null;
+    this.nPlayerTurnCount = 0;
+    this.bHasSplit = false;
+    this.aSplitHand = [];
+    this.nSplitCardScore = 0;
+    this.eSplitPhase = null;
+    this.bSplitHand1Locked = false;
+    this.bSplitHand2Locked = false;
+    this.nSplitHand1RoundCount = 0;
+    this.nSplitHand2RoundCount = 0;
   }
 
   get sRootSocket() {
@@ -60,6 +89,8 @@ class Service {
   }
 
   getAvailableTurnActions() {
+    if (this.isAllInLock && this.bPendingAllInStandChoice) return ['c', 's'];
+
     const aActions = Array.isArray(this.aUserAction) ? [...this.aUserAction] : [];
     if (!this.hasActiveAllInOpponent()) return aActions;
     return aActions.filter(action => action !== 'r');
@@ -76,6 +107,7 @@ class Service {
       aUserAction: this.getAvailableTurnActions(),
       nMinBet: this.oBoard.nMinBet,
       toCallAmount,
+      bAllInStandChoice: this.isAllInLock && this.bPendingAllInStandChoice,
     };
 
     const [ttl, nRemainingInitializeTime, nRemainingRoundStartsIn] = await Promise.all([
@@ -245,6 +277,35 @@ class Service {
     return await Transaction.create(transactionData);
   }
 
+  sanitizeSideBets(oBets = {}) {
+    const allowedKeys = ['straight', 'flush', 'twenty-one'];
+    return allowedKeys.reduce((accumulator, key) => {
+      const nAmount = Math.max(0, Math.min(5000, Math.floor(Number(oBets[key]) || 0)));
+      accumulator[key] = nAmount;
+      return accumulator;
+    }, {});
+  }
+
+  getSideBetTotal(oBets = this.oSideBets) {
+    return Object.values(oBets || {}).reduce((sum, amount) => sum + Math.max(0, Number(amount) || 0), 0);
+  }
+
+  async setSideBets(oBets = {}) {
+    const bets = this.sanitizeSideBets(oBets);
+    const total = this.getSideBetTotal(bets);
+    const nAvailableChips = Math.max(0, Number(this.nChips) || 0);
+
+    if (total > nAvailableChips) throw new Error('Insufficient chips for side bets');
+    this.oSideBets = bets;
+    this.bSideBetsQueuedForNextHand = this.oBoard?.eState === 'playing' && Array.isArray(this.aCardHand) && this.aCardHand.length > 0;
+    await this.oBoard.update({ aParticipant: [this.toJSON()] });
+    await this.emit('resSideBets', {
+      bets: this.oSideBets,
+      total,
+      nChips: this.nChips,
+    });
+  }
+
   shouldPersistFinancialState() {
     return this.oBoard?.isLiveTable?.() !== false;
   }
@@ -324,6 +385,10 @@ class Service {
       'nTotalBidChips',
       'nStandAtRound',
       'nWinningAmount',
+      'oSideBets',
+      'oCommittedSideBets',
+      'oSideBetResult',
+      'bSideBetsQueuedForNextHand',
       'nPlayerTurnCount',
       'dGameStartedAt',
     ]);

@@ -4,6 +4,14 @@ const { PokerFinishGame, PokerBoard, Setting, User, Analytics } = require('../..
 const { redis, mongodb, deck } = require('../../utils');
 const TwentyOneHoldemBoard = require('./TwentyOneHoldem/Board');
 
+const BOARD_TYPE_ALIASES = {
+  pokerJack: 'TwentyOneHoldem',
+};
+
+function normalizeBoardType(ePokerType) {
+  return BOARD_TYPE_ALIASES[ePokerType] || ePokerType || 'TwentyOneHoldem';
+}
+
 class BoardManager {
   constructor() {
     this.oDefaultSetting = {
@@ -59,7 +67,7 @@ class BoardManager {
         iUserTurn: '',
         eState: 'waiting',
         eTableMode: options.eTableMode || oProtoData.eTableMode || 'live',
-        ePokerType: oProtoData.ePokerType || 'TwentyOneHoldem',
+        ePokerType: normalizeBoardType(oProtoData.ePokerType),
         oSocketId: {},
         aDeck: deck.getDeck(1),
         oTutorial: options.oTutorial || null,
@@ -83,6 +91,7 @@ class BoardManager {
       return boardClass;
     } catch (error) {
       console.log('error from createBoard :: ', error);
+      throw error;
     }
   }
 
@@ -130,6 +139,7 @@ class BoardManager {
   }
 
   generateClass(oBoardData) {
+    oBoardData.ePokerType = normalizeBoardType(oBoardData.ePokerType);
     log.cyan('Very Bad 🚀 ~ file: index.js:141 ~ BoardManager ~ generateClass ~ oBoardData:', oBoardData.ePokerType);
     let boardClass;
     switch (oBoardData.ePokerType) {
@@ -140,6 +150,7 @@ class BoardManager {
         log.red('Invalid boardType while generating class');
         break;
     }
+    if (!boardClass) throw new Error(`Unsupported board type: ${oBoardData.ePokerType}`);
     return boardClass;
   }
 

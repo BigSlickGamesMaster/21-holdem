@@ -212,6 +212,37 @@
     return true;
   };
 
+  FXOverlay.clear = function () {
+    var chipBurst = getModule('chipBurst');
+    var potEffects = getModule('potEffects');
+
+    if (chipBurst && typeof chipBurst.clear === 'function') {
+      safe(function () { return chipBurst.clear(); });
+    }
+    if (potEffects && typeof potEffects.clearPotStack === 'function') {
+      safe(function () { return potEffects.clearPotStack(); });
+    }
+    if (potEffects && typeof potEffects.clearSpotlight === 'function') {
+      safe(function () { return potEffects.clearSpotlight(); });
+    }
+
+    FXOverlay._anchors = {};
+
+    if (global.document) {
+      [
+        'fx-overlay-chip-layer',
+        'fx-overlay-pot-stack-layer',
+        'fx-overlay-pot-pulse-layer',
+        'fx-overlay-active-player-layer'
+      ].forEach(function (id) {
+        var node = global.document.getElementById(id);
+        if (node && node.parentNode) node.parentNode.removeChild(node);
+      });
+    }
+
+    return true;
+  };
+
   FXOverlay.setEnabled = function (value) {
     FXOverlay._enabled = !!value;
     return FXOverlay._enabled;

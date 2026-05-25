@@ -16,7 +16,7 @@ const config = {
     centerX: LAYOUTS.mobile.width / 2,
     centerY: LAYOUTS.mobile.height / 2,
     layoutMode: 'mobile',
-    version: '1.2',
+    version: '1.3',
     CommonFont: 'NeuePlakCondensed',
     ButtonFont: 'TTCommons',
     playerFont: 'playerFont',

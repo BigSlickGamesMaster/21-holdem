@@ -15,7 +15,7 @@ import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import _ from 'scripts/helper';
 import DailyRewardsPanel from 'shared/components/DailyRewardsPanel';
-import { BUILT_IN_AVATARS, DEFAULT_PROFILE_BANNER, getAvatarImageSrc } from 'shared/constants/builtInAvatars';
+import { DEFAULT_PROFILE_BANNER, getAvatarImageSrc } from 'shared/constants/builtInAvatars';
 import { getCookie, ReactToastify } from 'shared/utils';
 import dailyRewardsLobbyBackground from '../../assets/images/bg/daily_rewards_bg.png';
 import dailyRewardsLightsVideo from '../../assets/videos/daily_rewards_lights.mp4';
@@ -65,6 +65,7 @@ function sortTablesByPriority(a, b) {
 const PLAYER_OPTIONS = [4, 6, 9];
 const BUY_IN_OPTIONS = [1000, 5000, 15000, 20000];
 const LOBBY_TAB_IDS = ['lobby-live-tables', 'lobby-missions', 'lobby-private-table', 'lobby-player-profile', 'lobby-shop', 'lobby-settings'];
+const TABLE_SEAT_COLORS = ['#d4af6a', '#58c7ff', '#ff6b8a', '#7ee081', '#c38cff', '#ffb15c', '#5eead4', '#f7e36b', '#9bb6ff'];
 const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
     ? loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY)
     : Promise.resolve(null);
@@ -75,15 +76,25 @@ function hashSeed(seed = '') {
         .reduce((hash, char) => ((hash * 31) + char.charCodeAt(0)) % 2147483647, 11);
 }
 
-function getTableSeatAvatars(table) {
+function getSeatInitials(seed, index) {
+    const sCleanSeed = String(seed || 'PLAYER').replace(/[^a-zA-Z0-9]/g, '').toUpperCase() || 'PLAYER';
+    const nSeedLength = sCleanSeed.length;
+    const sFirst = sCleanSeed[index % nSeedLength] || 'P';
+    const sSecond = sCleanSeed[(nSeedLength - 1 - index + nSeedLength) % nSeedLength] || 'L';
+    return `${sFirst}${sSecond}`;
+}
+
+function getTableSeatMarkers(table) {
     const nSeatCount = Math.max(0, Number(table?.nMaxPlayer) || 0);
-    if (!nSeatCount || !BUILT_IN_AVATARS.length) return [];
+    if (!nSeatCount) return [];
 
-    const nStartIndex = Math.abs(hashSeed(`${table?._id || table?.sName || table?.nMaxPlayer || 'table'}`)) % BUILT_IN_AVATARS.length;
+    const sSeed = `${table?._id || table?.sName || table?.nMaxPlayer || 'table'}`;
+    const nStartIndex = Math.abs(hashSeed(sSeed)) % TABLE_SEAT_COLORS.length;
 
-    return Array.from({ length: nSeatCount }, (_, index) => (
-        BUILT_IN_AVATARS[(nStartIndex + index) % BUILT_IN_AVATARS.length]?.sPath || DEFAULT_PROFILE_BANNER
-    ));
+    return Array.from({ length: nSeatCount }, (_, index) => ({
+        initials: getSeatInitials(sSeed, index),
+        color: TABLE_SEAT_COLORS[(nStartIndex + index) % TABLE_SEAT_COLORS.length],
+    }));
 }
 
 function getShopChipImage(nChips) {
@@ -525,13 +536,14 @@ const Dashboard = () => {
         handleQuickNavSelect(aQuickNavItems[nNextIndex]);
     };
 
-    const startCarouselDrag = (x, y, width) => {
+    const startCarouselDrag = (x, y, width, left = 0) => {
         carouselPointerRef.current = {
             active: true,
             dragged: false,
             x,
             y,
             width: width || 320,
+            left,
         };
     };
 
@@ -560,6 +572,18 @@ const Dashboard = () => {
         const nDeltaX = x - oPointer.x;
         const nDeltaY = y - oPointer.y;
         const nDragDistance = Math.max(90, Math.min(180, (oPointer.width || 320) * 0.2));
+        const nStartOffsetFromCenter = oPointer.x - ((oPointer.left || 0) + ((oPointer.width || 320) / 2));
+        const nClickZoneThreshold = Math.max(54, Math.min(104, (oPointer.width || 320) * 0.16));
+
+        if (!bWasDragged && Math.abs(nDeltaX) < 8 && Math.abs(nDeltaY) < 8 && Math.abs(nStartOffsetFromCenter) > nClickZoneThreshold) {
+            carouselSuppressClickRef.current = true;
+            window.setTimeout(() => {
+                carouselSuppressClickRef.current = false;
+            }, 120);
+            handleCarouselStep(nStartOffsetFromCenter > 0 ? 1 : -1);
+            return;
+        }
+
         if (bWasDragged) {
             carouselSuppressClickRef.current = true;
             window.setTimeout(() => {
@@ -581,8 +605,8 @@ const Dashboard = () => {
     const handleCarouselPointerDown = (event) => {
         if (event.pointerType === 'touch') return;
         event.currentTarget.setPointerCapture?.(event.pointerId);
-        const { width } = event.currentTarget.getBoundingClientRect();
-        startCarouselDrag(event.clientX, event.clientY, width);
+        const { width, left } = event.currentTarget.getBoundingClientRect();
+        startCarouselDrag(event.clientX, event.clientY, width, left);
     };
 
     const handleCarouselPointerMove = (event) => {
@@ -598,8 +622,8 @@ const Dashboard = () => {
     const handleCarouselTouchStart = (event) => {
         const touch = event.touches?.[0];
         if (!touch) return;
-        const { width } = event.currentTarget.getBoundingClientRect();
-        startCarouselDrag(touch.clientX, touch.clientY, width);
+        const { width, left } = event.currentTarget.getBoundingClientRect();
+        startCarouselDrag(touch.clientX, touch.clientY, width, left);
     };
 
     const handleCarouselTouchMove = (event) => {
@@ -644,7 +668,7 @@ const Dashboard = () => {
         const nFocus = Math.max(0, Math.min(1, 1 - Math.abs(nVisualOffset)));
         const nScale = 0.5 + (nFocus * 0.5);
         const nOpacity = 0.5 + (nFocus * 0.5);
-        const nRadius = Math.max(76, Math.min(176, nViewportWidth * 0.24));
+        const nRadius = Math.max(61, Math.min(141, nViewportWidth * 0.192));
 
         return {
             '--carousel-x': `${Math.round(nSide * nRadius)}px`,
@@ -713,7 +737,7 @@ const Dashboard = () => {
                             const nOccupied = getActivePlayers(table);
                             const nTotalSeats = Number(table.nMaxPlayer) || 0;
                             const nOpenSeats = Math.max(0, nTotalSeats - nOccupied);
-                            const aSeatAvatars = getTableSeatAvatars(table);
+                            const aSeatMarkers = getTableSeatMarkers(table);
                             const sTableId = table?._id || table?.id || `${table?.sName || 'table'}-${index}`;
                             const sTableName = table?.sName || 'Live Table';
 
@@ -741,7 +765,14 @@ const Dashboard = () => {
                                                             key={`${sTableId}-seat-${index + 1}`}
                                                             className={`dashboard-hub__table-card-avatar${bFilled ? '' : ' is-empty'}`}
                                                         >
-                                                            {bFilled ? <img src={aSeatAvatars[index]} alt='' /> : null}
+                                                            {bFilled ? (
+                                                                <span
+                                                                    className='dashboard-hub__table-card-initials'
+                                                                    style={{ '--seat-color': aSeatMarkers[index]?.color }}
+                                                                >
+                                                                    {aSeatMarkers[index]?.initials || 'PL'}
+                                                                </span>
+                                                            ) : null}
                                                         </span>
                                                     );
                                                 })}
@@ -913,7 +944,7 @@ const Dashboard = () => {
         const oFeaturedTable = aFilteredTables[0] || aSortedTables[0] || null;
         const nAvailableTables = oFeaturedTable ? getAvailableTableCount(oFeaturedTable) : 0;
         const nFeaturedOccupied = oFeaturedTable ? getActivePlayers(oFeaturedTable) : 0;
-        const aSeatAvatars = oFeaturedTable ? getTableSeatAvatars(oFeaturedTable) : [];
+        const aSeatMarkers = oFeaturedTable ? getTableSeatMarkers(oFeaturedTable) : [];
 
         return (
         <article
@@ -979,7 +1010,14 @@ const Dashboard = () => {
                                             key={`desktop-live-seat-${index + 1}`}
                                             className={`dashboard-hub__table-card-avatar${bFilled ? '' : ' is-empty'}`}
                                         >
-                                            {bFilled ? <img src={aSeatAvatars[index]} alt='' /> : null}
+                                            {bFilled ? (
+                                                <span
+                                                    className='dashboard-hub__table-card-initials'
+                                                    style={{ '--seat-color': aSeatMarkers[index]?.color }}
+                                                >
+                                                    {aSeatMarkers[index]?.initials || 'PL'}
+                                                </span>
+                                            ) : null}
                                         </span>
                                     );
                                 })}

@@ -262,6 +262,89 @@ async function raiseFromCheckStateReopensCallForOtherPlayers() {
   assert.equal(toCallAmount, 100);
 }
 
+async function allInBlindNeverReceivesStandFoldChoice() {
+  const board = new Board({
+    _id: 'scenario-board',
+    iProtoId: 'proto',
+    eState: 'playing',
+    nMinBet: 50,
+    nTableRound: 1,
+    iSmallBlindId: 'small',
+    iBigBlindId: 'big',
+    iUserTurn: 'opener',
+    oSetting: { nTurnTime: 20, nTurnBuffer: 0 },
+    aDeck: [],
+    aCommunityCard: [],
+    aParticipant: [
+      participantData({ iUserId: 'small', nChips: 25, nSeat: 1, nCardScore: 10 }),
+      participantData({ iUserId: 'big', nChips: 1000, nSeat: 2, nCardScore: 12 }),
+      participantData({ iUserId: 'opener', nChips: 1000, nSeat: 3, nCardScore: 13 }),
+    ],
+  });
+
+  board.update = async () => {};
+  board.emit = async () => {};
+  board.saveLogs = async () => {};
+  board.distributeCard = async () => {};
+  board.aParticipant.forEach(participant => {
+    participant.updateUser = async () => {};
+    participant.recordTransaction = async () => {};
+  });
+
+  await board.collectBootAmount();
+
+  const smallBlind = board.getParticipant('small');
+  assert.equal(smallBlind.nChips, 0);
+  assert.equal(smallBlind.isAllInLock, true);
+  assert.equal(smallBlind.bPendingAllInStandChoice, true);
+  assert.deepEqual(smallBlind.aUserAction, ['c', 's']);
+  assert.deepEqual(smallBlind.getAvailableTurnActions(), ['c', 's']);
+}
+
+async function staleAllInStandFoldStateIsNormalizedForTurnActions() {
+  const board = createFakeBoard([
+    participantData({
+      iUserId: 'allin',
+      nChips: 0,
+      isAllInLock: true,
+      bPendingAllInStandChoice: true,
+      aUserAction: ['s', 'f'],
+    }),
+    participantData({ iUserId: 'caller', nSeat: 2 }),
+  ]);
+  const player = board.aParticipant[0];
+
+  assert.deepEqual(player.getAvailableTurnActions(), ['c', 's']);
+}
+
+async function reboughtBustedPlayerCanRaiseNextHand() {
+  const board = createFakeBoard([
+    participantData({
+      iUserId: 'rebought',
+      nChips: 1000,
+      eState: 'bust',
+      isAllInLock: true,
+      bPendingAllInStandChoice: true,
+      aUserAction: ['c', 's'],
+      nLastBidChips: 100,
+      nTotalBidChips: 100,
+      bHasSplit: true,
+      bSplitHand1Locked: true,
+      bSplitHand2Locked: true,
+    }),
+    participantData({ iUserId: 'p2', nSeat: 2 }),
+  ]);
+  const player = board.aParticipant[0];
+
+  player.resetForNextHand();
+  player.eState = 'playing';
+
+  assert.equal(player.isAllInLock, false);
+  assert.equal(player.bPendingAllInStandChoice, false);
+  assert.equal(player.bHasSplit, false);
+  assert.deepEqual(player.getAvailableTurnActions(), ['c', 'r', 'f']);
+}
+
 const scenarios = [
   ['confirmed all-in raise does not reopen Stand/Fold', confirmedAllInRaiseDoesNotReopenStandFold],
   ['raise is rejected after opponent all-in', raiseIsRejectedAfterOpponentAllIn],
@@ -271,6 +354,9 @@ const scenarios = [
   ['all-in Stand/Confirm timeout confirms instead of folding', allInStandChoiceTimeoutConfirmsInsteadOfFolding],
   ['all-in Confirm choice waits for live betting to settle', allInConfirmChoiceWaitsForLiveBettingToSettle],
   ['raise from check state reopens call for other players', raiseFromCheckStateReopensCallForOtherPlayers],
+  ['all-in blind never receives Stand/Fold choice', allInBlindNeverReceivesStandFoldChoice],
+  ['stale all-in Stand/Fold state is normalized for turn actions', staleAllInStandFoldStateIsNormalizedForTurnActions],
+  ['rebought busted player can raise next hand', reboughtBustedPlayerCanRaiseNextHand],
 ];
 
 (async () => {
