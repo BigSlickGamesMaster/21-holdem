@@ -16,6 +16,8 @@ import SoundManager from '../scripts/SoundManager';
 import Services from '../scripts/Services';
 import Animations from '../scripts/Animations';
 import ChipAnimationController from '../scripts/ChipAnimationController';
+import CleanupRegistry from '../scripts/CleanupRegistry';
+import { GAME_BROWSER_EVENTS } from '../scripts/gameEvents';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -154,7 +156,7 @@ export default class Level extends Phaser.Scene {
             this.applyGameUILayout(event?.detail || {});
         };
 
-        window.addEventListener(GAME_UI_LAYOUT_EVENT, this.handleGameUILayoutUpdate);
+        this.cleanupRegistry?.addWindowListener(window, GAME_UI_LAYOUT_EVENT, this.handleGameUILayoutUpdate);
     }
 
     clearAllBettingLabels() {
@@ -383,7 +385,7 @@ getFXOverlayScreenAnchor(gameObject, options = {}) {
 
     emitTutorialOverlay(detail = {}) {
         if (!this.isGuestTutorial || typeof window === 'undefined') return;
-        window.dispatchEvent(new CustomEvent('guest-tutorial:update', { detail }));
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.GUEST_TUTORIAL_UPDATE, { detail }));
     }
 
 createGameActionButtonState(command, label, variant = 'secondary') {
@@ -546,7 +548,7 @@ bindGameActionOverlayEvents() {
                 message: 'Visiting the shop will take you away from the table. Your hand will continue automatically.',
                 callback: () => {
                     if (typeof window !== 'undefined') {
-                        window.dispatchEvent(new CustomEvent('bsg:navigate', { detail: { path: '/lobby?tab=lobby-shop' } }));
+                        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.NAVIGATE, { detail: { path: '/lobby?tab=lobby-shop' } }));
                     }
                 },
             });
@@ -637,13 +639,13 @@ bindGameActionOverlayEvents() {
         }
     };
 
-    window.addEventListener(GAME_ACTION_OVERLAY_COMMAND_EVENT, this.handleGameActionOverlayCommand);
+    this.cleanupRegistry?.addWindowListener(window, GAME_ACTION_OVERLAY_COMMAND_EVENT, this.handleGameActionOverlayCommand);
 
     this.handleEmojiSent = (event) => {
         const sEmoji = event?.detail?.sEmoji;
         if (sEmoji) this.showPlayerEmoji(sEmoji);
     };
-    window.addEventListener('bsg:emoji-sent', this.handleEmojiSent);
+    this.cleanupRegistry?.addWindowListener(window, GAME_BROWSER_EVENTS.EMOJI_SENT, this.handleEmojiSent);
 
     this.handleSoundToggle = () => {
         const sm = this.oSoundManager;
@@ -660,9 +662,9 @@ bindGameActionOverlayEvents() {
         }
         window.FXOverlay?.setSoundEnabled?.(sm.isSoundOn);
         window.FXOverlay?.setMusicEnabled?.(sm.isMusicOn);
-        window.dispatchEvent(new CustomEvent('bsg:sound-state', { detail: { muted: !sm.isSoundOn } }));
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.SOUND_STATE, { detail: { muted: !sm.isSoundOn } }));
     };
-    window.addEventListener('bsg:sound-toggle', this.handleSoundToggle);
+    this.cleanupRegistry?.addWindowListener(window, GAME_BROWSER_EVENTS.SOUND_TOGGLE, this.handleSoundToggle);
 }
 
 getTutorialActionFromState() {
@@ -2015,6 +2017,7 @@ setButtons() {
 
     // Scene boot: initializes state, builds UI, connects socket, binds events.
     async create() {
+        this.cleanupRegistry = new CleanupRegistry();
         this.nOpponentIndex = 1;
         this.nPingCounter = 0;
         this.aAllPlayerProfiles = [];
@@ -2049,7 +2052,7 @@ setButtons() {
         this.bindGameUILayoutEvents();
         this.bindGameActionOverlayEvents();
         this.registerFXOverlayPotAnchor();
-        this.scale.on('resize', this.registerFXOverlayPotAnchor, this);
+        this.cleanupRegistry.addPhaserListener(this.scale, 'resize', this.registerFXOverlayPotAnchor, this);
         window.FXOverlay?.enable?.();
         window.FXOverlay?.setSoundEnabled?.(this.oSoundManager.isSoundOn);
         window.FXOverlay?.setMusicEnabled?.(this.oSoundManager.isMusicOn);
@@ -2079,9 +2082,9 @@ setButtons() {
         this.popStateHandler = () => this.exitGame();
         this.sideBetsChangeHandler = (event) => this.handleSideBetsChange(event?.detail);
         // Exit game on tab hide or browser back â€” prevents desync and seat abuse.
-        window.addEventListener('visibilitychange', this.visibilityChangeHandler);
-        window.addEventListener('popstate', this.popStateHandler);
-        window.addEventListener('bsg:side-bets-change', this.sideBetsChangeHandler);
+        this.cleanupRegistry.addWindowListener(window, 'visibilitychange', this.visibilityChangeHandler);
+        this.cleanupRegistry.addWindowListener(window, 'popstate', this.popStateHandler);
+        this.cleanupRegistry.addWindowListener(window, GAME_BROWSER_EVENTS.SIDE_BETS_CHANGE, this.sideBetsChangeHandler);
         this.events.once('shutdown', this.cleanupGameBindings, this);
         this.events.once('destroy', this.cleanupGameBindings, this);
     }
@@ -2092,7 +2095,7 @@ setButtons() {
         const bSideBetLive = myPlayer?.eState === 'playing' && !myPlayer?.isDoubleDownLock;
         const nStandAtRound = Math.max(1, Number(myPlayer?.nStandAtRound) || 1);
         const nEligibleCommunityCards = bSideBetLive ? aCommunityCards.length : Math.max(0, nStandAtRound - 1);
-        window.dispatchEvent(new CustomEvent('bsg:console-cards', {
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.CONSOLE_CARDS, {
             detail: {
                 hand: Array.isArray(myPlayer?.aCardHand) ? myPlayer.aCardHand : [],
                 community: aCommunityCards,
@@ -2113,7 +2116,7 @@ setButtons() {
     }
     handleSideBetsState(oData = {}) {
         if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('bsg:side-bets-server-state', {
+            window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.SIDE_BETS_SERVER_STATE, {
                 detail: {
                     bets: oData?.bets || {},
                     total: Number(oData?.total) || 0,
@@ -2130,7 +2133,7 @@ setButtons() {
         if (typeof window === 'undefined') return;
         const nSmallBlind = Number(detail.nMinBet || this.oGameManager?.oGameInfo?.nSmallBlindAmount || 0);
         const nBigBlind = Number(detail.nBigBlindAmount || this.oGameManager?.oGameInfo?.nBigBlindAmount || (nSmallBlind * 2) || 0);
-        window.dispatchEvent(new CustomEvent('bsg:side-bet-config', {
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.SIDE_BET_CONFIG, {
             detail: {
                 bigBlind: nBigBlind > 0 ? nBigBlind : 100,
             },
@@ -2138,7 +2141,7 @@ setButtons() {
     }
     emitSideBetWindow(visible, seconds = 0) {
         if (typeof window === 'undefined') return;
-        window.dispatchEvent(new CustomEvent('bsg:side-bet-window', {
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.SIDE_BET_WINDOW, {
             detail: {
                 visible: Boolean(visible),
                 seconds: Math.max(0, Number(seconds) || 0),
@@ -2147,7 +2150,7 @@ setButtons() {
     }
     emitConsoleTurnTimer(active, remainingMs = 0, totalMs = 0) {
         if (typeof window === 'undefined') return;
-        window.dispatchEvent(new CustomEvent('bsg:console-turn-timer', {
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.CONSOLE_TURN_TIMER, {
             detail: {
                 active: Boolean(active),
                 remainingMs: Math.max(0, Number(remainingMs) || 0),
@@ -2157,7 +2160,7 @@ setButtons() {
     }
     emitConsoleWin(amount = 0) {
         if (typeof window === 'undefined') return;
-        window.dispatchEvent(new CustomEvent('bsg:console-win', {
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.CONSOLE_WIN, {
             detail: {
                 amount: Math.max(0, Number(amount) || 0),
             },
@@ -2587,9 +2590,9 @@ setButtons() {
         const { aCommunityCard, aParticipant } = oData;
         const aUpdatedParticipants = Array.isArray(aParticipant) ? aParticipant : [];
 
-        setTimeout(() => {
+        this.cleanupRegistry?.addTimeout(setTimeout(() => {
         this.clearAllBettingLabels();
-        }, 1000);
+        }, 1000));
         this.flushStagedBetsToPot().finally(() => {
             this.setCommunityCards(aCommunityCard, 'communityCard');
         });
@@ -3006,7 +3009,7 @@ canShowDoubleDownAction() {
 }
 setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust, sReason, oTutorial }) {
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('bsg:profile-refresh'));
+    window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.PROFILE_REFRESH));
   }
 
   if (oTutorial) {
@@ -3045,6 +3048,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       this.container_community_cards.setVisible(true);
     }
   }, 500); // Show cards almost immediately
+  this.cleanupRegistry?.addTimeout(this.handResultShowTimeout);
 
   // Clear everything after showing cards for longer
   this.handResultClearTimeout = setTimeout(() => {
@@ -3072,6 +3076,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
     const nSideBetSeconds = Math.floor(Math.max(0, (Number(nRoundStartsIn) || 0) - 6000) / 1000);
     if (nSideBetSeconds > 0) this.emitSideBetWindow(true, nSideBetSeconds);
   }, 6000); // Keep cards visible longer (was 7000, now cards show from 500ms to 6000ms)
+  this.cleanupRegistry?.addTimeout(this.handResultClearTimeout);
 
   const allPlayersBust = bAllPlayerBust || bAllPlayersBust;
   if (allPlayersBust) {
@@ -3093,7 +3098,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
     participant.iUserId == this.iUserId && this.setAmountIn(participant?.nChips);
     this.syncPlayerScoreDisplay(player, participant.nCardScore, participant.aCardHand, { forceReveal: true });
     player?.playerProfile?.lockScoreDisplay(participant.nCardScore);
-    setTimeout(() => {
+    this.cleanupRegistry?.addTimeout(setTimeout(() => {
       player?.playerProfile?.container_cards.removeAll(true);
       participant.aCardHand.forEach(cardData => {
         if (!this.playerHasRenderedCard(player, cardData._id)) {
@@ -3104,10 +3109,10 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       player?.playerProfile?.container_cards.list.forEach(card => {
         card.openCard();
       });
-    }, 700);
+    }, 700));
     
     if (participant.eState == "winner") {
-      setTimeout(() => {
+      this.cleanupRegistry?.addTimeout(setTimeout(() => {
         player?.playerProfile?.showWinnerPrompt();
         this.playWinnerCelebrationFX(player?.playerProfile, {
             isSelf: participant.iUserId === this.iUserId,
@@ -3115,10 +3120,10 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
         });
         participant.iUserId == this.iUserId && this.oSoundManager.playSound(this.oSoundManager.winAnimation_sound, false);
         participant.nCardScore === 21 && this.callFXOverlay('blackjack');
-      }, 3000);
+      }, 3000));
       this.oGameManager.aWinnerPlayers.push(participant.iUserId);
       
-      setTimeout(() => {
+      this.cleanupRegistry?.addTimeout(setTimeout(() => {
         participant.iUserId == this.iUserId && this.oSoundManager.playSound(this.oSoundManager.winCoin_sound, false);
                 if (participant.iUserId === this.iUserId) this.emitConsoleWin(participant.nWinningAmount || 0);
                 player?.playerProfile?.showWinAmountPopup(participant.nWinningAmount || 0);
@@ -3128,11 +3133,11 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
                     targetAmount: nRemainingPot,
                     playerProfile: player?.playerProfile,
                 });
-      }, 4200);
+      }, 4200));
 
-      setTimeout(() => {
+      this.cleanupRegistry?.addTimeout(setTimeout(() => {
         player?.playerProfile?.hideWinnerPrompt();
-      }, 5200);
+      }, 5200));
     }
   });
 }
@@ -3195,25 +3200,18 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
     }
 
     cleanupGameBindings() {
+        this.cleanupRegistry?.cleanup();
         this.timer && clearInterval(this.timer);
         this.declreResultInterval && clearInterval(this.declreResultInterval);
         this.tostTimeOut && clearTimeout(this.tostTimeOut);
         this.oSoundManager.stopAllManagedSounds();
-        this.scale?.off?.('resize', this.registerFXOverlayPotAnchor, this);
         this.clearFXOverlayPotAnchor();
-        if (this.visibilityChangeHandler) window.removeEventListener('visibilitychange', this.visibilityChangeHandler);
-        if (this.popStateHandler) window.removeEventListener('popstate', this.popStateHandler);
-        if (this.sideBetsChangeHandler) window.removeEventListener('bsg:side-bets-change', this.sideBetsChangeHandler);
-        if (this.handleGameUILayoutUpdate) window.removeEventListener(GAME_UI_LAYOUT_EVENT, this.handleGameUILayoutUpdate);
-        if (this.handleGameActionOverlayCommand) window.removeEventListener(GAME_ACTION_OVERLAY_COMMAND_EVENT, this.handleGameActionOverlayCommand);
-        if (this.handleEmojiSent) window.removeEventListener('bsg:emoji-sent', this.handleEmojiSent);
-        if (this.handleSoundToggle) window.removeEventListener('bsg:sound-toggle', this.handleSoundToggle);
         hideGameActionOverlay();
         this.oSocketManager?.destroy?.();
     }
     refreshGlobalProfileState() {
         if (typeof window === 'undefined') return;
-        window.dispatchEvent(new CustomEvent('bsg:profile-refresh'));
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.PROFILE_REFRESH));
     }
     exitGame() {
         const fallbackPath = this.fallbackPath || '/lobby';
@@ -3227,7 +3225,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
         if (this.oGameManager) this.oGameManager.nMyPlayerChips = 0;
         hideGameActionOverlay();
         this.refreshGlobalProfileState();
-        window.dispatchEvent(new CustomEvent('bsg:navigate', { detail: { path: fallbackPath } }));
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.NAVIGATE, { detail: { path: fallbackPath } }));
         window.setTimeout(() => {
             const fallbackRoute = fallbackPath.split('?')[0];
             if (window.location.pathname !== fallbackRoute) {

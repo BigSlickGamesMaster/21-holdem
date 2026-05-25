@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GAME_BROWSER_EVENTS } from '../../../scripts/gameEvents';
 import './tutorial.css';
 
 const HAND_COPY = {
@@ -201,8 +202,8 @@ function TutorialOverlay() {
             });
         };
 
-        window.addEventListener('guest-tutorial:update', handleUpdate);
-        return () => window.removeEventListener('guest-tutorial:update', handleUpdate);
+        window.addEventListener(GAME_BROWSER_EVENTS.GUEST_TUTORIAL_UPDATE, handleUpdate);
+        return () => window.removeEventListener(GAME_BROWSER_EVENTS.GUEST_TUTORIAL_UPDATE, handleUpdate);
     }, []);
 
     const targetStyle = useMemo(() => formatRect(overlayState.targetRect), [overlayState.targetRect]);

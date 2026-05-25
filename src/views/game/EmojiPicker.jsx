@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { GAME_BROWSER_EVENTS } from '../../scripts/gameEvents';
 
 const EMOJIS = ['😂', '😍', '😎', '🤑', '😤', '😱', '💪', '🔥', '💯', '👑', '🤞', '🎉'];
 
-export const EMOJI_SENT_EVENT = 'bsg:emoji-sent';
+export const EMOJI_SENT_EVENT = GAME_BROWSER_EVENTS.EMOJI_SENT;
 
 export default function EmojiPicker() {
     const [open, setOpen] = useState(false);

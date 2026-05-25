@@ -19,14 +19,10 @@ import {
     emitGameActionOverlayCommand,
     GAME_ACTION_OVERLAY_STATE_EVENT,
 } from '../../scripts/gameActionOverlayBridge';
+import { GAME_BROWSER_EVENTS } from '../../scripts/gameEvents';
 import { getAvatarImageSrc } from '../../shared/constants/builtInAvatars';
 import EmojiPicker from './EmojiPicker';
 
-const BSG_SOUND_STATE_EVENT = 'bsg:sound-state';
-const BSG_SOUND_TOGGLE_EVENT = 'bsg:sound-toggle';
-const BSG_SIDE_BET_CONFIG_EVENT = 'bsg:side-bet-config';
-const BSG_CONSOLE_TIMER_EVENT = 'bsg:console-turn-timer';
-const BSG_CONSOLE_WIN_EVENT = 'bsg:console-win';
 const DEBUG_CONSOLE_LAYOUT = false;
 const CONSOLE_LAYOUT_STYLE = {
     '--console-left-width': '32%',
@@ -39,12 +35,12 @@ function SoundToggle() {
 
     useEffect(() => {
         const onState = (e) => setMuted(!!e?.detail?.muted);
-        window.addEventListener(BSG_SOUND_STATE_EVENT, onState);
-        return () => window.removeEventListener(BSG_SOUND_STATE_EVENT, onState);
+        window.addEventListener(GAME_BROWSER_EVENTS.SOUND_STATE, onState);
+        return () => window.removeEventListener(GAME_BROWSER_EVENTS.SOUND_STATE, onState);
     }, []);
 
     const handleClick = () => {
-        window.dispatchEvent(new CustomEvent(BSG_SOUND_TOGGLE_EVENT));
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.SOUND_TOGGLE));
     };
 
     return (
@@ -479,7 +475,7 @@ function GameActionOverlay({ isPaused = false }) {
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        window.dispatchEvent(new CustomEvent('bsg:side-bets-change', {
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.SIDE_BETS_CHANGE, {
             detail: {
                 bets: sideBets,
                 total: totalSideBets,
@@ -506,11 +502,11 @@ function GameActionOverlay({ isPaused = false }) {
             });
         };
 
-        window.addEventListener('bsg:side-bets-server-state', handleServerSideBets);
-        window.addEventListener('bsg:console-cards', handleConsoleCards);
+        window.addEventListener(GAME_BROWSER_EVENTS.SIDE_BETS_SERVER_STATE, handleServerSideBets);
+        window.addEventListener(GAME_BROWSER_EVENTS.CONSOLE_CARDS, handleConsoleCards);
         return () => {
-            window.removeEventListener('bsg:side-bets-server-state', handleServerSideBets);
-            window.removeEventListener('bsg:console-cards', handleConsoleCards);
+            window.removeEventListener(GAME_BROWSER_EVENTS.SIDE_BETS_SERVER_STATE, handleServerSideBets);
+            window.removeEventListener(GAME_BROWSER_EVENTS.CONSOLE_CARDS, handleConsoleCards);
         };
     }, []);
 
@@ -525,8 +521,8 @@ function GameActionOverlay({ isPaused = false }) {
             });
         };
 
-        window.addEventListener('bsg:side-bet-window', handleSideBetWindow);
-        return () => window.removeEventListener('bsg:side-bet-window', handleSideBetWindow);
+        window.addEventListener(GAME_BROWSER_EVENTS.SIDE_BET_WINDOW, handleSideBetWindow);
+        return () => window.removeEventListener(GAME_BROWSER_EVENTS.SIDE_BET_WINDOW, handleSideBetWindow);
     }, []);
 
     useEffect(() => {
@@ -537,8 +533,8 @@ function GameActionOverlay({ isPaused = false }) {
             }
         };
 
-        window.addEventListener(BSG_SIDE_BET_CONFIG_EVENT, handleSideBetConfig);
-        return () => window.removeEventListener(BSG_SIDE_BET_CONFIG_EVENT, handleSideBetConfig);
+        window.addEventListener(GAME_BROWSER_EVENTS.SIDE_BET_CONFIG, handleSideBetConfig);
+        return () => window.removeEventListener(GAME_BROWSER_EVENTS.SIDE_BET_CONFIG, handleSideBetConfig);
     }, []);
 
     useEffect(() => {
@@ -553,8 +549,8 @@ function GameActionOverlay({ isPaused = false }) {
             });
         };
 
-        window.addEventListener(BSG_CONSOLE_TIMER_EVENT, handleConsoleTimer);
-        return () => window.removeEventListener(BSG_CONSOLE_TIMER_EVENT, handleConsoleTimer);
+        window.addEventListener(GAME_BROWSER_EVENTS.CONSOLE_TURN_TIMER, handleConsoleTimer);
+        return () => window.removeEventListener(GAME_BROWSER_EVENTS.CONSOLE_TURN_TIMER, handleConsoleTimer);
     }, []);
 
     useEffect(() => {
@@ -594,8 +590,8 @@ function GameActionOverlay({ isPaused = false }) {
             }, 2400);
         };
 
-        window.addEventListener(BSG_CONSOLE_WIN_EVENT, handleConsoleWin);
-        return () => window.removeEventListener(BSG_CONSOLE_WIN_EVENT, handleConsoleWin);
+        window.addEventListener(GAME_BROWSER_EVENTS.CONSOLE_WIN, handleConsoleWin);
+        return () => window.removeEventListener(GAME_BROWSER_EVENTS.CONSOLE_WIN, handleConsoleWin);
     }, []);
 
     useEffect(() => {
@@ -617,12 +613,12 @@ function GameActionOverlay({ isPaused = false }) {
         };
 
         window.addEventListener(GAME_ACTION_OVERLAY_STATE_EVENT, handleStateUpdate);
-        window.addEventListener('bsg:navigate', handleNavigate);
-        window.addEventListener('bsg:profile-refresh', handleProfileRefresh);
+        window.addEventListener(GAME_BROWSER_EVENTS.NAVIGATE, handleNavigate);
+        window.addEventListener(GAME_BROWSER_EVENTS.PROFILE_REFRESH, handleProfileRefresh);
         return () => {
             window.removeEventListener(GAME_ACTION_OVERLAY_STATE_EVENT, handleStateUpdate);
-            window.removeEventListener('bsg:navigate', handleNavigate);
-            window.removeEventListener('bsg:profile-refresh', handleProfileRefresh);
+            window.removeEventListener(GAME_BROWSER_EVENTS.NAVIGATE, handleNavigate);
+            window.removeEventListener(GAME_BROWSER_EVENTS.PROFILE_REFRESH, handleProfileRefresh);
         };
     }, [navigate, queryClient]);
 
