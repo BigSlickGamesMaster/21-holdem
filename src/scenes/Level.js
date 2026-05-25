@@ -18,6 +18,7 @@ import Animations from '../scripts/Animations';
 import ChipAnimationController from '../scripts/ChipAnimationController';
 import CleanupRegistry from '../scripts/CleanupRegistry';
 import { GAME_BROWSER_EVENTS } from '../scripts/gameEvents';
+import { buildGameActionState } from '../scripts/gameActionState';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -2902,67 +2903,57 @@ showAllButtons(aUserAction, nMinBet, toCallAmount, options = {}) {
     // Enable all buttons in the main container
     this.enableContainerButtons(this.container_buttons);
 
-    const parsedCallAmount = Number(toCallAmount);
-    const fallbackCallAmount = Number(nMinBet);
-    const callAmount = Number.isFinite(parsedCallAmount)
-        ? parsedCallAmount
-        : (Number.isFinite(fallbackCallAmount) ? fallbackCallAmount : 0);
     const { myChips, maxRaiseAmount, minRaise, potAmount } = this.getRaiseContext();
-    const canAffordRaise = maxRaiseAmount >= (Number(nMinBet) || 0);
-    const potRaiseTarget = Math.max(minRaise, Math.round(potAmount));
-    const canAllInRaise = myChips > 0 && maxRaiseAmount > 0 && maxRaiseAmount < potRaiseTarget;
-    const canStand = this.canStandThisRound();
-    // If the local player previously checked and another player since raised,
-    // they are committed to an additional community card â€” strip stand, raise, and direct call.
-    const iAmCheckCommitted = this.hasRaiseSinceCheck(this.iUserId);
-    const bRaisedAfterMyCheck = iAmCheckCommitted && callAmount > 0 && !bAllInStandChoice;
-    const actions = Array.isArray(aUserAction) ? aUserAction : [];
-    actions.forEach(action => {
-        switch (action) {
-            case 'f':
-                this.oButtons.btn_fold.setVisible(true);
-                break;
-            case 'c':
-                this.oButtons.btn_call.setVisible(true);
-                this.oButtons.btn_call.bAllInMode = false;
-                this.setCallButtonLabel(bAllInStandChoice || bRaisedAfterMyCheck ? 'Confirm' : (callAmount > 0 ? `Call ${_.formatCurrencyWithComa(callAmount)}` : 'Call'));
-                break;
-            case 'r':
-                this.oButtons.btn_raise.setVisible(!bRaisedAfterMyCheck && (canAffordRaise || canAllInRaise));
-                break;
-            case 's':
-                if (canStand && !bRaisedAfterMyCheck) {
-                    this.oButtons.btn_stand.setVisible(true);
-                    this.oButtons.btn_stand.bCallStandMode = actions.includes('c') && callAmount > 0;
-                    this.setStandButtonLabel(this.oButtons.btn_stand.bCallStandMode ? 'Call/Stand' : 'Stand');
-                }
-                break;
-            case 'a':
-                this.oButtons.btn_allInCommon.setVisible(true);
-                this.oButtons.btn_allInCommon.nRaiseAmount = myChips;
-                break;
-            case 'ck':
-                this.oButtons.btn_check.setVisible(true);
-                break;
-            case 'd': {
-                const canDD = this.canShowDoubleDownAction();
-                this.oButtons.btn_doubleDown.setVisible(canDD);
-                if (canDD) {
-                    this.setGameActionButtonEnabled(this.oButtons.btn_doubleDown, true);
-                    this.oButtons.btn_doubleDown.setAlpha(1);
-                }
-                break;
-            }
-        }
+    const actionState = buildGameActionState({
+        aUserAction,
+        nMinBet,
+        toCallAmount,
+        myChips,
+        maxRaiseAmount,
+        minRaise,
+        potAmount,
+        canStand: this.canStandThisRound(),
+        canDoubleDown: this.canShowDoubleDownAction(),
+        hasRaiseSinceCheck: this.hasRaiseSinceCheck(this.iUserId),
+        bAllInStandChoice,
+        formatAmount: (amount) => _.formatCurrencyWithComa(amount),
     });
 
-    if (canStand && actions.includes('c') && callAmount > 0 && !actions.includes('s') && !bRaisedAfterMyCheck) {
-        this.oButtons.btn_stand.setVisible(true);
-        this.oButtons.btn_stand.bCallStandMode = true;
-        this.setStandButtonLabel('Stand');
-    }
-
+    this.applyGameActionState(actionState);
     this.layoutActionButtonGroups();
+}
+applyGameActionState(actionState = {}) {
+    const state = {
+        fold: {},
+        call: {},
+        raise: {},
+        stand: {},
+        allInCommon: {},
+        check: {},
+        doubleDown: {},
+        ...actionState,
+    };
+
+    this.oButtons.btn_fold.setVisible(Boolean(state.fold.visible));
+
+    this.oButtons.btn_call.setVisible(Boolean(state.call.visible));
+    this.oButtons.btn_call.bAllInMode = Boolean(state.call.bAllInMode);
+    if (state.call.visible) this.setCallButtonLabel(state.call.label || 'Call');
+
+    this.oButtons.btn_raise.setVisible(Boolean(state.raise.visible));
+
+    this.oButtons.btn_stand.setVisible(Boolean(state.stand.visible));
+    this.oButtons.btn_stand.bCallStandMode = Boolean(state.stand.bCallStandMode);
+    if (state.stand.visible) this.setStandButtonLabel(state.stand.label || 'Stand');
+
+    this.oButtons.btn_allInCommon.setVisible(Boolean(state.allInCommon.visible));
+    this.oButtons.btn_allInCommon.nRaiseAmount = Number(state.allInCommon.amount) || 0;
+
+    this.oButtons.btn_check.setVisible(Boolean(state.check.visible));
+
+    this.oButtons.btn_doubleDown.setVisible(Boolean(state.doubleDown.visible));
+    this.setGameActionButtonEnabled(this.oButtons.btn_doubleDown, state.doubleDown.enabled !== false);
+    this.oButtons.btn_doubleDown.setAlpha(Number(state.doubleDown.alpha) || 0);
 }
 canShowDoubleDownAction() {
     const myPlayer = this.players?.get?.(this.iUserId);

@@ -53,3 +53,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `npx eslint src/scripts/CleanupRegistry.js src/scripts/gameEvents.js src/views/game/GameActionOverlay.jsx src/views/game/EmojiPicker.jsx src/views/guest/tutorial/TutorialOverlay.jsx` passed.
   - Touched files were read successfully with Node.
+
+### Step 3: Action State Extraction
+
+- Goal: separate turn-action decision logic from Phaser button mutation.
+- Scope: add a pure helper that decides which action buttons should be visible, enabled, labelled, and carrying amounts.
+- Non-goal: do not change socket request names, raise calculations, double-down rules, button layout, or overlay rendering in this step.
+- Expected benefit: action bugs become testable without booting Phaser or sockets.
+- Implemented:
+  - Added `src/scripts/gameActionState.js`.
+  - Added focused tests in `src/scripts/gameActionState.test.js`.
+  - Updated `Level.showAllButtons()` to build action state and apply it through `Level.applyGameActionState()`.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/gameActionState.js src/scripts/gameActionState.test.js` passed.
