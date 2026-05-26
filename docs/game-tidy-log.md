@@ -179,3 +179,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/socketReplay.js src/scripts/socketReplay.test.js` passed.
+
+### Step 12: Participant State Helper Extraction
+
+- Goal: start the normalized client state layer at the participant boundary.
+- Scope: extract pure helpers for participant arrays, user/socket matching, and player map lookups.
+- Non-goal: do not change seat rendering, `setPlayersData()`, `setGameData()`, or `setBoardState()` behavior in this step.
+- Expected benefit: player identity/reconnect matching becomes testable before larger board-state reconciliation work.
+- Implemented:
+  - Added `src/scripts/participantState.js`.
+  - Added `src/scripts/participantState.test.js`.
+  - Updated `Level.findMyPlayer()`, `Level.findPlayerByUserId()`, and player-profile attachment in `setPlayersData()` to use tested helpers.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/participantState.js src/scripts/participantState.test.js` passed.

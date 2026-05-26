@@ -37,6 +37,7 @@ import {
 } from '../scripts/handResultLifecycle';
 import { SOCKET_REQUEST_EVENTS, SOCKET_RESPONSE_EVENTS } from '../scripts/socketEvents';
 import { getBetPotEffectName, getPotIncrease, shouldCommitPotWithoutAnimation } from '../scripts/potState';
+import { attachParticipantProfile, findParticipantForClient, findPlayerInMap } from '../scripts/participantState';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -897,15 +898,7 @@ queuePotPayout({ amount = 0, targetAmount = 0, playerProfile = null } = {}) {
 }
 
 findPlayerByUserId(iUserId) {
-    if (this.players.has(iUserId)) return this.players.get(iUserId);
-
-    const sTargetUserId = String(iUserId);
-    for (const [sPlayerId, player] of this.players.entries()) {
-        if (String(sPlayerId) === sTargetUserId) return player;
-        if (String(player?.iUserId) === sTargetUserId) return player;
-    }
-
-    return null;
+    return findPlayerInMap(this.players, iUserId);
 }
 
 playPlayerBetFX(playerProfile, effectName, amount, options = {}) {
@@ -2344,23 +2337,13 @@ setButtons() {
         return (this.raiseSequence ?? 0) > this.checkedCommitments.get(Number(iUserId));
     }
     async findMyPlayer(aParticipant) {
-        // Primary: match by socket ID (most reliable when socket just connected)
-        for (let i = 0; i < aParticipant.length; i++) {
-            if (aParticipant[i].sRootSocket === this.oSocketManager.sRootSocket) {
-                this.iUserId = aParticipant[i].iUserId;
-                return aParticipant[i];
-            }
-        }
-        // Fallback: match by previously stored iUserId (handles mid-hand reconnect
-        // where socket ID in board hasn't updated yet)
-        if (this.iUserId) {
-            for (let i = 0; i < aParticipant.length; i++) {
-                if (String(aParticipant[i].iUserId) === String(this.iUserId)) {
-                    return aParticipant[i];
-                }
-            }
-        }
-        return undefined;
+        const myPlayer = findParticipantForClient(aParticipant, {
+            sRootSocket: this.oSocketManager?.sRootSocket,
+            iUserId: this.iUserId,
+        });
+
+        if (myPlayer) this.iUserId = myPlayer.iUserId;
+        return myPlayer;
     }
     async setGameData({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant, oGameInfo, oTutorial }) {
         try {
@@ -2669,13 +2652,14 @@ setButtons() {
         for (let i = 0; i < aParticipant.length; i++) {
             const { iUserId, nSeat } = aParticipant[i];
             if (!this.players.has(iUserId)) {
-                const playerProfile = this.aPlayerProfiles[nSeat];
-                await this.mapPlayerData(iUserId, { ...aParticipant[i], playerProfile });
+                await this.mapPlayerData(iUserId, attachParticipantProfile(aParticipant[i], this.aPlayerProfiles));
             } else {
                 const player = this.players.get(iUserId);
-                Object.assign(player, aParticipant[i], {
-                    playerProfile: player?.playerProfile || this.aPlayerProfiles[nSeat],
-                });
+                Object.assign(player, attachParticipantProfile({
+                    ...aParticipant[i],
+                    playerProfile: player?.playerProfile,
+                    nSeat,
+                }, this.aPlayerProfiles));
                 await this.setProfiles(iUserId);
             }
         }
