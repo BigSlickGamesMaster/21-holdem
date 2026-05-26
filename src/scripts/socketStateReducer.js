@@ -29,6 +29,27 @@ export function reduceSocketEventToClientState(state, event = {}, options = {}) 
                     nCardScore: oData.nCardScore,
                 },
             });
+        case SOCKET_RESPONSE_EVENTS.COMMUNITY_CARD: {
+            let nextState = clientGameStateReducer(state, {
+                type: CLIENT_GAME_STATE_ACTIONS.SET_COMMUNITY_CARDS,
+                payload: { aCommunityCard: oData.aCommunityCard },
+            });
+            if (Array.isArray(oData.aParticipant)) {
+                oData.aParticipant.forEach((participant) => {
+                    nextState = clientGameStateReducer(nextState, {
+                        type: CLIENT_GAME_STATE_ACTIONS.APPLY_PARTICIPANT_PATCH,
+                        payload: participant,
+                    });
+                    if (Array.isArray(participant?.aCardHand) || participant?.nCardScore !== undefined) {
+                        nextState = clientGameStateReducer(nextState, {
+                            type: CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_HAND_SCORE,
+                            payload: participant,
+                        });
+                    }
+                });
+            }
+            return nextState;
+        }
         case SOCKET_RESPONSE_EVENTS.FOLD_PLAYER:
             return clientGameStateReducer(state, {
                 type: CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_STATUS,

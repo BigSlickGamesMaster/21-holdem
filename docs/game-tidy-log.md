@@ -331,3 +331,19 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/socketStateReducer.test.js src/scripts/socketReceiveRouter.test.js src/scripts/clientGameState.test.js src/scripts/socketEvents.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/SocketManager.js src/scripts/socketStateReducer.js src/scripts/clientGameState.js` passed.
+
+### Step 23: Client State Selectors and Community Cards
+
+- Goal: begin reading from normalized state in low-risk places.
+- Scope: add selectors, track community-card updates in reducer state, and use selectors with fallbacks for pot/stand checks.
+- Non-goal: do not switch rendering or card animation to reducer-driven output in this step.
+- Expected benefit: reducer state becomes an active read source without removing legacy scene state yet.
+- Implemented:
+  - Added `src/scripts/clientGameSelectors.js`.
+  - Added `src/scripts/clientGameSelectors.test.js`.
+  - Added `SET_COMMUNITY_CARDS` support in `clientGameState`.
+  - Updated `socketStateReducer` to handle `resCommunityCard`.
+  - Updated low-risk `Level.js` reads for pot/chips/score/community card count to use selectors with legacy fallbacks.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/clientGameSelectors.test.js src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/clientGameSelectors.js src/scripts/clientGameSelectors.test.js src/scripts/clientGameState.js src/scripts/socketStateReducer.js` passed.

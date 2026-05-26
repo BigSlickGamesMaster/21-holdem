@@ -67,6 +67,26 @@ describe('socketStateReducer', () => {
         });
     });
 
+    test('applies community card event to board and participant patches', () => {
+        const state = reduceSocketEventToClientState(createInitialClientGameState(), {
+            sEventName: SOCKET_RESPONSE_EVENTS.COMMUNITY_CARD,
+            oData: {
+                aCommunityCard: [{ _id: 'community-1' }],
+                aParticipant: [
+                    { iUserId: 'u1', nChips: 800, nCardScore: 15, aCardHand: [{ _id: 'h1' }] },
+                ],
+            },
+        });
+
+        expect(state.board.aCommunityCard).toEqual([{ _id: 'community-1' }]);
+        expect(state.participantsById.u1).toMatchObject({
+            iUserId: 'u1',
+            nChips: 800,
+            nCardScore: 15,
+            aCardHand: [{ _id: 'h1' }],
+        });
+    });
+
     test('replays mini hand flow into final client state', () => {
         const state = replaySocketEventsToClientState(createInitialClientGameState(), [
             {

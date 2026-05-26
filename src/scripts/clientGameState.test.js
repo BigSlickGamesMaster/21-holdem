@@ -5,6 +5,7 @@ import {
     clientGameStateReducer,
     CLIENT_GAME_STATE_ACTIONS,
     createInitialClientGameState,
+    setCommunityCardsInClientState,
     setTableChipsInClientState,
     setParticipantHandScoreInClientState,
     setParticipantStatusInClientState,
@@ -244,5 +245,25 @@ describe('clientGameState', () => {
             sReason: undefined,
             bShowMessage: undefined,
         });
+    });
+
+    test('sets community cards without changing other board fields', () => {
+        const state = applyBoardSnapshotToClientState(createInitialClientGameState(), {
+            iDealerId: 'dealer',
+            aCommunityCard: [{ _id: 'old' }],
+        });
+        const nextState = setCommunityCardsInClientState(state, [{ _id: 'new' }]);
+
+        expect(nextState.board.iDealerId).toBe('dealer');
+        expect(nextState.board.aCommunityCard).toEqual([{ _id: 'new' }]);
+    });
+
+    test('reducer applies community card action', () => {
+        const nextState = clientGameStateReducer(createInitialClientGameState(), {
+            type: CLIENT_GAME_STATE_ACTIONS.SET_COMMUNITY_CARDS,
+            payload: { aCommunityCard: [{ _id: 'c1' }] },
+        });
+
+        expect(nextState.board.aCommunityCard).toEqual([{ _id: 'c1' }]);
     });
 });

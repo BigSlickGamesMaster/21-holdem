@@ -8,6 +8,7 @@ export const CLIENT_GAME_STATE_ACTIONS = Object.freeze({
     SET_TURN_ACTION_STATE: 'setTurnActionState',
     SET_PARTICIPANT_HAND_SCORE: 'setParticipantHandScore',
     SET_PARTICIPANT_STATUS: 'setParticipantStatus',
+    SET_COMMUNITY_CARDS: 'setCommunityCards',
 });
 
 export function createInitialClientGameState() {
@@ -157,6 +158,16 @@ export function setParticipantStatusInClientState(state = createInitialClientGam
     });
 }
 
+export function setCommunityCardsInClientState(state = createInitialClientGameState(), aCommunityCard = []) {
+    return {
+        ...state,
+        board: {
+            ...(state.board || createInitialClientGameState().board),
+            aCommunityCard: Array.isArray(aCommunityCard) ? aCommunityCard : [],
+        },
+    };
+}
+
 export function clientGameStateReducer(state = createInitialClientGameState(), action = {}) {
     switch (action.type) {
         case CLIENT_GAME_STATE_ACTIONS.APPLY_BOARD_SNAPSHOT:
@@ -171,6 +182,8 @@ export function clientGameStateReducer(state = createInitialClientGameState(), a
             return setParticipantHandScoreInClientState(state, action.payload);
         case CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_STATUS:
             return setParticipantStatusInClientState(state, action.payload);
+        case CLIENT_GAME_STATE_ACTIONS.SET_COMMUNITY_CARDS:
+            return setCommunityCardsInClientState(state, action.payload?.aCommunityCard);
         default:
             return state;
     }

@@ -48,6 +48,12 @@ import {
     clientGameStateReducer,
     createInitialClientGameState,
 } from '../scripts/clientGameState';
+import {
+    getClientCommunityCards,
+    getClientParticipantChips,
+    getClientParticipantScore,
+    getClientTableChips,
+} from '../scripts/clientGameSelectors';
 import { reduceSocketEventToClientState } from '../scripts/socketStateReducer';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
@@ -1077,8 +1083,10 @@ formatRaiseAmountLabel(amount = 0) {
 getRaiseContext() {
     const toCallAmount = Math.max(0, Number(this.oTurnContext?.toCallAmount) || 0);
     const minRaise = Math.max(0, Math.round(Number(this.oGameManager?.nMinRaiseAmount) || 0));
-    const potAmount = Math.max(0, Math.round(Number(this.oGameManager?.nPotAmount) || 0));
-    const myChips = Math.max(0, Math.round(Number(this.oGameManager?.nMyPlayerChips) || 0));
+    const statePotAmount = getClientTableChips(this.oClientGameState);
+    const potAmount = Math.max(0, Math.round(statePotAmount || Number(this.oGameManager?.nPotAmount) || 0));
+    const stateMyChips = getClientParticipantChips(this.oClientGameState, this.iUserId);
+    const myChips = Math.max(0, Math.round(stateMyChips || Number(this.oGameManager?.nMyPlayerChips) || 0));
     const maxRaiseAmount = Math.max(0, myChips - toCallAmount);
 
     return {
@@ -1101,6 +1109,8 @@ getDoubleDownAmount() {
 }
 
 getMyCurrentHandTotal() {
+    const stateScore = getClientParticipantScore(this.oClientGameState, this.iUserId);
+    if (stateScore > 0) return stateScore;
     const myPlayer = this.players?.get?.(this.iUserId);
     const score = Number(myPlayer?.nCardScore);
     return Number.isFinite(score) ? score : 0;
@@ -1111,9 +1121,10 @@ shouldWarnBeforeTakingCommunityCard() {
 }
 
 canStandThisRound() {
-    const nCommunityCards = Array.isArray(this.oGameManager?.aCommunityCards)
+    const stateCommunityCards = getClientCommunityCards(this.oClientGameState);
+    const nCommunityCards = stateCommunityCards.length || (Array.isArray(this.oGameManager?.aCommunityCards)
         ? this.oGameManager.aCommunityCards.length
-        : 0;
+        : 0);
     return nCommunityCards > 0 || Number(this.nTableRound) > 1;
 }
 
