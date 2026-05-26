@@ -36,6 +36,7 @@ import {
     shouldShowNextRoundCountdown,
 } from '../scripts/handResultLifecycle';
 import { SOCKET_REQUEST_EVENTS, SOCKET_RESPONSE_EVENTS } from '../scripts/socketEvents';
+import { getBetPotEffectName, getPotIncrease, shouldCommitPotWithoutAnimation } from '../scripts/potState';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -2451,8 +2452,8 @@ setButtons() {
     handlePlayerBet(oData, sEventName) {
         const player = this.players.get(oData.iUserId);
         if (!player) return;
-        const potIncrease = Math.max(0, Number(oData.nTableChips || 0) - Number(this.oGameManager.nPotAmount || 0));
-        const isAllInAction = (sEventName === SOCKET_RESPONSE_EVENTS.RAISE || sEventName === SOCKET_RESPONSE_EVENTS.CALL) && Number(oData.nChips) === 0;
+        const potIncrease = getPotIncrease(oData.nTableChips, this.oGameManager.nPotAmount);
+        const effectName = getBetPotEffectName({ sEventName, nChips: oData.nChips, potIncrease });
         const aParticipantAdjustments = Array.isArray(oData.aParticipantAdjustments) ? oData.aParticipantAdjustments : [];
 
         if (sEventName === SOCKET_RESPONSE_EVENTS.STAND) {
@@ -2464,38 +2465,20 @@ setButtons() {
         player?.playerProfile?.setAmountIn(oData.nChips);
         player?.iUserId == this.iUserId && this.setMyPlayerData(oData);
         aParticipantAdjustments.forEach((participantData) => this.applyParticipantAdjustment(participantData));
-        if (potIncrease > 0) {
-            if (isAllInAction) {
-                this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
-                this.queuePotUpdate({
-                    amount: potIncrease,
-                    targetAmount: oData.nTableChips,
-                    playerProfile: player?.playerProfile,
-                    effectName: 'allIn',
-                });
-            } else if (sEventName === SOCKET_RESPONSE_EVENTS.RAISE) {
-                this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
-                this.queuePotUpdate({
-                    amount: potIncrease,
-                    targetAmount: oData.nTableChips,
-                    playerProfile: player?.playerProfile,
-                    effectName: 'bigBet',
-                });
-            } else if (sEventName === SOCKET_RESPONSE_EVENTS.CALL) {
-                this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
-                this.queuePotUpdate({
-                    amount: potIncrease,
-                    targetAmount: oData.nTableChips,
-                    playerProfile: player?.playerProfile,
-                    effectName: 'smallBet',
-                });
-            }
+        if (effectName) {
+            this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
+            this.queuePotUpdate({
+                amount: potIncrease,
+                targetAmount: oData.nTableChips,
+                playerProfile: player?.playerProfile,
+                effectName,
+            });
         } else if (sEventName === SOCKET_RESPONSE_EVENTS.CHECK) {
             this.oSoundManager.playSound(this.oSoundManager.check_sound, false);
             this.updatePotAmount(oData.nTableChips);
         }
         this.oGameManager.nMinRaiseAmount = oData.nMinBet ?? this.oGameManager.nMinRaiseAmount;
-        if (potIncrease <= 0 && sEventName !== SOCKET_RESPONSE_EVENTS.CHECK) {
+        if (shouldCommitPotWithoutAnimation({ sEventName, potIncrease })) {
             this.updatePotAmount(oData.nTableChips);
         }
 

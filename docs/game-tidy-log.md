@@ -152,3 +152,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/CleanupRegistry.js src/scripts/CleanupRegistry.test.js src/scripts/SocketManager.js` passed.
+
+### Step 10: Pot State Helper Extraction
+
+- Goal: isolate pot amount delta/effect decisions from `Level.handlePlayerBet()`.
+- Scope: extract pure helpers for pot increase calculation and bet effect selection.
+- Non-goal: do not move chip animation, sounds, FX, pot display rendering, or payout sequencing in this step.
+- Expected benefit: pot update decisions become testable before extracting the larger animation controller.
+- Implemented:
+  - Added `src/scripts/potState.js`.
+  - Added `src/scripts/potState.test.js`.
+  - Updated `Level.handlePlayerBet()` to use pot calculation/effect helpers while keeping rendering and sounds in the scene.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/potState.js src/scripts/potState.test.js` passed.
