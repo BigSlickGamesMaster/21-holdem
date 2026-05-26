@@ -10,6 +10,7 @@ import io from 'socket.io-client';
 import { getApiRoot } from '../axios';
 import { SOCKET_REQUEST_EVENTS, SOCKET_TRANSPORT_EVENTS } from './socketEvents';
 import { routeSocketEventToScene } from './socketReceiveRouter';
+import { routeSocketCallbackToScene } from './socketCallbackRouter';
 
 export default class SocketManager {
     // scene: Level instance. options: { sAuthToken, iBoardId }.
@@ -70,29 +71,7 @@ export default class SocketManager {
         routeSocketEventToScene(this.oScene, data);
     }
     onCallBackReceive(sEventName, response, error) {
-        if (response && response.message) {
-            this.oScene.handleActionError?.(sEventName, response.message);
-            return;
-        }
-        switch (sEventName) {
-            case SOCKET_REQUEST_EVENTS.LEAVE:
-                this.oScene.prompt.showForSeconds(error.error);
-                break;
-            case SOCKET_REQUEST_EVENTS.CALL:
-                this.oScene.handleActionError?.(SOCKET_REQUEST_EVENTS.CALL, error.error);
-                break;
-            case SOCKET_REQUEST_EVENTS.RAISE:
-                this.oScene.handleActionError?.(SOCKET_REQUEST_EVENTS.RAISE, error.error);
-                break;
-            case SOCKET_REQUEST_EVENTS.DOUBLE_DOWN:
-                this.oScene.handleActionError?.(SOCKET_REQUEST_EVENTS.DOUBLE_DOWN, error.error);
-                break;
-            case SOCKET_REQUEST_EVENTS.SIDE_BETS:
-                if (error?.error) this.oScene.handleActionError?.(SOCKET_REQUEST_EVENTS.SIDE_BETS, error.error);
-                break;
-            default:
-                break;
-        }
+        routeSocketCallbackToScene(this.oScene, sEventName, response, error);
     }
     reqPingCheck() {
         const startTime = Date.now();

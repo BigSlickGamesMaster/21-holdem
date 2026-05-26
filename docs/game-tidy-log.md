@@ -124,3 +124,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/socketReceiveRouter.js src/scripts/socketReceiveRouter.test.js src/scripts/SocketManager.js` passed.
+
+### Step 8: Socket Callback Router Extraction
+
+- Goal: make socket acknowledgement/error routing testable.
+- Scope: extract `SocketManager.onCallBackReceive()` callback routing into a helper.
+- Non-goal: do not change callback signatures, error payload handling, or scene error display behavior in this step.
+- Expected benefit: socket action errors become testable without a live socket.
+- Implemented:
+  - Added `src/scripts/socketCallbackRouter.js`.
+  - Added `src/scripts/socketCallbackRouter.test.js`.
+  - Updated `SocketManager.onCallBackReceive()` to delegate to the router while keeping the public method.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/socketCallbackRouter.js src/scripts/socketCallbackRouter.test.js src/scripts/SocketManager.js` passed.
