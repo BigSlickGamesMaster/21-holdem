@@ -37,7 +37,7 @@ import {
 } from '../scripts/handResultLifecycle';
 import { SOCKET_REQUEST_EVENTS, SOCKET_RESPONSE_EVENTS } from '../scripts/socketEvents';
 import { getBetPotEffectName, getPotIncrease, shouldCommitPotWithoutAnimation } from '../scripts/potState';
-import { attachParticipantProfile, findParticipantForClient, findPlayerInMap } from '../scripts/participantState';
+import { buildParticipantUpdatePlan, findParticipantForClient, findPlayerInMap } from '../scripts/participantState';
 import {
     normalizeBoardSnapshot,
     shouldCancelResultForBoardState,
@@ -2673,17 +2673,13 @@ setButtons() {
         }
     }
     async setPlayersData(aParticipant) {
-        for (let i = 0; i < aParticipant.length; i++) {
-            const { iUserId, nSeat } = aParticipant[i];
-            if (!this.players.has(iUserId)) {
-                await this.mapPlayerData(iUserId, attachParticipantProfile(aParticipant[i], this.aPlayerProfiles));
+        const updatePlan = buildParticipantUpdatePlan(aParticipant, this.players, this.aPlayerProfiles);
+        for (let i = 0; i < updatePlan.length; i++) {
+            const { iUserId, type, participant, existingPlayer } = updatePlan[i];
+            if (type === 'create') {
+                await this.mapPlayerData(iUserId, participant);
             } else {
-                const player = this.players.get(iUserId);
-                Object.assign(player, attachParticipantProfile({
-                    ...aParticipant[i],
-                    playerProfile: player?.playerProfile,
-                    nSeat,
-                }, this.aPlayerProfiles));
+                Object.assign(existingPlayer, participant);
                 await this.setProfiles(iUserId);
             }
         }

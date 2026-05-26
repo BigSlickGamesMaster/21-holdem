@@ -37,3 +37,20 @@ export function attachParticipantProfile(participant, aPlayerProfiles = []) {
         playerProfile: participant.playerProfile || aPlayerProfiles[participant.nSeat],
     };
 }
+
+export function buildParticipantUpdatePlan(aParticipant = [], players, aPlayerProfiles = []) {
+    return normalizeParticipants(aParticipant).map((participant) => {
+        const existingPlayer = players?.get?.(participant.iUserId) || null;
+        const participantWithProfile = attachParticipantProfile({
+            ...participant,
+            playerProfile: existingPlayer?.playerProfile,
+        }, aPlayerProfiles);
+
+        return {
+            iUserId: participant.iUserId,
+            type: existingPlayer ? 'update' : 'create',
+            participant: participantWithProfile,
+            existingPlayer,
+        };
+    });
+}

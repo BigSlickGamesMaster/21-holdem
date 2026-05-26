@@ -207,3 +207,16 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/boardSnapshot.js src/scripts/boardSnapshot.test.js` passed.
+
+### Step 14: Participant Update Planning
+
+- Goal: make new-vs-existing participant reconciliation explicit.
+- Scope: add a pure helper that classifies participants as map/create or merge/update work for `setPlayersData()`.
+- Non-goal: do not move profile rendering, card sync, or `setProfiles()` calls in this step.
+- Expected benefit: the next state reducer can reuse participant reconciliation decisions without depending on Phaser.
+- Implemented:
+  - Added `buildParticipantUpdatePlan()` to `src/scripts/participantState.js`.
+  - Updated `Level.setPlayersData()` to consume the tested plan while keeping existing profile update calls.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/participantState.test.js src/scripts/boardSnapshot.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/participantState.js src/scripts/participantState.test.js` passed.

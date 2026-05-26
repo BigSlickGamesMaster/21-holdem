@@ -1,6 +1,7 @@
 /* global describe, test, expect */
 import {
     attachParticipantProfile,
+    buildParticipantUpdatePlan,
     findParticipantForClient,
     findPlayerInMap,
     normalizeParticipants,
@@ -57,5 +58,32 @@ describe('participantState', () => {
             playerProfile: 'seat1',
         });
         expect(attachParticipantProfile({ iUserId: 'u2', nSeat: 1, playerProfile: existingProfile }, profiles).playerProfile).toBe(existingProfile);
+    });
+
+    test('builds participant create/update plan with stable profiles', () => {
+        const existingProfile = { id: 'existing-profile' };
+        const existingPlayer = { iUserId: 'u1', playerProfile: existingProfile };
+        const players = new Map([
+            ['u1', existingPlayer],
+        ]);
+        const profiles = ['seat0', 'seat1'];
+
+        expect(buildParticipantUpdatePlan([
+            { iUserId: 'u1', nSeat: 0, nChips: 100 },
+            { iUserId: 'u2', nSeat: 1, nChips: 200 },
+        ], players, profiles)).toEqual([
+            {
+                iUserId: 'u1',
+                type: 'update',
+                participant: { iUserId: 'u1', nSeat: 0, nChips: 100, playerProfile: existingProfile },
+                existingPlayer,
+            },
+            {
+                iUserId: 'u2',
+                type: 'create',
+                participant: { iUserId: 'u2', nSeat: 1, nChips: 200, playerProfile: 'seat1' },
+                existingPlayer: null,
+            },
+        ]);
     });
 });
