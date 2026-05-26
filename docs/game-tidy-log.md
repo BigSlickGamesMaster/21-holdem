@@ -166,3 +166,16 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/potState.js src/scripts/potState.test.js` passed.
+
+### Step 11: Socket Replay Harness
+
+- Goal: create a lightweight way to replay server event sequences through the extracted router.
+- Scope: add a helper that feeds ordered socket events into a scene-like object and records which events were handled.
+- Non-goal: do not add recorded production payloads or change runtime game flow in this step.
+- Expected benefit: future join/turn/result regressions can be tested as event sequences instead of manual browser checks only.
+- Implemented:
+  - Added `src/scripts/socketReplay.js`.
+  - Added `src/scripts/socketReplay.test.js`.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/socketReplay.js src/scripts/socketReplay.test.js` passed.
