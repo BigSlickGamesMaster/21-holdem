@@ -479,3 +479,21 @@ This file records each stabilization/refactor step so future work can see what c
   - `npm run lint:game` passed.
   - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js --watchAll=false` passed.
+
+### Step 32: Remove Table/Login Flashes And Reposition Hand Cards
+
+- Goal: remove one-frame UI flashes during login/table load and put the visible hand cards where the player expects them.
+- Scope: derive gameplay layout immediately for `/game`, stop the login splash from fading back to the login form before navigation, remove the old Phaser header buttons, make the side-bet heading appear only while side bets are active, move console cards above action buttons, and apply the requested card face design.
+- Non-goal: do not change login authentication, route permissions, or game action rules.
+- Expected benefit: no old topbar/header flash on table load, no login form glimpse after successful login, side-bet text does not sit on the felt when inactive, and hand cards are larger above the controls with a large rank and top-left suit.
+- Implemented:
+  - Replaced delayed `isGamePlay` layout state with direct `/game` path detection.
+  - Removed the login splash fade-out step and cleaned up its timer on unmount.
+  - Disabled the old Phaser settings/exit header because the React game utility overlay owns exit now.
+  - Rendered the `Place Side Bets` arc only while the side-bet window is open.
+  - Moved `ConsoleCards` into a floating area above the action rows and enlarged them.
+  - Updated both React console cards and Phaser `Card` faces to use one large center rank plus a medium top-left suit.
+- Checks:
+  - `npm run lint:game` passed.
+  - `npx eslint src/views/game/GameActionOverlay.jsx src/views/auth/login/index.jsx src/layouts/main-layout/index.jsx --max-warnings=0` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js --watchAll=false` passed.

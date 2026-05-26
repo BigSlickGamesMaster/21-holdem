@@ -1,12 +1,9 @@
-import { exchangeHandoff, forgotPassword, login, resetPassword, verifyToken } from 'query/login.query';
+import { exchangeHandoff, login } from 'query/login.query';
 import React, { useEffect, useRef, useState } from 'react';
 import { useMutation } from 'react-query';
-import { Button, Col, Form, Row } from 'react-bootstrap';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ReactToastify, setCookie } from 'shared/utils';
-import eye from '../../../assets/images/icons/eye_icon.svg';
-import eye_slash_icon from '../../../assets/images/icons/eye_slash_icon.svg';
 import holdemLogoImg from '../../../assets/images/bg/21HLogo.png';
 
 const LOGIN_REMEMBER_ME_KEY = 'bsg:remember-me';
@@ -15,39 +12,29 @@ const LOGIN_REMEMBERED_IDENTIFIER_KEY = 'bsg:remembered-login';
 const Login = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const forgotPasswordToken = searchParams.get('forgotPasswordToken');
     const handoffCode = searchParams.get('handoffCode');
     const verificationStatus = searchParams.get('verificationStatus');
     const verifiedUserName = searchParams.get('sUserName');
 
-    const [showForgotPassword, setShowForgotPassword] = useState(false);
-    const [showResetFields, setShowResetFields] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showNewPassword, setShowNewPassword] = useState(false);
     const [showSplash, setShowSplash] = useState(false);
-    const [splashFading, setSplashFading] = useState(false);
     const splashTimerRef = useRef(null);
 
     const goToLobby = (path = '/lobby', opts = {}) => {
         setShowSplash(true);
         splashTimerRef.current = setTimeout(() => {
-            setSplashFading(true);
-            splashTimerRef.current = setTimeout(() => navigate(path, opts), 900);
+            navigate(path, { replace: true, ...opts });
         }, 4200);
     };
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    useEffect(() => () => {
+        if (splashTimerRef.current) clearTimeout(splashTimerRef.current);
+    }, []);
     const [rememberMe, setRememberMe] = useState(() => {
         if (typeof window === 'undefined') return false;
         return window.localStorage.getItem(LOGIN_REMEMBER_ME_KEY) === 'true';
     });
 
     const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm({ mode: 'onSubmit' });
-    const {
-        register: forgotPwdRegister,
-        handleSubmit: forgotPwdHandleSubmit,
-        formState: { errors: forgotPwdErrors },
-        reset: forgotPWDReset,
-    } = useForm({ mode: 'onSubmit' });
 
     const { mutate, isLoading } = useMutation(login, {
         onSuccess: (data) => {
@@ -84,56 +71,6 @@ const Login = () => {
             navigate('/login', { replace: true });
         },
     });
-
-    const { mutate: forgotPwdMutate, isLoading: forgotPwdLoading } = useMutation(forgotPassword, {
-        onSuccess: (data) => {
-            if (data.status === 200) {
-                ReactToastify(data.data.message, 'success', 'forgotPassword');
-                setShowForgotPassword(false);
-                setShowResetFields(false);
-            } else {
-                ReactToastify(data.data.message, 'error', 'forgotPassword');
-            }
-        },
-        onError: (error) => {
-            console.log(error);
-            ReactToastify(error?.response?.data?.message, 'error', 'forgotPassword');
-        },
-    });
-
-    const { mutate: resetPwdMutate, isLoading: resetPwdLoading } = useMutation(resetPassword, {
-        onSuccess: (data) => {
-            if (data.status === 200) {
-                ReactToastify(data.data.message, 'success', 'resetPassword');
-                setShowResetFields(false);
-                setShowForgotPassword(false);
-            } else {
-                ReactToastify(data.data.message, 'error', 'resetPassword');
-            }
-        },
-        onError: (error) => {
-            console.log(error);
-            ReactToastify(error.response.data.message, 'error', 'resetPassword');
-        },
-    });
-
-    const { mutate: mutateVerifyToken } = useMutation(verifyToken, {
-        onSuccess: () => {
-            setShowResetFields(true);
-            setShowForgotPassword(false);
-        },
-        onError: (error) => {
-            console.log(error);
-            ReactToastify(error.response.data.message, 'error', 'verifyToken');
-            navigate('/login');
-            setShowResetFields(false);
-            setShowForgotPassword(false);
-        },
-    });
-
-    useEffect(() => {
-        if (forgotPasswordToken) mutateVerifyToken(forgotPasswordToken);
-    }, [forgotPasswordToken, mutateVerifyToken]);
 
     useEffect(() => {
         if (handoffCode) {
@@ -185,30 +122,10 @@ const Login = () => {
         reset();
     }
 
-    const onForgotPassword = (data) => {
-        forgotPwdMutate({
-            sEmail: data.forgotEmail,
-        });
-        forgotPWDReset();
-    };
-
-    const onResetPassword = (data) => {
-        if (data.newPassword !== data.confirmPassword) {
-            ReactToastify('Passwords do not match', 'error');
-            return;
-        }
-
-        resetPwdMutate({
-            sPassword: data.newPassword,
-            sToken: forgotPasswordToken,
-        });
-        forgotPWDReset();
-    };
-
     return (
         <>
         {showSplash && (
-            <div className={`login-splash${splashFading ? ' login-splash--fade-out' : ''}`} aria-hidden='true'>
+            <div className='login-splash' aria-hidden='true'>
                 <span className='login-splash__ring' />
                 <span className='login-splash__ring login-splash__ring--two' />
                 <span className='login-splash__ring login-splash__ring--three' />
@@ -281,13 +198,6 @@ const Login = () => {
                         />
                         <span>Remember me</span>
                     </label>
-                    <button
-                        type='button'
-                        className='login-background-only__forgot'
-                        onClick={() => setShowForgotPassword(true)}
-                    >
-                        Forgot Password?
-                    </button>
                 </div>
                 <button
                     type='submit'

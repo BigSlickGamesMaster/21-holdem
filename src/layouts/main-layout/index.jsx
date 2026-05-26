@@ -19,12 +19,8 @@ function MainLayout({ children }) {
     const queryClient = useQueryClient()
     const width = useMediaQuery('(max-width: 300px)')
 
-    const [isGamePlay, setIsGamePlay] = useState(false)
     const getPath = useLocation().pathname
-
-    useEffect(() => {
-        getPath === '/game' ? setIsGamePlay(true) : setIsGamePlay(false)
-    }, [getPath])
+    const isGamePlay = getPath === '/game'
 
     useEffect(() => {
         if (getPath === '/game') return

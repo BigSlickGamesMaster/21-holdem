@@ -111,7 +111,7 @@ body,
     right: 0;
     bottom: 0;
     display: grid;
-    grid-template-columns: var(--console-left-width, 34%) var(--console-center-width, 26%) var(--console-right-width, 40%);
+    grid-template-columns: var(--console-left-width, 52%) var(--console-center-width, 0%) var(--console-right-width, 48%);
     align-items: center;
     gap: 0;
     width: 100%;
@@ -699,6 +699,54 @@ body,
     pointer-events: auto;
 }
 
+.game-action-overlay__floating-console-cards {
+    position: absolute;
+    left: 50%;
+    bottom: calc(75px + 38px + env(safe-area-inset-bottom, 0px) + 128px);
+    z-index: 8;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    width: min(92vw, 520px);
+    pointer-events: none;
+
+    .game-action-overlay__console-cards {
+        justify-content: center;
+        min-height: 96px;
+        gap: 7px;
+        overflow: visible;
+        pointer-events: none;
+    }
+
+    .game-action-overlay__console-card-group {
+        gap: 7px;
+    }
+
+    .game-action-overlay__console-card {
+        width: clamp(50px, 11vw, 68px);
+        height: clamp(70px, 15.2vw, 94px);
+        border-radius: 7px;
+    }
+
+    .game-action-overlay__console-card-corner-suit {
+        left: 13%;
+        top: 12%;
+        width: 24%;
+    }
+
+    .game-action-overlay__console-card-rank-center {
+        top: 53%;
+        font-size: clamp(31px, 7.2vw, 45px);
+    }
+
+    .game-action-overlay__console-card-total {
+        min-width: 42px;
+        height: 42px;
+        padding: 0 10px;
+        font-size: 19px;
+    }
+}
+
 .game-action-overlay__action-cards {
     position: absolute;
     left: 50%;
@@ -885,23 +933,12 @@ body,
     opacity: 1;
 }
 
-.game-action-overlay__console-card-corner-rank {
-    position: absolute;
-    left: 12%;
-    top: 9%;
-    z-index: 1;
-    font-family: 'CardFont', 'Neue Plak Condensed', serif;
-    font-size: clamp(11px, 2.8vw, 16px);
-    font-weight: 900;
-    line-height: 1;
-}
-
 .game-action-overlay__console-card-corner-suit {
     position: absolute;
-    left: 30%;
-    top: 9%;
+    left: 13%;
+    top: 12%;
     z-index: 1;
-    width: 17%;
+    width: 22%;
     height: auto;
     pointer-events: none;
 }

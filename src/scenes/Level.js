@@ -1775,24 +1775,11 @@ setConsolePrompt(label = 'Waiting for turn') {
     }
 }
 
-    // Header: ping, settings, and exit buttons.
+    // Header controls were replaced by the React game utility overlay.
     setHeader() {
-        const btn_setting = new Button(this, 84, 88, { texture: assets.btn_setting, scaleX: 0.72, scaleY: 0.72 }, () => {
-            btn_setting.setVisible(false);
-            this.settings.open();
-        });
-        this.container_header.add(btn_setting);
-
-        const btn_exit = new Button(this, config.width - 84, btn_setting.y, { texture: assets.btn_exit, scaleX: 0.72, scaleY: 0.72 }, () => {
-            this.popup.open({
-                confirm: true, title: 'EXIT', message: this.oGameManager.exitMessage, callback: () => {
-                    this.reqLeaveGame();
-                }
-            });
-        });
-        this.container_header.add(btn_exit);
-
-        this.oHeader = { btn_setting: btn_setting, btn_exit: btn_exit };
+        this.container_header?.removeAll(true);
+        this.container_header?.setVisible(false);
+        this.oHeader = {};
     }
 
     // Table: felt background and private table code overlay.

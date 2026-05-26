@@ -27,11 +27,11 @@ export default class Card extends Phaser.GameObjects.Container {
         // Small label — top left
         this.top_number = scene.add.text(-_hw + _pad, -_hh + _pad, '10', {
             fontFamily: config.CardFont, fontSize: '42px', align: 'left', color: '#000000',
-        }).setOrigin(0, 0);
+        }).setOrigin(0, 0).setVisible(false);
         this.container_card.add(this.top_number);
 
         // Small suit — to the right of the small label (x updated in setCard after setText)
-        this.other_symbol = scene.add.image(0, -_hh + _pad + 4, 'spades').setOrigin(0, 0).setScale(0.35);
+        this.other_symbol = scene.add.image(-_hw + _pad, -_hh + _pad + 4, 'spades').setOrigin(0, 0).setScale(0.45);
         this.container_card.add(this.other_symbol);
 
         // Big rank label — centre of card
@@ -71,7 +71,10 @@ export default class Card extends Phaser.GameObjects.Container {
         this.center_number.setText(labelText);
 
         // Align small suit to the right of the small label
-        this.other_symbol.setX(this.top_number.x + this.top_number.width + 4);
+        this.other_symbol.setPosition(
+            -(this.card_front.width / 2) + 20,
+            -(this.card_front.height / 2) + 24
+        );
 
         const color = (eSuit === 'd' || eSuit === 'h') ? '#b22a0b' : '#000000';
         this.top_number.setColor(color);

@@ -25,9 +25,9 @@ import EmojiPicker from './EmojiPicker';
 
 const DEBUG_CONSOLE_LAYOUT = false;
 const CONSOLE_LAYOUT_STYLE = {
-    '--console-left-width': '32%',
-    '--console-center-width': '46%',
-    '--console-right-width': '22%',
+    '--console-left-width': '58%',
+    '--console-center-width': '0%',
+    '--console-right-width': '42%',
 };
 
 function SoundToggle() {
@@ -106,7 +106,7 @@ const createInitialSideBets = () => SIDE_BET_OPTIONS.reduce((accumulator, option
     [option.id]: 0,
 }), {});
 
-function SideBetsModule({ bets, disabled = false, isFocus = false, isTable = false, statuses = {}, unitAmount = SIDE_BET_STEP, onAdd, onClear }) {
+function SideBetsModule({ bets, disabled = false, isFocus = false, isTable = false, showHeading = false, statuses = {}, unitAmount = SIDE_BET_STEP, onAdd, onClear }) {
     const stopSideBetPointer = (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -119,7 +119,7 @@ function SideBetsModule({ bets, disabled = false, isFocus = false, isTable = fal
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
         >
-            {isTable ? (
+            {isTable && showHeading ? (
                 <div className='game-action-overlay__side-bets-arc' aria-hidden='true'>
                     <span>Place Side Bets</span>
                 </div>
@@ -177,6 +177,7 @@ SideBetsModule.propTypes = {
     disabled: PropTypes.bool,
     isFocus: PropTypes.bool,
     isTable: PropTypes.bool,
+    showHeading: PropTypes.bool,
     statuses: PropTypes.objectOf(PropTypes.shape({
         unqualified: PropTypes.bool,
         paid: PropTypes.number,
@@ -190,6 +191,7 @@ SideBetsModule.defaultProps = {
     disabled: false,
     isFocus: false,
     isTable: false,
+    showHeading: false,
     statuses: {},
     unitAmount: SIDE_BET_STEP,
 };
@@ -220,7 +222,6 @@ function ConsoleCard({ card, muted = false }) {
     return (
         <span className={`game-action-overlay__console-card${bRed ? ' is-red' : ''}${muted ? ' is-muted' : ''}`}>
             <img className='game-action-overlay__console-card-face' src={cardFrontImage} alt='' draggable='false' />
-            <span className='game-action-overlay__console-card-corner-rank'>{sLabel}</span>
             <img className='game-action-overlay__console-card-corner-suit' src={sSuitImage} alt={sSuitSymbol} draggable='false' />
             <strong className='game-action-overlay__console-card-rank-center'>{sLabel}</strong>
         </span>
@@ -670,6 +671,7 @@ function GameActionOverlay({ isPaused = false }) {
                         bets={sideBets}
                         disabled={isPaused || !bSideBetWindowOpen}
                         isTable
+                        showHeading={bSideBetWindowOpen}
                         statuses={bSideBetWindowOpen ? {} : sideBetStatuses}
                         unitAmount={sideBetUnitAmount}
                         onAdd={addSideBet}
@@ -701,6 +703,15 @@ function GameActionOverlay({ isPaused = false }) {
                         </button>
                     </div>
                 </div>
+                {hasConsoleCards ? (
+                    <div className='game-action-overlay__floating-console-cards'>
+                        <ConsoleCards
+                            handCards={consoleCards.hand}
+                            communityCards={consoleCards.community}
+                            score={consoleCards.score}
+                        />
+                    </div>
+                ) : null}
                 <div className='game-action-overlay__tray'>
                     {hasButtons ? (
                         <div className={`game-action-overlay__rows game-action-overlay__rows--interactive${DEBUG_CONSOLE_LAYOUT ? ' is-debug-layout' : ''}`}>
@@ -761,13 +772,7 @@ function GameActionOverlay({ isPaused = false }) {
                                 <strong>{bankrollAmount}</strong>
                             </div>
                         </div>
-                        <div className='game-action-overlay__console-col game-action-overlay__console-col--center'>
-                            <ConsoleCards
-                                handCards={consoleCards.hand}
-                                communityCards={consoleCards.community}
-                                score={consoleCards.score}
-                            />
-                        </div>
+                        <div className='game-action-overlay__console-col game-action-overlay__console-col--center' aria-hidden='true' />
                         <div className='game-action-overlay__console-col game-action-overlay__console-col--right'>
                             <div className='game-action-overlay__table-bankroll'>
                                 <span>Table</span>
