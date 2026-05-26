@@ -6,6 +6,7 @@ import {
     CLIENT_GAME_STATE_ACTIONS,
     createInitialClientGameState,
     setTableChipsInClientState,
+    setParticipantHandScoreInClientState,
     setTurnActionStateInClientState,
 } from './clientGameState';
 
@@ -166,5 +167,48 @@ describe('clientGameState', () => {
         expect(nextState.turn.isLocalTurn).toBe(false);
         expect(nextState.turn.context).toEqual({ aUserAction: [] });
         expect(nextState.turn.actionState).toEqual({ fold: { visible: false } });
+    });
+
+    test('sets participant hand and score while preserving participant fields', () => {
+        const state = applyBoardSnapshotToClientState(createInitialClientGameState(), {
+            aParticipant: [{ iUserId: 'u1', nChips: 100 }],
+        });
+        const hand = [{ _id: 'c1' }];
+        const nextState = setParticipantHandScoreInClientState(state, {
+            iUserId: 'u1',
+            aCardHand: hand,
+            nCardScore: '18',
+        });
+
+        expect(nextState.participantsById.u1).toEqual({
+            iUserId: 'u1',
+            nChips: 100,
+            aCardHand: hand,
+            nCardScore: 18,
+        });
+    });
+
+    test('adds participant hand state for missing participant', () => {
+        const nextState = setParticipantHandScoreInClientState(createInitialClientGameState(), {
+            iUserId: 'u2',
+            aCardHand: [{ _id: 'c2' }],
+            nCardScore: 9,
+        });
+
+        expect(nextState.participantsById.u2).toEqual({
+            iUserId: 'u2',
+            aCardHand: [{ _id: 'c2' }],
+            nCardScore: 9,
+        });
+        expect(nextState.participantOrder).toEqual(['u2']);
+    });
+
+    test('reducer applies participant hand score action', () => {
+        const nextState = clientGameStateReducer(createInitialClientGameState(), {
+            type: CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_HAND_SCORE,
+            payload: { iUserId: 'u1', nCardScore: 21 },
+        });
+
+        expect(nextState.participantsById.u1).toEqual({ iUserId: 'u1', nCardScore: 21 });
     });
 });

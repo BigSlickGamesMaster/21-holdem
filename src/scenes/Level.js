@@ -2190,6 +2190,16 @@ setButtons() {
 
         if (myPlayer) myPlayer.aCardHand = aIncomingHand;
         if (myPlayer) myPlayer.nCardScore = Number(nCardScore) || myPlayer.nCardScore;
+        if (myPlayer) {
+            this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+                type: CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_HAND_SCORE,
+                payload: {
+                    iUserId: this.iUserId,
+                    aCardHand: aIncomingHand,
+                    nCardScore,
+                },
+            });
+        }
         this.emitConsoleCards();
 
         if (this.playerHandNeedsReset(myPlayer, aIncomingHand)) {
@@ -2669,6 +2679,17 @@ setButtons() {
         const myPlayer = this.players.get(this.iUserId);
         const nChips = Number(myPlayerData?.nChips);
         const nCardScore = Number(myPlayerData?.nCardScore);
+
+        if (myPlayerData?.aCardHand || Number.isFinite(nCardScore)) {
+            this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+                type: CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_HAND_SCORE,
+                payload: {
+                    iUserId: this.iUserId,
+                    aCardHand: myPlayerData?.aCardHand,
+                    nCardScore: myPlayerData?.nCardScore,
+                },
+            });
+        }
 
         if (Number.isFinite(nChips)) {
             this.oGameManager.nMyPlayerChips = nChips;

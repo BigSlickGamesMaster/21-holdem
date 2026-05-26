@@ -6,6 +6,7 @@ export const CLIENT_GAME_STATE_ACTIONS = Object.freeze({
     APPLY_PARTICIPANT_PATCH: 'applyParticipantPatch',
     SET_TABLE_CHIPS: 'setTableChips',
     SET_TURN_ACTION_STATE: 'setTurnActionState',
+    SET_PARTICIPANT_HAND_SCORE: 'setParticipantHandScore',
 });
 
 export function createInitialClientGameState() {
@@ -117,6 +118,31 @@ export function setTurnActionStateInClientState(state = createInitialClientGameS
     };
 }
 
+export function setParticipantHandScoreInClientState(state = createInitialClientGameState(), payload = {}) {
+    const source = payload && typeof payload === 'object' ? payload : {};
+    if (source.iUserId === undefined || source.iUserId === null) return state;
+
+    const participantId = String(source.iUserId);
+    const previousParticipant = state.participantsById?.[participantId] || { iUserId: source.iUserId };
+    const nextParticipant = {
+        ...previousParticipant,
+    };
+
+    if (Array.isArray(source.aCardHand)) nextParticipant.aCardHand = source.aCardHand;
+    if (source.nCardScore !== undefined) nextParticipant.nCardScore = Number(source.nCardScore) || 0;
+
+    return {
+        ...state,
+        participantsById: {
+            ...(state.participantsById || {}),
+            [participantId]: nextParticipant,
+        },
+        participantOrder: Array.isArray(state.participantOrder) && state.participantOrder.includes(participantId)
+            ? state.participantOrder
+            : [...(state.participantOrder || []), participantId],
+    };
+}
+
 export function clientGameStateReducer(state = createInitialClientGameState(), action = {}) {
     switch (action.type) {
         case CLIENT_GAME_STATE_ACTIONS.APPLY_BOARD_SNAPSHOT:
@@ -127,6 +153,8 @@ export function clientGameStateReducer(state = createInitialClientGameState(), a
             return setTableChipsInClientState(state, action.payload?.nTableChips);
         case CLIENT_GAME_STATE_ACTIONS.SET_TURN_ACTION_STATE:
             return setTurnActionStateInClientState(state, action.payload);
+        case CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_HAND_SCORE:
+            return setParticipantHandScoreInClientState(state, action.payload);
         default:
             return state;
     }

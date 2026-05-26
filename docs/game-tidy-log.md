@@ -276,3 +276,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/gameActionState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.
+
+### Step 19: Participant Hand/Score Reducer State
+
+- Goal: track hand and score updates in normalized participant state.
+- Scope: add reducer helper/action for participant `aCardHand` and `nCardScore`, then wire current card-hand/score update paths.
+- Non-goal: do not change card rendering, animation, score display, or reveal rules in this step.
+- Expected benefit: card/score socket updates become replay-testable without requiring Phaser containers.
+- Implemented:
+  - Added `SET_PARTICIPANT_HAND_SCORE` support in `src/scripts/clientGameState.js`.
+  - Added reducer tests for participant hand/score updates.
+  - Updated `Level.setCardHand()` and `Level.setMyPlayerData()` to keep reducer state in sync.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.
