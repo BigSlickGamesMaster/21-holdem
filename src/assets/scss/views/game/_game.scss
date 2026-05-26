@@ -851,14 +851,11 @@ body,
     place-items: center;
     width: clamp(30px, 7.8vw, 42px);
     height: clamp(42px, 10.8vw, 58px);
-    border: 1px solid rgba(19, 35, 57, 0.82);
-    border-radius: 4px;
-    background:
-        linear-gradient(180deg, #ffffff 0%, #f7fbff 60%, #e8f0f8 100%);
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
     color: #101010;
-    box-shadow:
-        inset 0 0 0 2px rgba(255, 255, 255, 0.78),
-        0 5px 10px rgba(0, 0, 0, 0.28);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.28);
     font-family: 'CardFont', 'Neue Plak Condensed', serif;
     font-weight: 900;
     line-height: 1;
@@ -867,6 +864,16 @@ body,
     img {
         user-select: none;
     }
+}
+
+.game-action-overlay__console-card-face {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    pointer-events: none;
 }
 
 .game-action-overlay__console-card.is-red {
@@ -878,24 +885,35 @@ body,
     opacity: 1;
 }
 
-.game-action-overlay__console-card-suit {
+.game-action-overlay__console-card-corner-rank {
     position: absolute;
-    left: 50%;
-    top: 72%;
+    left: 12%;
+    top: 9%;
     z-index: 1;
-    width: 19%;
+    font-family: 'CardFont', 'Neue Plak Condensed', serif;
+    font-size: clamp(11px, 2.8vw, 16px);
+    font-weight: 900;
+    line-height: 1;
+}
+
+.game-action-overlay__console-card-corner-suit {
+    position: absolute;
+    left: 30%;
+    top: 9%;
+    z-index: 1;
+    width: 17%;
     height: auto;
-    transform: translate(-50%, -50%);
+    pointer-events: none;
 }
 
 .game-action-overlay__console-card-rank-center {
     position: absolute;
     left: 50%;
-    top: 42%;
+    top: 52%;
     z-index: 1;
     transform: translate(-50%, -50%);
     font-family: 'CardFont', 'Neue Plak Condensed', serif;
-    font-size: clamp(16px, 4.1vw, 24px);
+    font-size: clamp(19px, 5.1vw, 30px);
     font-weight: 900;
     line-height: 1;
 }

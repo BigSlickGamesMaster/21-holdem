@@ -499,6 +499,33 @@ createGameActionOverlayRow(id, buttonKeys = [], className = '') {
     };
 }
 
+createGameActionOverlayRows(idPrefix, buttonKeys = [], buttonsPerRow = 2, className = '') {
+    const buttons = buttonKeys
+        .map(key => this.getGameActionOverlayButton(this.oButtons?.[key]))
+        .filter(Boolean);
+
+    const rows = [];
+    for (let index = 0; index < buttons.length; index += buttonsPerRow) {
+        const rowButtons = buttons.slice(index, index + buttonsPerRow);
+        const sCountClass = rowButtons.length === 1
+            ? 'game-action-overlay__row--single'
+            : rowButtons.length === 2
+                ? 'game-action-overlay__row--two'
+                : rowButtons.length === 4
+                    ? 'game-action-overlay__row--four'
+                    : 'game-action-overlay__row--three';
+        const sBaseClassName = String(className || '').replace(/game-action-overlay__row--(single|two|three|four)/g, '').trim();
+
+        rows.push({
+            id: `${idPrefix}-${rows.length + 1}`,
+            className: `${sBaseClassName} ${sCountClass}`.trim(),
+            buttons: rowButtons,
+        });
+    }
+
+    return rows;
+}
+
     syncGameActionOverlay() {
         if (!this.oButtons) {
             hideGameActionOverlay();
@@ -518,8 +545,7 @@ createGameActionOverlayRow(id, buttonKeys = [], className = '') {
             );
         } else if (this.container_buttons?.visible) {
             rows.push(
-                this.createGameActionOverlayRow('main-top', ['btn_fold', 'btn_call', 'btn_stand'], 'game-action-overlay__row--three'),
-                this.createGameActionOverlayRow('main-bottom', ['btn_check', 'btn_raise', 'btn_allInCommon'], 'game-action-overlay__row--three'),
+                ...this.createGameActionOverlayRows('main', ['btn_fold', 'btn_call', 'btn_stand', 'btn_check', 'btn_raise', 'btn_allInCommon'], 2),
             );
         }
 

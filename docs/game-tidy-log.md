@@ -465,3 +465,17 @@ This file records each stabilization/refactor step so future work can see what c
   - `node --check public/fx-overlay/chipBurst.js; node --check public/fx-overlay/fxOverlay.js` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/playerHandSync.test.js src/scripts/socketReceiveRouter.test.js src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js --watchAll=false` passed.
   - `npm run build` was attempted; the shell command timed out after 244s, and the background build process later exited without captured output.
+
+### Step 31: Fix Action Rows And Card Face Mismatch
+
+- Goal: address the visible screenshot issues where the main actions still formed three rows and console cards did not match the table/community card face.
+- Scope: pair main action buttons into two-button rows and make the React console card face use the same card-front asset and rank/suit structure as the Phaser card prefab.
+- Non-goal: do not change game rules, available actions, or community-card placement.
+- Expected benefit: `Fold | Call` and `Call/Stand | Raise` appear as two rows when all four actions are visible, and the console hand no longer looks like a separate card design.
+- Implemented:
+  - Added paired main-action row generation in `Level.syncGameActionOverlay()`.
+  - Updated `ConsoleCard` to render card front art, corner rank/suit, and center rank.
+- Checks:
+  - `npm run lint:game` passed.
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js --watchAll=false` passed.

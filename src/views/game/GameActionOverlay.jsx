@@ -13,6 +13,7 @@ import clubImage from '../../assets/images/card/club.png';
 import diamondImage from '../../assets/images/card/diamond.png';
 import heartImage from '../../assets/images/card/heart.png';
 import spadeImage from '../../assets/images/card/spades.png';
+import cardFrontImage from '../../assets/images/card/card_front.png';
 import {
     createHiddenGameActionOverlayState,
     emitGameActionOverlayCommand,
@@ -218,7 +219,9 @@ function ConsoleCard({ card, muted = false }) {
 
     return (
         <span className={`game-action-overlay__console-card${bRed ? ' is-red' : ''}${muted ? ' is-muted' : ''}`}>
-            <img className='game-action-overlay__console-card-suit' src={sSuitImage} alt={sSuitSymbol} draggable='false' />
+            <img className='game-action-overlay__console-card-face' src={cardFrontImage} alt='' draggable='false' />
+            <span className='game-action-overlay__console-card-corner-rank'>{sLabel}</span>
+            <img className='game-action-overlay__console-card-corner-suit' src={sSuitImage} alt={sSuitSymbol} draggable='false' />
             <strong className='game-action-overlay__console-card-rank-center'>{sLabel}</strong>
         </span>
     );
