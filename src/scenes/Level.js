@@ -19,10 +19,6 @@ import CleanupRegistry from '../scripts/CleanupRegistry';
 import { GAME_BROWSER_EVENTS } from '../scripts/gameEvents';
 import { buildGameActionState } from '../scripts/gameActionState';
 import {
-    getIncomingHandIds,
-    getRenderedHandIds,
-    playerHandNeedsReset,
-    playerHasRenderedCard,
     shouldRevealPlayerScore,
     shouldShowPlayerScore,
 } from '../scripts/playerHandSync';
@@ -262,18 +258,6 @@ layoutButtonIconText(btn) {
     }
 }
 
-playerHasRenderedCard(player, sCardId) {
-    return playerHasRenderedCard(player, sCardId);
-}
-
-getRenderedHandIds(player) {
-    return getRenderedHandIds(player);
-}
-
-getIncomingHandIds(aCardHand = []) {
-    return getIncomingHandIds(aCardHand);
-}
-
 shouldShowPlayerScore(aCardHand = [], nCardScore = 0, playerProfile = null) {
     return shouldShowPlayerScore(aCardHand, nCardScore, playerProfile);
 }
@@ -300,22 +284,18 @@ syncPlayerScoreDisplay(player = null, nCardScore = 0, aCardHand = [], options = 
     player.playerProfile.clearScore?.();
 }
 
-playerHandNeedsReset(player, aCardHand = []) {
-    return playerHandNeedsReset(player, aCardHand);
+syncPlayerHandSnapshot(player, aCardHand = []) {
+    if (!player) return;
+
+    player.aCardHand = Array.isArray(aCardHand) ? aCardHand : [];
+    player.playerProfile?.container_cards?.removeAll(true);
+    player.playerProfile?.container_cards?.setVisible(false);
 }
 
-syncPlayerHandSnapshot(player, aCardHand = []) {
-    if (!player?.playerProfile?.container_cards) return;
-    const aIncomingHand = Array.isArray(aCardHand) ? aCardHand : [];
-
-    if (this.playerHandNeedsReset(player, aIncomingHand)) {
-        player.playerProfile.container_cards.removeAll(true);
-    }
-
-    aIncomingHand.forEach(cardData => {
-        if (!this.playerHasRenderedCard(player, cardData?._id)) {
-            this.createCard(cardData, player);
-        }
+clearProfileSeatCards() {
+    this.players?.forEach?.(player => {
+        player?.playerProfile?.container_cards?.removeAll(true);
+        player?.playerProfile?.container_cards?.setVisible(false);
     });
 }
 
@@ -2244,12 +2224,7 @@ setButtons() {
     }
     setCardHand({ aCardHand, nCardScore }) {
         this.oTable.container_private_table.setVisible(false);
-        const playersArray = Array.from(this.players.values());
         const myPlayer = this.players.get(this.iUserId);
-        const dealerIndex = playersArray.findIndex(player => player?.iUserId === this.iDealerId);
-        const reorderedPlayers = dealerIndex >= 0
-            ? [...playersArray.slice(dealerIndex), ...playersArray.slice(0, dealerIndex)]
-            : playersArray;
         const aIncomingHand = Array.isArray(aCardHand) ? aCardHand : [];
 
         if (myPlayer) myPlayer.aCardHand = aIncomingHand;
@@ -2265,100 +2240,8 @@ setButtons() {
             });
         }
         this.emitConsoleCards();
-
-        if (this.playerHandNeedsReset(myPlayer, aIncomingHand)) {
-            myPlayer?.playerProfile?.container_cards?.removeAll(true);
-        }
-
-        const aNewCards = aIncomingHand.filter(cardData => !this.playerHasRenderedCard(myPlayer, cardData?._id));
-
-        reorderedPlayers.forEach(player => {
-            if (!player?.playerProfile?.container_cards) return;
-            if (player?.iUserId == this.iUserId) {
-                this.syncPlayerScoreDisplay(player, nCardScore, aIncomingHand);
-            }
-            const nRenderedCards = player.playerProfile.container_cards.list.length;
-            if (nRenderedCards > aIncomingHand.length) {
-                player.playerProfile.container_cards.removeAll(true);
-            }
-        });
-
-        aNewCards.forEach((cardData, cardIndex) => {
-            reorderedPlayers.forEach((player, playerIndex) => {
-                if (!player?.playerProfile) return;
-
-                if (player?.iUserId === this.iUserId) {
-                    if (this.playerHasRenderedCard(player, cardData._id)) return;
-                    this.animateCard(cardData, cardIndex, player, playerIndex);
-                    return;
-                }
-
-                if (cardIndex > 0) return;
-                if (player?.playerProfile?.container_cards?.list?.length >= 1) return;
-
-                this.animateCard({
-                    ...cardData,
-                    _id: `${cardData._id}_${player.iUserId}_${cardIndex}`,
-                }, cardIndex, player, playerIndex);
-            });
-        });
-    }
-    animateCard(cardData, cardIndex, player, playerIndex, targetContainer = null) {
-        this.createCard(cardData, player, null, targetContainer);
-    }
-    async createCard(cardData, player, animatedCard, targetContainer = null) {
-        if (this.playerHasRenderedCard(player, cardData?._id)) return;
-
-        const container = targetContainer || player?.playerProfile?.container_cards;
-        if (!container) return;
-        if (!player?.playerProfile?.bSuppressProfileDisplay) {
-            player?.playerProfile?.setVisible?.(true);
-            player?.playerProfile?.container_profile?.setVisible?.(true);
-        }
-
-        const bProfileCard = !targetContainer && container === player?.playerProfile?.container_cards;
-        const bLocalPlayer = player?.iUserId === this.iUserId;
-        const cardSpacing = bProfileCard && bLocalPlayer ? 34 : 25;
-        const cardTiltAngle = 15;
-        const cardCount = container.list.length;
-        const card = new Card(this, 0, 0, cardData.eSuit, cardData.nLabel, cardData.nValue, cardData._id);
-
-        if (bProfileCard && !bLocalPlayer) {
-            const nOpponentAngle = player?.playerProfile?.isRightSideSeat ? -16 : 16;
-            card.setScale(0.62);
-            card.setAngle(nOpponentAngle);
-        } else if (bProfileCard && bLocalPlayer) {
-            card.setScale(0.46);
-            card.setY(-22);
-        }
-
-        if (cardCount > 0) {
-            const totalWidth = (cardCount + 1) * cardSpacing;
-            const startX = -totalWidth / 2;
-            card.setX(startX + cardCount * cardSpacing);
-            card.setAngle(cardTiltAngle * (cardCount - cardCount / 2));
-
-            container.list.forEach((existingCard, index) => {
-                existingCard.setX(startX + index * cardSpacing);
-                existingCard.setAngle(cardTiltAngle * (index - cardCount / 2));
-            });
-        } else if (bProfileCard && !bLocalPlayer) {
-            card.setX(0);
-        }
-
-        container.setVisible(!container.bSuppressSeatCardDisplay);
-        container.add(card);
-        // Open own cards regardless of which container they went into
-        const cardsList = container.list || [];
-        for (let index = 0; index < cardsList.length; index++) {
-            const card = cardsList[index];
-            if (player?.iUserId === this.iUserId) {
-                card.openCard();
-            } else {
-                card.closeCard();
-            }
-        }
-        if (container.bSuppressSeatCardDisplay) container.setVisible(false);
+        this.clearProfileSeatCards();
+        this.syncPlayerScoreDisplay(myPlayer, nCardScore, aIncomingHand);
     }
     waitingForGameStart({ nRoundStartsIn }) {
         this.prompt.hide();
@@ -2518,10 +2401,12 @@ setButtons() {
         const potIncrease = Math.max(0, Number(oData.nTableChips || 0) - Number(this.oGameManager.nPotAmount || 0));
         const nUpdatedScore = Number(oData.nCardScore);
 
-        const playerNewCards = [];
         this.oSoundManager.playSound(this.oSoundManager.doubleDown_sound, false);
         player?.playerProfile?.setAmountIn(oData.nChips);
-        this.syncPlayerScoreDisplay(player, nUpdatedScore, oData.aCardHand || [oData.oCard].filter(Boolean));
+        const aUpdatedHand = Array.isArray(oData.aCardHand) ? oData.aCardHand : [oData.oCard].filter(Boolean);
+        player.aCardHand = aUpdatedHand;
+        player.nCardScore = Number(nUpdatedScore) || player.nCardScore;
+        this.syncPlayerScoreDisplay(player, nUpdatedScore, aUpdatedHand);
         if (oData.iUserId !== this.iUserId && sEventName === SOCKET_RESPONSE_EVENTS.DOUBLE_DOWN) {
             player?.playerProfile?.setBettingLabel('DD', oData.nLastBidChips);
         }
@@ -2541,10 +2426,18 @@ setButtons() {
             text: 'DOUBLE DOWN!',
             duration: 2400,
         });
-        playerNewCards.push(oData.oCard);
-        playerNewCards.forEach((cardData, index) => {
-            this.animateCard(cardData, index, player, index);
-        });
+        this.clearProfileSeatCards();
+        if (oData.iUserId === this.iUserId) {
+            this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+                type: CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_HAND_SCORE,
+                payload: {
+                    iUserId: this.iUserId,
+                    aCardHand: aUpdatedHand,
+                    nCardScore: nUpdatedScore,
+                },
+            });
+            this.emitConsoleCards();
+        }
         if (this.isGuestTutorial && oData.iUserId === this.iUserId) {
             this.emitTutorialOverlay({
                 type: 'userAction',
@@ -3236,20 +3129,14 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
     player?.playerProfile?.setAlpha(1);
     player?.playerProfile?.setAmountIn(participant?.nChips);
     participant.iUserId == this.iUserId && this.setAmountIn(participant?.nChips);
-    this.syncPlayerScoreDisplay(player, participant.nCardScore, participant.aCardHand, { forceReveal: true });
+    const aParticipantHand = Array.isArray(participant.aCardHand) ? participant.aCardHand : [];
+    player.aCardHand = aParticipantHand;
+    player.nCardScore = Number(participant.nCardScore) || player.nCardScore;
+    this.syncPlayerScoreDisplay(player, participant.nCardScore, aParticipantHand, { forceReveal: true });
     player?.playerProfile?.lockScoreDisplay(participant.nCardScore);
-    this.cleanupRegistry?.addTimeout(setTimeout(() => {
-      player?.playerProfile?.container_cards.removeAll(true);
-      participant.aCardHand.forEach(cardData => {
-        if (!this.playerHasRenderedCard(player, cardData._id)) {
-          this.createCard(cardData, player);
-
-        }
-      });
-      player?.playerProfile?.container_cards.list.forEach(card => {
-        card.openCard();
-      });
-    }, 700));
+    player?.playerProfile?.container_cards?.removeAll(true);
+    player?.playerProfile?.container_cards?.setVisible(false);
+    if (participant.iUserId === this.iUserId) this.emitConsoleCards();
     
     if (participant.eState == "winner") {
       this.cleanupRegistry?.addTimeout(setTimeout(() => {

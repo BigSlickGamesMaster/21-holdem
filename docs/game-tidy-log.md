@@ -447,3 +447,21 @@ This file records each stabilization/refactor step so future work can see what c
   - `node --check public/fx-overlay/chipBurst.js; node --check public/fx-overlay/fxOverlay.js; node --check game-backend/app/routers/game/shop/lib/controllers.js` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/potState.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npm run build` completed successfully with existing repo warnings.
+
+### Step 30: Remove Profile Seat Card Renderer
+
+- Goal: remove the remaining duplicate player-card renderer from Phaser player profiles and keep the console card renderer as the single visible player-hand UI.
+- Scope: stop `Level` from creating cards inside `PlayerProfile.container_cards`, keep those containers hidden as cleanup-only compatibility targets, preserve score/winner/profile UI, and lift the bottom console upward by half its height.
+- Non-goal: do not delete the profile/avatar renderer or change community-card rendering.
+- Expected benefit: one card design is visible, stale profile-seat cards cannot reappear during hand/result/double-down flows, and action controls remain clear after the console lift.
+- Implemented:
+  - Removed the `Level.createCard`/`animateCard` profile-seat card creation path.
+  - Changed hand sync/result/double-down flows to update player hand state and console cards without rendering profile-seat cards.
+  - Forced `PlayerProfile.container_cards` to stay hidden by default and after winner prompt cleanup.
+  - Moved the bottom action console up by 38px and moved the action rows up by the same amount.
+- Checks:
+  - `npm run lint:game` passed.
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `node --check public/fx-overlay/chipBurst.js; node --check public/fx-overlay/fxOverlay.js` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/playerHandSync.test.js src/scripts/socketReceiveRouter.test.js src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js --watchAll=false` passed.
+  - `npm run build` was attempted; the shell command timed out after 244s, and the background build process later exited without captured output.

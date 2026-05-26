@@ -52,7 +52,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     this.add(this.container_profile);
 
     this.container_cards = scene.add.container(0, -44).setVisible(false);
-    this.container_cards.bSuppressSeatCardDisplay = false;
+    this.container_cards.bSuppressSeatCardDisplay = true;
     this.container_profile.add(this.container_cards);
 
     this.container_profileImage = scene.add.container(0, 0);
@@ -679,7 +679,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       yoyo: false,
       repeat: 0,
       onComplete: () => {
-        this.container_cards.setVisible(true);
+        this.container_cards.setVisible(false);
         this.container_winner.setVisible(false);
       },
     });

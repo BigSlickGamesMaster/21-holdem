@@ -85,7 +85,7 @@ body,
     position: absolute;
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: 38px;
     width: 100%;
     height: 75px;
     box-sizing: border-box;
@@ -1629,7 +1629,7 @@ body,
     position: absolute;
     left: 8px;
     right: 8px;
-    bottom: calc(75px + env(safe-area-inset-bottom, 0px) + 8px);
+    bottom: calc(75px + 38px + env(safe-area-inset-bottom, 0px) + 8px);
     z-index: 5;
     display: flex;
     flex-direction: column;
