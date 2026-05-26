@@ -347,3 +347,19 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/clientGameSelectors.test.js src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/clientGameSelectors.js src/scripts/clientGameSelectors.test.js src/scripts/clientGameState.js src/scripts/socketStateReducer.js` passed.
+
+### Step 24: Turn Context Selectors
+
+- Goal: continue moving game decisions away from direct scene/GameManager reads.
+- Scope: add turn selectors and use reducer state first for raise context and double-down eligibility.
+- Non-goal: do not change button rendering, socket payloads, timers, or the overlay bridge in this step.
+- Expected benefit: turn decisions use the same replayable state surface as pot, hand score, and community-card reads.
+- Implemented:
+  - Added turn selectors in `src/scripts/clientGameSelectors.js`.
+  - Covered selector defaults in `src/scripts/clientGameSelectors.test.js`.
+  - Updated `Level.getRaiseContext()` to prefer reducer turn context for `toCallAmount`.
+  - Updated `Level.canShowDoubleDownAction()` to prefer reducer hand score and community-card count with legacy fallbacks.
+- Checks:
+  - `$env:CI='true'; npx react-scripts test src/scripts/clientGameSelectors.test.js src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/clientGameSelectors.js src/scripts/clientGameSelectors.test.js` passed.
+  - `npx eslint src/scenes/Level.js` still fails on existing unused-variable/empty-block issues outside this step; keep that as a later `Level.js` lint cleanup item.

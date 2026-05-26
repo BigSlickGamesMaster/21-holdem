@@ -7,6 +7,9 @@ import {
     getClientParticipantScore,
     getClientParticipantsById,
     getClientTableChips,
+    getClientTurn,
+    getClientTurnActionState,
+    getClientTurnContext,
 } from './clientGameSelectors';
 
 describe('clientGameSelectors', () => {
@@ -17,6 +20,10 @@ describe('clientGameSelectors', () => {
         },
         participantsById: {
             u1: { iUserId: 'u1', nChips: '900', nCardScore: '18' },
+        },
+        turn: {
+            context: { toCallAmount: 50 },
+            actionState: { call: { visible: true } },
         },
     };
 
@@ -38,5 +45,14 @@ describe('clientGameSelectors', () => {
         expect(getClientParticipantChips(state, 'missing')).toBe(0);
         expect(getClientParticipantScore(state, 'u1')).toBe(18);
         expect(getClientParticipantScore(state, 'missing')).toBe(0);
+    });
+
+    test('selects turn values with safe defaults', () => {
+        expect(getClientTurn(state)).toBe(state.turn);
+        expect(getClientTurn(null)).toEqual({});
+        expect(getClientTurnContext(state)).toEqual({ toCallAmount: 50 });
+        expect(getClientTurnContext({})).toEqual({});
+        expect(getClientTurnActionState(state)).toEqual({ call: { visible: true } });
+        expect(getClientTurnActionState({})).toEqual({});
     });
 });

@@ -30,3 +30,15 @@ export function getClientParticipantScore(state = {}, iUserId = '') {
     const score = Number(participant?.nCardScore);
     return Number.isFinite(score) ? score : 0;
 }
+
+export function getClientTurn(state = {}) {
+    return state?.turn || {};
+}
+
+export function getClientTurnContext(state = {}) {
+    return getClientTurn(state).context || {};
+}
+
+export function getClientTurnActionState(state = {}) {
+    return getClientTurn(state).actionState || {};
+}

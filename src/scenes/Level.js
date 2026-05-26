@@ -53,6 +53,7 @@ import {
     getClientParticipantChips,
     getClientParticipantScore,
     getClientTableChips,
+    getClientTurnContext,
 } from '../scripts/clientGameSelectors';
 import { reduceSocketEventToClientState } from '../scripts/socketStateReducer';
 import { getApiRoot } from '../axios';
@@ -1081,7 +1082,8 @@ formatRaiseAmountLabel(amount = 0) {
 }
 
 getRaiseContext() {
-    const toCallAmount = Math.max(0, Number(this.oTurnContext?.toCallAmount) || 0);
+    const clientTurnContext = getClientTurnContext(this.oClientGameState);
+    const toCallAmount = Math.max(0, Number(clientTurnContext?.toCallAmount ?? this.oTurnContext?.toCallAmount) || 0);
     const minRaise = Math.max(0, Math.round(Number(this.oGameManager?.nMinRaiseAmount) || 0));
     const statePotAmount = getClientTableChips(this.oClientGameState);
     const potAmount = Math.max(0, Math.round(statePotAmount || Number(this.oGameManager?.nPotAmount) || 0));
@@ -3051,14 +3053,16 @@ applyGameActionState(actionState = {}) {
     this.oButtons.btn_doubleDown.setAlpha(Number(state.doubleDown.alpha) || 0);
 }
 canShowDoubleDownAction() {
+    const stateScore = getClientParticipantScore(this.oClientGameState, this.iUserId);
     const myPlayer = this.players?.get?.(this.iUserId);
-    const nCardScore = Number(myPlayer?.nCardScore);
+    const nCardScore = stateScore > 0 ? stateScore : Number(myPlayer?.nCardScore);
     const { myChips } = this.getRaiseContext();
     const nDoubleDownAmount = this.getDoubleDownAmount();
     // DD available when exactly 1 community card is on the table (round 2).
     // Use actual card count — nTableRound is only updated in setGameData/setBoardState,
     // not when resCommunityCard fires, so it lags behind when turn fires.
-    const nCommCards = (this.oGameManager?.aCommunityCards || []).length;
+    const stateCommunityCards = getClientCommunityCards(this.oClientGameState);
+    const nCommCards = stateCommunityCards.length || (this.oGameManager?.aCommunityCards || []).length;
     if (nCommCards !== 1) return false;
     if (nDoubleDownAmount <= 0 || myChips < nDoubleDownAmount) return false;
     return Number.isFinite(nCardScore) && nCardScore >= 9 && nCardScore <= 12;
