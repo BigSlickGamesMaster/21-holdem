@@ -2958,6 +2958,15 @@ showAllButtons(aUserAction, nMinBet, toCallAmount, options = {}) {
         formatAmount: (amount) => _.formatCurrencyWithComa(amount),
     });
 
+    this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+        type: CLIENT_GAME_STATE_ACTIONS.SET_TURN_ACTION_STATE,
+        payload: {
+            iUserId: this.iUserId,
+            isLocalTurn: true,
+            context: this.oTurnContext,
+            actionState,
+        },
+    });
     this.applyGameActionState(actionState);
     this.layoutActionButtonGroups();
 }

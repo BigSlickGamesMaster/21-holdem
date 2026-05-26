@@ -6,6 +6,7 @@ import {
     CLIENT_GAME_STATE_ACTIONS,
     createInitialClientGameState,
     setTableChipsInClientState,
+    setTurnActionStateInClientState,
 } from './clientGameState';
 
 describe('clientGameState', () => {
@@ -130,5 +131,40 @@ describe('clientGameState', () => {
         });
 
         expect(nextState.board.nTableChips).toBe(750);
+    });
+
+    test('sets latest turn context and action state', () => {
+        const actionState = { call: { visible: true, label: 'Call 100' } };
+        const context = { aUserAction: ['c'], nMinBet: 100, toCallAmount: 100 };
+        const nextState = setTurnActionStateInClientState(createInitialClientGameState(), {
+            iUserId: 'u1',
+            isLocalTurn: true,
+            context,
+            actionState,
+        });
+
+        expect(nextState.turn).toEqual({
+            iUserId: 'u1',
+            isLocalTurn: true,
+            context,
+            actionState,
+        });
+    });
+
+    test('reducer applies turn action state action', () => {
+        const nextState = clientGameStateReducer(createInitialClientGameState(), {
+            type: CLIENT_GAME_STATE_ACTIONS.SET_TURN_ACTION_STATE,
+            payload: {
+                iUserId: 'u2',
+                isLocalTurn: false,
+                context: { aUserAction: [] },
+                actionState: { fold: { visible: false } },
+            },
+        });
+
+        expect(nextState.turn.iUserId).toBe('u2');
+        expect(nextState.turn.isLocalTurn).toBe(false);
+        expect(nextState.turn.context).toEqual({ aUserAction: [] });
+        expect(nextState.turn.actionState).toEqual({ fold: { visible: false } });
     });
 });

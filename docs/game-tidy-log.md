@@ -262,3 +262,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.
+
+### Step 18: Turn Action Reducer State
+
+- Goal: track latest player-turn context and derived action-button state in the normalized client state.
+- Scope: add reducer support for turn context/action state and wire `Level.showAllButtons()`.
+- Non-goal: do not render buttons from reducer state or change legal-action decisions in this step.
+- Expected benefit: turn/action regressions can be asserted from state without booting Phaser.
+- Implemented:
+  - Added `SET_TURN_ACTION_STATE` support in `src/scripts/clientGameState.js`.
+  - Added reducer tests for turn context/action state.
+  - Updated `Level.showAllButtons()` to store the same derived action state it applies to buttons.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/gameActionState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.

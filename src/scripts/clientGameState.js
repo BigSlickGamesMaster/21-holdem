@@ -5,6 +5,7 @@ export const CLIENT_GAME_STATE_ACTIONS = Object.freeze({
     APPLY_BOARD_SNAPSHOT: 'applyBoardSnapshot',
     APPLY_PARTICIPANT_PATCH: 'applyParticipantPatch',
     SET_TABLE_CHIPS: 'setTableChips',
+    SET_TURN_ACTION_STATE: 'setTurnActionState',
 });
 
 export function createInitialClientGameState() {
@@ -25,6 +26,12 @@ export function createInitialClientGameState() {
         },
         participantsById: {},
         participantOrder: [],
+        turn: {
+            iUserId: '',
+            isLocalTurn: false,
+            context: null,
+            actionState: null,
+        },
     };
 }
 
@@ -96,6 +103,20 @@ export function setTableChipsInClientState(state = createInitialClientGameState(
     };
 }
 
+export function setTurnActionStateInClientState(state = createInitialClientGameState(), payload = {}) {
+    const source = payload && typeof payload === 'object' ? payload : {};
+
+    return {
+        ...state,
+        turn: {
+            iUserId: source.iUserId ?? state.turn?.iUserId ?? '',
+            isLocalTurn: Boolean(source.isLocalTurn),
+            context: source.context || null,
+            actionState: source.actionState || null,
+        },
+    };
+}
+
 export function clientGameStateReducer(state = createInitialClientGameState(), action = {}) {
     switch (action.type) {
         case CLIENT_GAME_STATE_ACTIONS.APPLY_BOARD_SNAPSHOT:
@@ -104,6 +125,8 @@ export function clientGameStateReducer(state = createInitialClientGameState(), a
             return applyParticipantPatchToClientState(state, action.payload);
         case CLIENT_GAME_STATE_ACTIONS.SET_TABLE_CHIPS:
             return setTableChipsInClientState(state, action.payload?.nTableChips);
+        case CLIENT_GAME_STATE_ACTIONS.SET_TURN_ACTION_STATE:
+            return setTurnActionStateInClientState(state, action.payload);
         default:
             return state;
     }
