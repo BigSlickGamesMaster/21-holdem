@@ -81,3 +81,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/playerHandSync.js src/scripts/playerHandSync.test.js` passed.
+
+### Step 5: Result Lifecycle Guard Extraction
+
+- Goal: make hand-result timing and stale-callback checks explicit.
+- Scope: extract constants and pure helpers for result reveal delay, clear delay, side-bet reopen delay, and token validity.
+- Non-goal: do not move result rendering, winner animation, pot payout, card reveal, or socket handling in this step.
+- Expected benefit: less risk that old result timers mutate the next hand, and easier tests around lifecycle timing.
+- Implemented:
+  - Added `src/scripts/handResultLifecycle.js`.
+  - Added focused tests in `src/scripts/handResultLifecycle.test.js`.
+  - Updated `Level.setDeclareResult()` to use named timing constants, token validation, and side-bet reopen timing helper.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/handResultLifecycle.js src/scripts/handResultLifecycle.test.js` passed.

@@ -27,6 +27,14 @@ import {
     shouldRevealPlayerScore,
     shouldShowPlayerScore,
 } from '../scripts/playerHandSync';
+import {
+    createHandResultToken,
+    getHandResultSideBetSeconds,
+    HAND_RESULT_CLEAR_DELAY_MS,
+    HAND_RESULT_REVEAL_DELAY_MS,
+    isActiveHandResultToken,
+    shouldShowNextRoundCountdown,
+} from '../scripts/handResultLifecycle';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -3009,7 +3017,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
     clearInterval(this.declreResultInterval);
   }
   
-  if (nRoundStartsIn != 4000) {
+  if (shouldShowNextRoundCountdown(nRoundStartsIn)) {
     this.waitingForNextRoundStart(remainingTime);
   }
 
@@ -3019,23 +3027,23 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
   // timeout fires and clear oGameManager.aCommunityCards, so store locally.
   const _finalCommunityCards = [...(this.oGameManager.aCommunityCards || [])];
 
-  const nResultToken = Date.now();
+  const nResultToken = createHandResultToken();
   this.nHandResultToken = nResultToken;
 
   // Show community cards immediately when round ends
   this.handResultShowTimeout = setTimeout(() => {
-    if (this.nHandResultToken !== nResultToken || !this.bShowingHandResult) return;
+    if (!isActiveHandResultToken(this.nHandResultToken, nResultToken, this.bShowingHandResult)) return;
     // Show community cards first for players to see final board
     if (_finalCommunityCards.length > 0) {
       this.setCommunityCards(_finalCommunityCards);
       this.container_community_cards.setVisible(true);
     }
-  }, 500); // Show cards almost immediately
+  }, HAND_RESULT_REVEAL_DELAY_MS); // Show cards almost immediately
   this.cleanupRegistry?.addTimeout(this.handResultShowTimeout);
 
   // Clear everything after showing cards for longer
   this.handResultClearTimeout = setTimeout(() => {
-    if (this.nHandResultToken !== nResultToken || !this.bShowingHandResult) return;
+    if (!isActiveHandResultToken(this.nHandResultToken, nResultToken, this.bShowingHandResult)) return;
     this.bShowingHandResult = false;
     this.handResultShowTimeout = null;
     this.handResultClearTimeout = null;
@@ -3056,9 +3064,9 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       player.unlockScoreDisplay?.({ clear: true });
     });
     this.prompt.hide();
-    const nSideBetSeconds = Math.floor(Math.max(0, (Number(nRoundStartsIn) || 0) - 6000) / 1000);
+    const nSideBetSeconds = getHandResultSideBetSeconds(nRoundStartsIn);
     if (nSideBetSeconds > 0) this.emitSideBetWindow(true, nSideBetSeconds);
-  }, 6000); // Keep cards visible longer (was 7000, now cards show from 500ms to 6000ms)
+  }, HAND_RESULT_CLEAR_DELAY_MS); // Keep cards visible longer (was 7000, now cards show from 500ms to 6000ms)
   this.cleanupRegistry?.addTimeout(this.handResultClearTimeout);
 
   const allPlayersBust = bAllPlayerBust || bAllPlayersBust;
