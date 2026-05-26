@@ -12,7 +12,7 @@ import { getProfile } from 'query/profile.query';
 import { buyChips, confirmPayment, getChips } from 'query/shop.query';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import _ from 'scripts/helper';
 import DailyRewardsPanel from 'shared/components/DailyRewardsPanel';
 import { DEFAULT_PROFILE_BANNER, getAvatarImageSrc } from 'shared/constants/builtInAvatars';
@@ -143,7 +143,7 @@ const Dashboard = () => {
     const location = useLocation();
     const queryClient = useQueryClient();
     const [sActiveTab, setActiveTab] = useState('lobby-live-tables');
-    const [nActiveSeatCount, setActiveSeatCount] = useState(PLAYER_OPTIONS[0]);
+    const [, setActiveSeatCount] = useState(PLAYER_OPTIONS[0]);
     const [nActiveBuyIn, setActiveBuyIn] = useState(BUY_IN_OPTIONS[0]);
     const [bHasAdjustedFilters, setHasAdjustedFilters] = useState(false);
     const [nCarouselDragOffset, setCarouselDragOffset] = useState(0);
@@ -216,10 +216,18 @@ const Dashboard = () => {
             if (response?.status === 200 && payload?.data?.sessionId) {
                 const stripe = await stripePromise;
                 if (!stripe) {
-                    ReactToastify('Stripe publishable key is not configured', 'error');
+                    if (payload?.data?.checkoutUrl) {
+                        window.location.assign(payload.data.checkoutUrl);
+                        return;
+                    }
+                    ReactToastify('Stripe publishable key is not configured and checkout URL was not returned', 'error');
                     return;
                 }
                 const { error } = await stripe.redirectToCheckout({ sessionId: payload.data.sessionId });
+                if (error && payload?.data?.checkoutUrl) {
+                    window.location.assign(payload.data.checkoutUrl);
+                    return;
+                }
                 if (error) ReactToastify(error.message || 'Stripe redirect failed', 'error');
                 return;
             }
@@ -678,14 +686,6 @@ const Dashboard = () => {
             '--carousel-brightness': (0.72 + (nFocus * 0.36)).toFixed(3),
             zIndex: Math.round(80 + (nFocus * 80)),
         };
-    };
-
-    const handleSeatCountChange = (nSeatCount) => {
-        const nNextSeatCount = Number(nSeatCount) || PLAYER_OPTIONS[0];
-        const nNextBuyIn = getDefaultBuyIn(aSortedTables, nNextSeatCount);
-        setHasAdjustedFilters(true);
-        setActiveSeatCount(nNextSeatCount);
-        setActiveBuyIn(nNextBuyIn);
     };
 
     const handleBuyInChange = (nBuyIn) => {

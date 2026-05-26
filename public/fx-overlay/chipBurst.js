@@ -424,6 +424,89 @@
     return collectPotToWinner(Number(winnerX), Number(winnerY), options || {});
   }
 
+  function getTransferChipCount(amount) {
+    var value = Math.max(0, Number(amount) || 0);
+    if (value >= 5000) return 8;
+    if (value >= 1000) return 6;
+    if (value >= 100) return 4;
+    return 3;
+  }
+
+  function transferChips(options) {
+    var source = resolvePoint(options && options.source, options && options.sourceAnchor, 'betSource');
+    var target = resolvePoint(options && options.target, options && options.targetAnchor, 'potPile') ||
+      resolvePoint('potPile', null, 'pot');
+    var layer = getLayer();
+
+    if (!source || !target || !layer) return false;
+
+    var amount = Number(options && options.amount) || 0;
+    var count = clamp(Number(options && options.count) || getTransferChipCount(amount), 1, 10);
+    var duration = clamp(Number(options && options.duration) || 940, 520, 1600);
+    var hold = clamp(Number(options && options.hold) || 190, 80, 420);
+    var direction = options && options.direction === 'toPlayer' ? 'toPlayer' : 'toPot';
+    var spread = direction === 'toPlayer' ? 24 : 18;
+
+    for (var index = 0; index < count; index += 1) {
+      var size = clamp(Number(options && options.size) || random(22, 30), 18, 38);
+      var node = createChipNode(size);
+      var angle = (Math.PI * 2 / count) * index;
+      var popX = Math.cos(angle) * (spread + random(-4, 8));
+      var popY = Math.sin(angle) * (spread * 0.7 + random(-3, 7));
+      var curveX = random(-46, 46);
+      var lift = direction === 'toPlayer' ? random(86, 136) : random(68, 118);
+      var finalX = target.x + random(-14, 14);
+      var finalY = target.y + random(-9, 9);
+      var delay = index * 46;
+      var spin = direction === 'toPlayer' ? random(360, 620) : random(-460, -240);
+
+      layer.appendChild(node);
+      node.style.opacity = '1';
+      var animation = node.animate([
+        {
+          offset: 0,
+          opacity: 0,
+          transform: 'translate3d(' + (source.x - size / 2) + 'px,' + (source.y - size / 2) + 'px,0) scale(0.46) rotate(0deg)',
+        },
+        {
+          offset: 0.16,
+          opacity: 1,
+          transform: 'translate3d(' + (source.x + popX - size / 2) + 'px,' + (source.y + popY - size / 2) + 'px,0) scale(1.08) rotate(' + (spin * 0.12) + 'deg)',
+        },
+        {
+          offset: Math.min(0.42, 0.16 + (hold / duration)),
+          opacity: 1,
+          transform: 'translate3d(' + (source.x + popX - size / 2) + 'px,' + (source.y + popY - size / 2) + 'px,0) scale(0.96) rotate(' + (spin * 0.18) + 'deg)',
+        },
+        {
+          offset: 0.76,
+          opacity: 1,
+          transform: 'translate3d(' + (((source.x + popX + finalX) / 2) + curveX - size / 2) + 'px,' + (((source.y + popY + finalY) / 2) - lift - size / 2) + 'px,0) scale(0.9) rotate(' + (spin * 0.72) + 'deg)',
+        },
+        {
+          offset: 1,
+          opacity: direction === 'toPot' ? 0.92 : 0,
+          transform: 'translate3d(' + (finalX - size / 2) + 'px,' + (finalY - size / 2) + 'px,0) scale(' + (direction === 'toPot' ? 0.72 : 0.58) + ') rotate(' + spin + 'deg)',
+        },
+      ], {
+        duration: duration + delay,
+        delay: delay,
+        easing: 'cubic-bezier(0.2, 0.8, 0.16, 1)',
+        fill: 'forwards',
+      });
+      animation._chipNode = node;
+      animation.onfinish = function () {
+        removeNode(this._chipNode);
+      };
+    }
+
+    if (direction === 'toPot') {
+      chipSystem.lastPotPoint = { x: target.x, y: target.y };
+    }
+
+    return true;
+  }
+
   function throwToPot(options) {
     var source = resolvePoint(options && options.source, options && options.sourceAnchor, 'betSource');
     var target = resolvePoint(options && options.target, options && options.targetAnchor, 'potPile') ||
@@ -467,6 +550,7 @@
     clear: clear,
     onCall: onCall,
     sendPotToWinner: sendPotToWinner,
+    transferChips: transferChips,
     throwToPot: throwToPot,
     celebrateWin: celebrateWin,
   };

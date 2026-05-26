@@ -15,7 +15,6 @@ import Settings from '../prefabs/Settings';
 import SoundManager from '../scripts/SoundManager';
 import Services from '../scripts/Services';
 import Animations from '../scripts/Animations';
-import ChipAnimationController from '../scripts/ChipAnimationController';
 import CleanupRegistry from '../scripts/CleanupRegistry';
 import { GAME_BROWSER_EVENTS } from '../scripts/gameEvents';
 import { buildGameActionState } from '../scripts/gameActionState';
@@ -798,13 +797,6 @@ getPotChipAnchor() {
     };
 }
 
-getChipAnimationController() {
-    if (!this.oChipAnimationController) {
-        this.oChipAnimationController = new ChipAnimationController(this);
-    }
-    return this.oChipAnimationController;
-}
-
 getPlayerBetStageAnchor(playerProfile) {
     const communityBounds = this.getCommunityCardBounds();
     const stagedY = communityBounds
@@ -928,24 +920,38 @@ commitPotAmount(nTableChips) {
 }
 
 queuePotUpdate({ amount = 0, targetAmount = 0, playerProfile = null } = {}) {
-    return this.getChipAnimationController().animateTransfer({
-        from: this.getPlayerChipAnchor(playerProfile),
-        to: this.getPotChipAnchor(),
+    this.callFXOverlay('transferChips', {
+        sourceAnchor: this.getFXOverlayProfileImageAnchor(playerProfile) || this.getFXOverlayPlayerAnchor(playerProfile),
+        targetAnchor: this.getFXOverlayScreenAnchor(this.oPotAmount, {
+            width: 96,
+            height: 64,
+            offsetY: 42,
+        }),
         amount,
         direction: 'toPot',
+    });
+
+    return new Promise((resolve) => {
+        this.cleanupRegistry?.addTimeout(setTimeout(resolve, 940));
     }).finally(() => {
         this.commitPotAmount(targetAmount);
     });
 }
 
 queuePotPayout({ amount = 0, targetAmount = 0, playerProfile = null } = {}) {
-    return this.getChipAnimationController().animateTransfer({
-        from: this.getPotChipAnchor(),
-        to: this.getPlayerChipAnchor(playerProfile),
+    this.callFXOverlay('transferChips', {
+        sourceAnchor: this.getFXOverlayScreenAnchor(this.oPotAmount, {
+            width: 96,
+            height: 64,
+            offsetY: 42,
+        }),
+        targetAnchor: this.getFXOverlayProfileImageAnchor(playerProfile) || this.getFXOverlayPlayerAnchor(playerProfile),
         amount,
-        duration: 720,
-        hold: 120,
         direction: 'toPlayer',
+    });
+
+    return new Promise((resolve) => {
+        this.cleanupRegistry?.addTimeout(setTimeout(resolve, 980));
     }).finally(() => {
         this.commitPotAmount(targetAmount);
     });
@@ -2025,7 +2031,6 @@ setButtons() {
         this.prompt = new Prompt(this, config.centerX, config.centerY - 40, 'Please wait for other players to join');
         this.prompt.hide();
         this.settings = new Settings(this, -200, 250);
-        this.oChipAnimationController = null;
         this.potAnimationQueue = Promise.resolve();
         this.stagedBetPiles = new Map();
         this.container_body.setY(playfieldOffsetY);

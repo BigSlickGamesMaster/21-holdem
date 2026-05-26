@@ -149,6 +149,15 @@
     });
   }
 
+  function chipTransfer(options) {
+    var chipBurst = getModule('chipBurst');
+    if (!chipBurst || typeof chipBurst.transferChips !== 'function') return false;
+
+    return safe(function () {
+      return chipBurst.transferChips(options || {});
+    });
+  }
+
   function showOverlayEffect(methodName, options) {
     var overlayUI = getModule('overlayUI');
     if (!overlayUI || typeof overlayUI[methodName] !== 'function') return false;
@@ -359,6 +368,23 @@
     });
 
     return true;
+  };
+
+  FXOverlay.transferChips = function (options) {
+    if (!isEnabled()) return false;
+
+    return chipTransfer({
+      amount: options && options.amount,
+      count: options && options.count,
+      direction: options && options.direction,
+      duration: options && options.duration,
+      hold: options && options.hold,
+      size: options && options.size,
+      source: options && options.source,
+      sourceAnchor: options && options.sourceAnchor,
+      target: options && options.target,
+      targetAnchor: options && options.targetAnchor,
+    });
   };
 
   FXOverlay.winnerCelebration = function (options) {

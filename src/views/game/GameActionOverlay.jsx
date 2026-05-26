@@ -759,6 +759,11 @@ function GameActionOverlay({ isPaused = false }) {
                             </div>
                         </div>
                         <div className='game-action-overlay__console-col game-action-overlay__console-col--center'>
+                            <ConsoleCards
+                                handCards={consoleCards.hand}
+                                communityCards={consoleCards.community}
+                                score={consoleCards.score}
+                            />
                         </div>
                         <div className='game-action-overlay__console-col game-action-overlay__console-col--right'>
                             <div className='game-action-overlay__table-bankroll'>

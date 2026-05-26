@@ -427,3 +427,23 @@ This file records each stabilization/refactor step so future work can see what c
   - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/potState.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npm run build` completed successfully with existing repo warnings.
+
+### Step 29: Card/FX/Stripe Correction
+
+- Goal: correct the previous UX pass where the card console was over-removed and chip motion was routed through the old Phaser controller.
+- Scope: restore the player card console using the single console-card renderer, remove the old chip controller path, move chip transfer into the FX overlay, and harden Stripe checkout redirect.
+- Non-goal: do not reintroduce the duplicate action-card renderer or the floating winner crown animation.
+- Expected benefit: one card render system remains visible in the console, chip animation belongs to the FX module, and Stripe checkout can redirect even when Stripe.js is missing a publishable key.
+- Implemented:
+  - Restored `ConsoleCards` inside the console center column.
+  - Deleted `src/scripts/ChipAnimationController.js` and removed the `Level.js` controller wiring.
+  - Added `FXOverlay.transferChips()` backed by `public/fx-overlay/chipBurst.js` pop/hold/swoosh DOM animation.
+  - Updated pot update/payout paths to call FX overlay chip transfer and commit pot state after the animation window.
+  - Returned Stripe `checkoutUrl` from the backend checkout session and used it as the frontend redirect fallback.
+  - Cleaned small dashboard unused-code lint issues in the touched Stripe file.
+- Checks:
+  - `npm run lint:game` passed.
+  - `npx eslint src/views/game/GameActionOverlay.jsx src/views/dashboard/index.jsx --max-warnings=0` passed.
+  - `node --check public/fx-overlay/chipBurst.js; node --check public/fx-overlay/fxOverlay.js; node --check game-backend/app/routers/game/shop/lib/controllers.js` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/potState.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npm run build` completed successfully with existing repo warnings.

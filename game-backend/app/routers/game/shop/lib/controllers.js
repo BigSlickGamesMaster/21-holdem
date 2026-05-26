@@ -136,7 +136,10 @@ controllers.buyItem = async (req, res) => {
     transaction.sStripeSessionId = session.id;
     await transaction.save();
 
-    return res.reply(messages.success('Stripe checkout created'), { sessionId: session.id });
+    return res.reply(messages.success('Stripe checkout created'), {
+      sessionId: session.id,
+      checkoutUrl: session.url,
+    });
   } catch (error) {
     console.log('controllers.buyItem error ::', error);
     if (error.message === STRIPE_NOT_CONFIGURED_MESSAGE) {
