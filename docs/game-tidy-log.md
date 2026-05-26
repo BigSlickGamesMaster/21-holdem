@@ -395,3 +395,16 @@ This file records each stabilization/refactor step so future work can see what c
   - `npm run lint:game` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/gameUiLayout.test.js src/scripts/clientGameSelectors.test.js src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/gameActionState.test.js src/scripts/potState.test.js --watchAll=false` passed.
   - `npm run lint -- --max-warnings=0` still fails on unrelated active UI/admin unused-code debt; the game lint gate is clean.
+
+### Step 27: Game UI Layout Tests
+
+- Goal: protect the game UI layout persistence helpers after making their failure paths explicit.
+- Scope: add tests for sanitizing, localStorage read/write fallback behavior, and layout update dispatching.
+- Non-goal: do not change layout defaults, scene positioning, or the in-browser layout tuning UI in this step.
+- Expected benefit: future layout tuning cannot silently break saved game layout handling.
+- Implemented:
+  - Added `src/scripts/gameUiLayout.test.js`.
+  - Covered clamping, invalid input fallback, storage write/read, storage exceptions, and event dispatch.
+- Checks:
+  - `npm run lint:game` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameUiLayout.test.js src/scripts/clientGameSelectors.test.js src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/gameActionState.test.js src/scripts/potState.test.js --watchAll=false` passed.
