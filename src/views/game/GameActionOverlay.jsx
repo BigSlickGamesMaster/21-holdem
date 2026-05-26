@@ -9,7 +9,6 @@ import chipIcon from '../../assets/images/gameplay/chip_icon.png';
 import twentyOneIcon from '../../assets/images/icons/new21.png';
 import flushIcon from '../../assets/images/icons/newflush.png';
 import straightIcon from '../../assets/images/icons/newstraight.png';
-import cardFrontImage from '../../assets/images/card/card_front.png';
 import clubImage from '../../assets/images/card/club.png';
 import diamondImage from '../../assets/images/card/diamond.png';
 import heartImage from '../../assets/images/card/heart.png';
@@ -119,9 +118,14 @@ function SideBetsModule({ bets, disabled = false, isFocus = false, isTable = fal
             onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => event.stopPropagation()}
         >
+            {isTable ? (
+                <div className='game-action-overlay__side-bets-arc' aria-hidden='true'>
+                    <span>Place Side Bets</span>
+                </div>
+            ) : null}
             <div className='game-action-overlay__side-bets-rows'>
                 {SIDE_BET_OPTIONS.map((bet) => (
-                    <div className={`game-action-overlay__side-bet${!bets[bet.id] ? ' is-empty' : ''}${statuses[bet.id]?.unqualified ? ' is-unqualified' : ''}`} key={bet.id}>
+                    <div className={`game-action-overlay__side-bet${!bets[bet.id] ? ' is-empty' : ''}${statuses[bet.id]?.unqualified ? ' is-unqualified' : ''}${statuses[bet.id]?.paid ? ' is-paid' : ''}`} key={bet.id}>
                         <button
                             type='button'
                             className={`game-action-overlay__side-bet-icon game-action-overlay__side-bet-icon--${bet.variant}`}
@@ -155,6 +159,11 @@ function SideBetsModule({ bets, disabled = false, isFocus = false, isTable = fal
                                 <span>{_.formatCurrencyWithComa(bets[bet.id])}</span>
                             </button>
                         ) : null}
+                        {statuses[bet.id]?.paid ? (
+                            <span className='game-action-overlay__side-bet-paid'>
+                                +{_.formatCurrencyWithComa(statuses[bet.id].paid)}
+                            </span>
+                        ) : null}
                     </div>
                 ))}
             </div>
@@ -169,6 +178,7 @@ SideBetsModule.propTypes = {
     isTable: PropTypes.bool,
     statuses: PropTypes.objectOf(PropTypes.shape({
         unqualified: PropTypes.bool,
+        paid: PropTypes.number,
     })),
     unitAmount: PropTypes.number,
     onAdd: PropTypes.func.isRequired,
@@ -225,74 +235,6 @@ ConsoleCard.propTypes = {
 ConsoleCard.defaultProps = {
     card: null,
     muted: false,
-};
-
-function getCardDisplayMeta(card) {
-    const sSuit = String(card?.eSuit || '').toLowerCase();
-    const sSuitKey = sSuit?.[0];
-    const sSuitImage = {
-        h: heartImage,
-        d: diamondImage,
-        c: clubImage,
-        s: spadeImage,
-    }[sSuitKey] || spadeImage;
-    const sLabel = card?.nLabel === 1 ? 'A'
-        : card?.nLabel === 11 ? 'J'
-            : card?.nLabel === 12 ? 'Q'
-                : card?.nLabel === 13 ? 'K'
-                    : String(card?.nLabel || '');
-
-    return {
-        sLabel,
-        sSuitImage,
-        bRed: sSuitKey === 'h' || sSuitKey === 'd',
-    };
-}
-
-function ActionHandCard({ card }) {
-    if (!card) return null;
-    const { sLabel, sSuitImage, bRed } = getCardDisplayMeta(card);
-
-    return (
-        <span className={`game-action-overlay__hand-card${bRed ? ' is-red' : ''}`}>
-            <img className='game-action-overlay__hand-card-face' src={cardFrontImage} alt='' draggable='false' />
-            <strong>{sLabel}</strong>
-            <img className='game-action-overlay__hand-card-suit' src={sSuitImage} alt='' draggable='false' />
-        </span>
-    );
-}
-
-ActionHandCard.propTypes = {
-    card: PropTypes.shape({
-        eSuit: PropTypes.string,
-        nLabel: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-    }),
-};
-
-ActionHandCard.defaultProps = {
-    card: null,
-};
-
-function ActionHandCards({ handCards, communityCards, score }) {
-    const cards = [...handCards, ...communityCards];
-    if (!cards.length) return null;
-
-    return (
-        <div className='game-action-overlay__hand-cards' aria-label='Your cards'>
-            <div className='game-action-overlay__hand-card-row'>
-                {cards.map((card, index) => (
-                    <ActionHandCard key={card._id || `action-card-${index}-${card.eSuit}-${card.nLabel}`} card={card} />
-                ))}
-            </div>
-            <span className='game-action-overlay__hand-card-total'>{Number(score) || 0}</span>
-        </div>
-    );
-}
-
-ActionHandCards.propTypes = {
-    handCards: PropTypes.arrayOf(PropTypes.object).isRequired,
-    communityCards: PropTypes.arrayOf(PropTypes.object).isRequired,
-    score: PropTypes.number.isRequired,
 };
 
 function ConsoleCards({ handCards, communityCards, score }) {
@@ -376,6 +318,26 @@ function getSideBetStatuses(handCards = [], communityCards = [], sideBetLive = t
     };
 }
 
+function normalizeSideBetPayouts(detail = {}) {
+    const source = detail?.payouts && typeof detail.payouts === 'object' ? detail.payouts : {};
+    const payouts = SIDE_BET_OPTIONS.reduce((accumulator, option) => {
+        const rawValue = source[option.id] ?? source[option.label] ?? source[option.variant];
+        const nValue = Number(rawValue);
+        if (Number.isFinite(nValue) && nValue > 0) accumulator[option.id] = nValue;
+        return accumulator;
+    }, {});
+    const nWinningAmount = Number(detail?.nWinningAmount);
+
+    return {
+        payouts,
+        total: Number.isFinite(nWinningAmount) && nWinningAmount > 0
+            ? nWinningAmount
+            : Object.values(payouts).reduce((sum, amount) => sum + amount, 0),
+        message: String(detail?.message || '').trim(),
+        expiresAt: Date.now() + 3400,
+    };
+}
+
 function SideBetInfoDialog({ visible, onClose }) {
     if (!visible) return null;
 
@@ -420,6 +382,7 @@ function GameActionOverlay({ isPaused = false }) {
         dismissed: false,
         endsAt: 0,
     });
+    const [sideBetPayout, setSideBetPayout] = useState({ payouts: {}, total: 0, message: '', expiresAt: 0 });
     const [consoleCards, setConsoleCards] = useState({ hand: [], community: [], sideBetCommunity: [], sideBetLive: true, score: 0 });
     const [turnTimer, setTurnTimer] = useState({ active: false, endsAt: 0, totalMs: 0 });
     const [sideBetUnitAmount, setSideBetUnitAmount] = useState(SIDE_BET_STEP);
@@ -432,8 +395,17 @@ function GameActionOverlay({ isPaused = false }) {
     });
     const totalSideBets = Object.values(sideBets).reduce((sum, amount) => sum + (Number(amount) || 0), 0);
     const sideBetStatuses = useMemo(
-        () => getSideBetStatuses(consoleCards.hand, consoleCards.sideBetCommunity, consoleCards.sideBetLive),
-        [consoleCards.hand, consoleCards.sideBetCommunity, consoleCards.sideBetLive]
+        () => {
+            const statuses = getSideBetStatuses(consoleCards.hand, consoleCards.sideBetCommunity, consoleCards.sideBetLive);
+            Object.entries(sideBetPayout.payouts || {}).forEach(([id, amount]) => {
+                statuses[id] = {
+                    ...(statuses[id] || {}),
+                    paid: Number(amount) || 0,
+                };
+            });
+            return statuses;
+        },
+        [consoleCards.hand, consoleCards.sideBetCommunity, consoleCards.sideBetLive, sideBetPayout.payouts]
     );
     const sideBetSecondsRemaining = sideBetWindow.endsAt
         ? Math.max(0, Math.ceil((sideBetWindow.endsAt - clockNow) / 1000))
@@ -491,6 +463,8 @@ function GameActionOverlay({ isPaused = false }) {
                 ...createInitialSideBets(),
                 ...nextBets,
             });
+            const payout = normalizeSideBetPayouts(event?.detail);
+            if (payout.total > 0) setSideBetPayout(payout);
         };
         const handleConsoleCards = (event) => {
             setConsoleCards({
@@ -508,6 +482,16 @@ function GameActionOverlay({ isPaused = false }) {
             window.removeEventListener(GAME_BROWSER_EVENTS.SIDE_BETS_SERVER_STATE, handleServerSideBets);
             window.removeEventListener(GAME_BROWSER_EVENTS.CONSOLE_CARDS, handleConsoleCards);
         };
+    }, []);
+
+    useEffect(() => {
+        const handleSideBetPayout = (event) => {
+            const payout = normalizeSideBetPayouts(event?.detail);
+            if (payout.total > 0) setSideBetPayout(payout);
+        };
+
+        window.addEventListener(GAME_BROWSER_EVENTS.SIDE_BET_PAYOUT, handleSideBetPayout);
+        return () => window.removeEventListener(GAME_BROWSER_EVENTS.SIDE_BET_PAYOUT, handleSideBetPayout);
     }, []);
 
     useEffect(() => {
@@ -566,13 +550,21 @@ function GameActionOverlay({ isPaused = false }) {
     }, [clockNow, sideBetWindow.endsAt, sideBetWindow.visible]);
 
     useEffect(() => {
+        if (!sideBetPayout.expiresAt) return undefined;
+        if (clockNow < sideBetPayout.expiresAt) return undefined;
+        setSideBetPayout({ payouts: {}, total: 0, message: '', expiresAt: 0 });
+        return undefined;
+    }, [clockNow, sideBetPayout.expiresAt]);
+
+    useEffect(() => {
         const bNeedsClock = (sideBetWindow.visible && sideBetWindow.endsAt > clockNow)
-            || (turnTimer.active && turnTimer.endsAt > clockNow);
+            || (turnTimer.active && turnTimer.endsAt > clockNow)
+            || (sideBetPayout.expiresAt > clockNow);
         if (!bNeedsClock) return undefined;
         const timer = window.setInterval(() => setClockNow(Date.now()), 250);
 
         return () => window.clearInterval(timer);
-    }, [clockNow, sideBetWindow.endsAt, sideBetWindow.visible, turnTimer.active, turnTimer.endsAt]);
+    }, [clockNow, sideBetPayout.expiresAt, sideBetWindow.endsAt, sideBetWindow.visible, turnTimer.active, turnTimer.endsAt]);
 
     useEffect(() => {
         if (!turnTimer.active || !turnTimer.endsAt || clockNow < turnTimer.endsAt) return undefined;
@@ -680,6 +672,12 @@ function GameActionOverlay({ isPaused = false }) {
                         onAdd={addSideBet}
                         onClear={clearSideBet}
                     />
+                    {sideBetPayout.total > 0 ? (
+                        <div className='game-action-overlay__side-bet-payout' aria-live='polite'>
+                            <span>{sideBetPayout.message || 'Side Bet Paid'}</span>
+                            <strong>+{_.formatCurrencyWithComa(sideBetPayout.total)}</strong>
+                        </div>
+                    ) : null}
                     <div className='game-action-overlay__table-side-bets-footer'>
                         <span>{bSideBetWindowOpen ? `${sideBetSecondsRemaining}s` : `+${_.formatCurrencyWithComa(sideBetUnitAmount)}`}</span>
                         <button
@@ -701,11 +699,6 @@ function GameActionOverlay({ isPaused = false }) {
                     </div>
                 </div>
                 <div className='game-action-overlay__tray'>
-                    {hasConsoleCards ? (
-                        <div className='game-action-overlay__action-cards'>
-                            <ActionHandCards handCards={consoleCards.hand} communityCards={consoleCards.sideBetCommunity} score={consoleCards.score} />
-                        </div>
-                    ) : null}
                     {hasButtons ? (
                         <div className={`game-action-overlay__rows game-action-overlay__rows--interactive${DEBUG_CONSOLE_LAYOUT ? ' is-debug-layout' : ''}`}>
                             {rows.map((row, rowIndex) => {

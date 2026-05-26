@@ -15,6 +15,7 @@ import Settings from '../prefabs/Settings';
 import SoundManager from '../scripts/SoundManager';
 import Services from '../scripts/Services';
 import Animations from '../scripts/Animations';
+import ChipAnimationController from '../scripts/ChipAnimationController';
 import CleanupRegistry from '../scripts/CleanupRegistry';
 import { GAME_BROWSER_EVENTS } from '../scripts/gameEvents';
 import { buildGameActionState } from '../scripts/gameActionState';
@@ -503,10 +504,18 @@ createGameActionOverlayRow(id, buttonKeys = [], className = '') {
         .filter(Boolean);
 
     if (!buttons.length) return null;
+    const sCountClass = buttons.length === 1
+        ? 'game-action-overlay__row--single'
+        : buttons.length === 2
+            ? 'game-action-overlay__row--two'
+            : buttons.length === 4
+                ? 'game-action-overlay__row--four'
+                : 'game-action-overlay__row--three';
+    const sBaseClassName = String(className || '').replace(/game-action-overlay__row--(single|two|three|four)/g, '').trim();
 
     return {
         id,
-        className,
+        className: `${sBaseClassName} ${sCountClass}`.trim(),
         buttons,
     };
 }
@@ -789,6 +798,13 @@ getPotChipAnchor() {
     };
 }
 
+getChipAnimationController() {
+    if (!this.oChipAnimationController) {
+        this.oChipAnimationController = new ChipAnimationController(this);
+    }
+    return this.oChipAnimationController;
+}
+
 getPlayerBetStageAnchor(playerProfile) {
     const communityBounds = this.getCommunityCardBounds();
     const stagedY = communityBounds
@@ -911,14 +927,28 @@ commitPotAmount(nTableChips) {
     }
 }
 
-queuePotUpdate({ targetAmount = 0 } = {}) {
-    this.commitPotAmount(targetAmount);
-    return Promise.resolve();
+queuePotUpdate({ amount = 0, targetAmount = 0, playerProfile = null } = {}) {
+    return this.getChipAnimationController().animateTransfer({
+        from: this.getPlayerChipAnchor(playerProfile),
+        to: this.getPotChipAnchor(),
+        amount,
+        direction: 'toPot',
+    }).finally(() => {
+        this.commitPotAmount(targetAmount);
+    });
 }
 
-queuePotPayout({ targetAmount = 0 } = {}) {
-    this.commitPotAmount(targetAmount);
-    return Promise.resolve();
+queuePotPayout({ amount = 0, targetAmount = 0, playerProfile = null } = {}) {
+    return this.getChipAnimationController().animateTransfer({
+        from: this.getPotChipAnchor(),
+        to: this.getPlayerChipAnchor(playerProfile),
+        amount,
+        duration: 720,
+        hold: 120,
+        direction: 'toPlayer',
+    }).finally(() => {
+        this.commitPotAmount(targetAmount);
+    });
 }
 
 findPlayerByUserId(iUserId) {
@@ -2142,14 +2172,28 @@ setButtons() {
         this.oSocketManager.emit(SOCKET_REQUEST_EVENTS.SIDE_BETS, { bets });
     }
     handleSideBetsState(oData = {}) {
+        const payouts = oData?.payouts || oData?.winnings || oData?.sideBetPayouts || oData?.results || {};
+        const nWinningAmount = Number(oData?.nWinningAmount ?? oData?.nSideBetWinningAmount ?? oData?.sideBetWinningAmount);
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.SIDE_BETS_SERVER_STATE, {
                 detail: {
                     bets: oData?.bets || {},
                     total: Number(oData?.total) || 0,
                     results: oData?.results || null,
+                    payouts,
+                    nWinningAmount: Number.isFinite(nWinningAmount) ? nWinningAmount : 0,
+                    message: oData?.message || oData?.sMessage || '',
                 },
             }));
+            if ((Number.isFinite(nWinningAmount) && nWinningAmount > 0) || (payouts && Object.keys(payouts).length > 0)) {
+                window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.SIDE_BET_PAYOUT, {
+                    detail: {
+                        payouts,
+                        nWinningAmount: Number.isFinite(nWinningAmount) ? nWinningAmount : 0,
+                        message: oData?.message || oData?.sMessage || '',
+                    },
+                }));
+            }
         }
         if (Number.isFinite(Number(oData?.nChips))) {
             this.oGameManager.nMyPlayerChips = Number(oData.nChips);
@@ -3205,10 +3249,6 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
     if (participant.eState == "winner") {
       this.cleanupRegistry?.addTimeout(setTimeout(() => {
         player?.playerProfile?.showWinnerPrompt();
-        this.playWinnerCelebrationFX(player?.playerProfile, {
-            isSelf: participant.iUserId === this.iUserId,
-            text: participant.iUserId === this.iUserId ? 'You Win!' : 'Winner!',
-        });
         participant.iUserId == this.iUserId && this.oSoundManager.playSound(this.oSoundManager.winAnimation_sound, false);
         participant.nCardScore === 21 && this.callFXOverlay('blackjack');
       }, 3000));

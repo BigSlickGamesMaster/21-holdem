@@ -7,6 +7,7 @@ export const GAME_BROWSER_EVENTS = Object.freeze({
     NAVIGATE: 'bsg:navigate',
     PROFILE_REFRESH: 'bsg:profile-refresh',
     SIDE_BET_CONFIG: 'bsg:side-bet-config',
+    SIDE_BET_PAYOUT: 'bsg:side-bet-payout',
     SIDE_BET_WINDOW: 'bsg:side-bet-window',
     SIDE_BETS_CHANGE: 'bsg:side-bets-change',
     SIDE_BETS_SERVER_STATE: 'bsg:side-bets-server-state',

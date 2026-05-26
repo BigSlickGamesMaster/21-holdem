@@ -408,3 +408,22 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `npm run lint:game` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/gameUiLayout.test.js src/scripts/clientGameSelectors.test.js src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/gameActionState.test.js src/scripts/potState.test.js --watchAll=false` passed.
+
+### Step 28: Table UX Cleanup Pass
+
+- Goal: remove duplicated card display noise and make winner/side-bet/chip feedback clearer.
+- Scope: remove the React action-card render, keep console cards, remove floating winner celebration FX, add side-bet payout feedback, make visible action rows size by actual button count, and restore individual chip transfer animation.
+- Non-goal: do not change server side-bet rules or payout calculation in this step.
+- Expected benefit: fewer competing card surfaces, clearer side-bet feedback, cleaner action rows, and more readable chip movement.
+- Implemented:
+  - Removed the duplicate action-hand card render from `GameActionOverlay`; console cards remain.
+  - Added a curved `Place Side Bets` heading above table side bets.
+  - Added side-bet paid badges and payout callout support from `resSideBets` payloads.
+  - Stopped calling the floating winner celebration FX; winner feedback now stays on player profile/console.
+  - Rewired `ChipAnimationController` into pot updates and payouts with pop/hold/swoosh chip movement.
+  - Made action overlay rows choose 1/2/3/4-column classes from the number of visible buttons.
+- Checks:
+  - `npm run lint:game` passed.
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/potState.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npm run build` completed successfully with existing repo warnings.
