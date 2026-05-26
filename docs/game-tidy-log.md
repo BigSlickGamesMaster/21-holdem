@@ -363,3 +363,19 @@ This file records each stabilization/refactor step so future work can see what c
   - `$env:CI='true'; npx react-scripts test src/scripts/clientGameSelectors.test.js src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/clientGameSelectors.js src/scripts/clientGameSelectors.test.js` passed.
   - `npx eslint src/scenes/Level.js` still fails on existing unused-variable/empty-block issues outside this step; keep that as a later `Level.js` lint cleanup item.
+
+### Step 25: Level Lint Gate Cleanup
+
+- Goal: make `Level.js` pass ESLint so future scene work has a reliable safety check.
+- Scope: remove dead imports, unused destructured socket fields, unused placeholder parameters, and an empty catch block.
+- Non-goal: do not change socket payload contracts, visual behavior, betting math, or animation behavior in this step.
+- Expected benefit: scene cleanup can now use lint as a fast regression signal instead of carrying known failures.
+- Implemented:
+  - Removed unused `ChipAnimationController` import.
+  - Narrowed `setGameData()`, `setBoardState()`, `setProfiles()`, and waiting-method parameters to the values they actually use.
+  - Removed unused parameters from no-op FX/staged-bet methods.
+  - Replaced an empty catch block with an explicit return.
+- Checks:
+  - `npx eslint src/scenes/Level.js` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/clientGameSelectors.test.js src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/gameActionState.test.js src/scripts/potState.test.js --watchAll=false` passed.
+  - `npx eslint src/scenes/Level.js src/scripts/clientGameSelectors.js src/scripts/clientGameSelectors.test.js` passed.

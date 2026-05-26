@@ -15,7 +15,6 @@ import Settings from '../prefabs/Settings';
 import SoundManager from '../scripts/SoundManager';
 import Services from '../scripts/Services';
 import Animations from '../scripts/Animations';
-import ChipAnimationController from '../scripts/ChipAnimationController';
 import CleanupRegistry from '../scripts/CleanupRegistry';
 import { GAME_BROWSER_EVENTS } from '../scripts/gameEvents';
 import { buildGameActionState } from '../scripts/gameActionState';
@@ -804,7 +803,7 @@ getPlayerBetStageAnchor(playerProfile) {
     };
 }
 
-renderStagedBetPile(playerProfile, amount = 0) {
+renderStagedBetPile() {
     return null;
 }
 
@@ -857,7 +856,7 @@ getCommunityCardBasePosition() {
     };
 }
 
-getCommunityCardPosition(index = 0, totalCards = 0) {
+getCommunityCardPosition(index = 0) {
     const { gap } = this.getCommunityCardLayoutMetrics();
     const base = this.getCommunityCardBasePosition();
     // Left-anchored: card 0 is fixed at the left of a max 5-card spread;
@@ -887,7 +886,7 @@ getPotTargetPosition() {
     };
 }
 
-updatePotPosition(options = {}) {
+updatePotPosition() {
     if (!this.oPotAmount) return Promise.resolve();
     const nextPosition = this.getPotTargetPosition();
     this.oPotAmount.setPosition(nextPosition.x, nextPosition.y);
@@ -907,15 +906,17 @@ commitPotAmount(nTableChips) {
     try {
         const overlay = this.getFXOverlay();
         overlay?.setPotAmount && overlay.setPotAmount(0);
-    } catch (_error) {}
+    } catch (_error) {
+        return;
+    }
 }
 
-queuePotUpdate({ amount = 0, targetAmount = 0, playerProfile = null, effectName = 'smallBet' } = {}) {
+queuePotUpdate({ targetAmount = 0 } = {}) {
     this.commitPotAmount(targetAmount);
     return Promise.resolve();
 }
 
-queuePotPayout({ amount = 0, targetAmount = 0, playerProfile = null } = {}) {
+queuePotPayout({ targetAmount = 0 } = {}) {
     this.commitPotAmount(targetAmount);
     return Promise.resolve();
 }
@@ -924,11 +925,11 @@ findPlayerByUserId(iUserId) {
     return findPlayerInMap(this.players, iUserId);
 }
 
-playPlayerBetFX(playerProfile, effectName, amount, options = {}) {
+playPlayerBetFX() {
     return Promise.resolve(false);
 }
 
-playWinPotFX(playerProfile, amount) {
+playWinPotFX() {
     return Promise.resolve(false);
 }
 
@@ -2310,7 +2311,7 @@ setButtons() {
         }
         if (container.bSuppressSeatCardDisplay) container.setVisible(false);
     }
-    waitingForGameStart({ nInitializeTimer, nRoundStartsIn }) {
+    waitingForGameStart({ nRoundStartsIn }) {
         this.prompt.hide();
         if (nRoundStartsIn) {
             this.waitingForNextRoundStart(Math.round(nRoundStartsIn / 1000));
@@ -2319,7 +2320,7 @@ setButtons() {
         this.declreResultInterval && clearInterval(this.declreResultInterval);
         this.timer && clearInterval(this.timer);
     }
-    waitingForNextRoundStart(remainingTime) {
+    waitingForNextRoundStart() {
         this.timer && clearInterval(this.timer);
         this.declreResultInterval && clearInterval(this.declreResultInterval);
         this.prompt.hide();
@@ -2385,7 +2386,7 @@ setButtons() {
         if (myPlayer) this.iUserId = myPlayer.iUserId;
         return myPlayer;
     }
-    async setGameData({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant, oGameInfo, oTutorial }) {
+    async setGameData({ aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableChips, nMaxPlayer, eState, nMinBet, nTableRound, oSetting, aParticipant, oGameInfo, oTutorial }) {
         try {
             const boardSnapshot = normalizeBoardSnapshot({
                 aCommunityCard,
@@ -2770,7 +2771,7 @@ setButtons() {
     }
     async setProfiles(iUserId) {
         const player = await this.players.get(iUserId);
-        const { sUserName, sAvatar, eUserType, eState, nLastBidChips, aCardHand, nChips, nCardScore } = player;
+        const { sUserName, sAvatar, eUserType, eState, aCardHand, nChips, nCardScore } = player;
         if (eState === "leave") {
             player?.playerProfile?.setVisible(false);
             iUserId == this.iUserId && this.exitGame();
@@ -2793,7 +2794,7 @@ setButtons() {
             player?.playerProfile?.hideWaiting();
         }
     }
-    async setBoardState({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableFee, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant, oTutorial }) {
+    async setBoardState({ aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableChips, nMaxPlayer, eState, nMinBet, nTableRound, oSetting, aParticipant, oTutorial }) {
         try {
             const boardSnapshot = normalizeBoardSnapshot({
                 aCommunityCard,
