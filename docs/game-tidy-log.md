@@ -248,3 +248,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.
+
+### Step 17: Pot State Reducer Updates
+
+- Goal: keep normalized client state in sync with pot/table-chip updates.
+- Scope: add reducer support for pot amount updates and wire existing pot commit path.
+- Non-goal: do not change pot rendering, FX, payout sequencing, or animation behavior in this step.
+- Expected benefit: replay/state tests can verify table-chip changes independently from Phaser display objects.
+- Implemented:
+  - Added `SET_TABLE_CHIPS` support in `src/scripts/clientGameState.js`.
+  - Added reducer tests for table-chip updates.
+  - Updated `Level.commitPotAmount()` to keep `oClientGameState.board.nTableChips` in sync with existing pot display state.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.

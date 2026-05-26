@@ -5,6 +5,7 @@ import {
     clientGameStateReducer,
     CLIENT_GAME_STATE_ACTIONS,
     createInitialClientGameState,
+    setTableChipsInClientState,
 } from './clientGameState';
 
 describe('clientGameState', () => {
@@ -109,5 +110,25 @@ describe('clientGameState', () => {
         });
 
         expect(nextState.participantsById.u1).toEqual({ iUserId: 'u1', nChips: 100 });
+    });
+
+    test('sets table chips without changing other board fields', () => {
+        const state = applyBoardSnapshotToClientState(createInitialClientGameState(), {
+            iDealerId: 'dealer',
+            nTableChips: 500,
+        });
+        const nextState = setTableChipsInClientState(state, 1250);
+
+        expect(nextState.board.iDealerId).toBe('dealer');
+        expect(nextState.board.nTableChips).toBe(1250);
+    });
+
+    test('reducer applies table chip update action', () => {
+        const nextState = clientGameStateReducer(createInitialClientGameState(), {
+            type: CLIENT_GAME_STATE_ACTIONS.SET_TABLE_CHIPS,
+            payload: { nTableChips: '750' },
+        });
+
+        expect(nextState.board.nTableChips).toBe(750);
     });
 });

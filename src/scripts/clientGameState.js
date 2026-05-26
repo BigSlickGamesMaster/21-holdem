@@ -4,6 +4,7 @@ import { normalizeParticipants } from './participantState';
 export const CLIENT_GAME_STATE_ACTIONS = Object.freeze({
     APPLY_BOARD_SNAPSHOT: 'applyBoardSnapshot',
     APPLY_PARTICIPANT_PATCH: 'applyParticipantPatch',
+    SET_TABLE_CHIPS: 'setTableChips',
 });
 
 export function createInitialClientGameState() {
@@ -85,12 +86,24 @@ export function applyParticipantPatchToClientState(state = createInitialClientGa
     };
 }
 
+export function setTableChipsInClientState(state = createInitialClientGameState(), nTableChips = 0) {
+    return {
+        ...state,
+        board: {
+            ...(state.board || createInitialClientGameState().board),
+            nTableChips: Math.max(0, Number(nTableChips) || 0),
+        },
+    };
+}
+
 export function clientGameStateReducer(state = createInitialClientGameState(), action = {}) {
     switch (action.type) {
         case CLIENT_GAME_STATE_ACTIONS.APPLY_BOARD_SNAPSHOT:
             return applyBoardSnapshotToClientState(state, action.payload);
         case CLIENT_GAME_STATE_ACTIONS.APPLY_PARTICIPANT_PATCH:
             return applyParticipantPatchToClientState(state, action.payload);
+        case CLIENT_GAME_STATE_ACTIONS.SET_TABLE_CHIPS:
+            return setTableChipsInClientState(state, action.payload?.nTableChips);
         default:
             return state;
     }

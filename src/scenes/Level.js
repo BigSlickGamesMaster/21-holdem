@@ -888,7 +888,12 @@ updatePotPosition(options = {}) {
 }
 
 commitPotAmount(nTableChips) {
-    this.oGameManager.nPotAmount = Number(nTableChips) || 0;
+    const nNextPotAmount = Number(nTableChips) || 0;
+    this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+        type: CLIENT_GAME_STATE_ACTIONS.SET_TABLE_CHIPS,
+        payload: { nTableChips: nNextPotAmount },
+    });
+    this.oGameManager.nPotAmount = nNextPotAmount;
     this.oPotAmount?.setAmount(this.oGameManager.nPotAmount);
     this.registerFXOverlayPotAnchor();
     try {
