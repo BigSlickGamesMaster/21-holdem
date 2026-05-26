@@ -290,3 +290,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.
+
+### Step 20: Participant Status Reducer State
+
+- Goal: track participant state transitions like fold, bust, spectator, and leave in normalized state.
+- Scope: add reducer support for participant status patches and wire the existing fold/leave/bust scene path.
+- Non-goal: do not change visual alpha, prompts, sounds, or exit behavior in this step.
+- Expected benefit: player lifecycle transitions become replay-testable.
+- Implemented:
+  - Added `SET_PARTICIPANT_STATUS` support in `src/scripts/clientGameState.js`.
+  - Added reducer tests for participant status transitions.
+  - Updated `Level.setFoldPlayer()` to keep reducer state in sync.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.

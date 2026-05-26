@@ -2576,6 +2576,15 @@ setButtons() {
     setFoldPlayer(iUserId, eState, sReason, bShowMessage, options = {}) {
         const playAudio = options.playAudio !== false;
         const player = this.players.get(iUserId);
+        this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+            type: CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_STATUS,
+            payload: {
+                iUserId,
+                eState,
+                sReason,
+                bShowMessage,
+            },
+        });
         if (eState === 'fold') {
             playAudio && this.oSoundManager.playSound(this.oSoundManager.fold_sound, false);
             player?.playerProfile?.container_cards?.removeAll(true).setVisible(false);

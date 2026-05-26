@@ -7,6 +7,7 @@ export const CLIENT_GAME_STATE_ACTIONS = Object.freeze({
     SET_TABLE_CHIPS: 'setTableChips',
     SET_TURN_ACTION_STATE: 'setTurnActionState',
     SET_PARTICIPANT_HAND_SCORE: 'setParticipantHandScore',
+    SET_PARTICIPANT_STATUS: 'setParticipantStatus',
 });
 
 export function createInitialClientGameState() {
@@ -143,6 +144,19 @@ export function setParticipantHandScoreInClientState(state = createInitialClient
     };
 }
 
+export function setParticipantStatusInClientState(state = createInitialClientGameState(), payload = {}) {
+    const source = payload && typeof payload === 'object' ? payload : {};
+    if (source.iUserId === undefined || source.iUserId === null) return state;
+
+    return applyParticipantPatchToClientState(state, {
+        iUserId: source.iUserId,
+        eState: source.eState,
+        eBehaviour: source.eBehaviour,
+        sReason: source.sReason,
+        bShowMessage: source.bShowMessage,
+    });
+}
+
 export function clientGameStateReducer(state = createInitialClientGameState(), action = {}) {
     switch (action.type) {
         case CLIENT_GAME_STATE_ACTIONS.APPLY_BOARD_SNAPSHOT:
@@ -155,6 +169,8 @@ export function clientGameStateReducer(state = createInitialClientGameState(), a
             return setTurnActionStateInClientState(state, action.payload);
         case CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_HAND_SCORE:
             return setParticipantHandScoreInClientState(state, action.payload);
+        case CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_STATUS:
+            return setParticipantStatusInClientState(state, action.payload);
         default:
             return state;
     }

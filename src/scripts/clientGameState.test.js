@@ -7,6 +7,7 @@ import {
     createInitialClientGameState,
     setTableChipsInClientState,
     setParticipantHandScoreInClientState,
+    setParticipantStatusInClientState,
     setTurnActionStateInClientState,
 } from './clientGameState';
 
@@ -210,5 +211,38 @@ describe('clientGameState', () => {
         });
 
         expect(nextState.participantsById.u1).toEqual({ iUserId: 'u1', nCardScore: 21 });
+    });
+
+    test('sets participant lifecycle status fields', () => {
+        const nextState = setParticipantStatusInClientState(createInitialClientGameState(), {
+            iUserId: 'u1',
+            eState: 'fold',
+            eBehaviour: 'manual',
+            sReason: 'folded',
+            bShowMessage: true,
+        });
+
+        expect(nextState.participantsById.u1).toEqual({
+            iUserId: 'u1',
+            eState: 'fold',
+            eBehaviour: 'manual',
+            sReason: 'folded',
+            bShowMessage: true,
+        });
+    });
+
+    test('reducer applies participant status action', () => {
+        const nextState = clientGameStateReducer(createInitialClientGameState(), {
+            type: CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_STATUS,
+            payload: { iUserId: 'u2', eState: 'leave' },
+        });
+
+        expect(nextState.participantsById.u2).toEqual({
+            iUserId: 'u2',
+            eState: 'leave',
+            eBehaviour: undefined,
+            sReason: undefined,
+            bShowMessage: undefined,
+        });
     });
 });
