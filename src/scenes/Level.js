@@ -38,6 +38,11 @@ import {
 import { SOCKET_REQUEST_EVENTS, SOCKET_RESPONSE_EVENTS } from '../scripts/socketEvents';
 import { getBetPotEffectName, getPotIncrease, shouldCommitPotWithoutAnimation } from '../scripts/potState';
 import { attachParticipantProfile, findParticipantForClient, findPlayerInMap } from '../scripts/participantState';
+import {
+    normalizeBoardSnapshot,
+    shouldCancelResultForBoardState,
+    shouldHideSideBetWindowForBoardState,
+} from '../scripts/boardSnapshot';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -2347,27 +2352,46 @@ setButtons() {
     }
     async setGameData({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant, oGameInfo, oTutorial }) {
         try {
-            if (eState === 'playing') this.cancelHandResultCleanup();
+            const boardSnapshot = normalizeBoardSnapshot({
+                aCommunityCard,
+                iBigBlindId,
+                iDealerId,
+                iSmallBlindId,
+                nTableChips,
+                nMaxPlayer,
+                eState,
+                nMinBet,
+                nTableRound,
+                oSetting,
+                aParticipant,
+                oGameInfo,
+                oTutorial,
+            }, {
+                oSetting: this.oGameManager?.oSetting,
+                oGameInfo: this.oGameManager?.oGameInfo,
+                oTutorial: this.oTutorialState,
+            });
+            if (shouldCancelResultForBoardState(boardSnapshot.eState)) this.cancelHandResultCleanup();
             this.clearStagedBetPiles();
-            this.oGameManager.oGameInfo = oGameInfo;
-            this.emitSideBetConfig({ nMinBet, nBigBlindAmount: oGameInfo?.nBigBlindAmount });
-            if (eState === 'playing') this.emitSideBetWindow(false);
-            this.oGameManager.nMaxPlayer = nMaxPlayer;
-            this.oGameManager.oSetting = oSetting;
-            this.oTutorialState = oTutorial || null;
-            this.iDealerId = iDealerId;
-            this.iBigBlindId = iBigBlindId;
-            this.iSmallBlindId = iSmallBlindId;
-            const myPlayer = await this.findMyPlayer(aParticipant);
+            this.oGameManager.oGameInfo = boardSnapshot.oGameInfo;
+            this.emitSideBetConfig({ nMinBet: boardSnapshot.nMinBet, nBigBlindAmount: boardSnapshot.oGameInfo?.nBigBlindAmount });
+            if (shouldHideSideBetWindowForBoardState(boardSnapshot.eState)) this.emitSideBetWindow(false);
+            this.oGameManager.nMaxPlayer = boardSnapshot.nMaxPlayer;
+            this.oGameManager.oSetting = boardSnapshot.oSetting;
+            this.oTutorialState = boardSnapshot.oTutorial;
+            this.iDealerId = boardSnapshot.iDealerId;
+            this.iBigBlindId = boardSnapshot.iBigBlindId;
+            this.iSmallBlindId = boardSnapshot.iSmallBlindId;
+            const myPlayer = await this.findMyPlayer(boardSnapshot.aParticipant);
             if (!myPlayer) {
                 console.error('[setGameData] Could not match current player in participant list â€” skipping seat setup');
                 return;
             }
             this.arrangeSeats(myPlayer.nSeat);
-            this.updatePotAmount(nTableChips);
-            this.checkGameEState(eState);
-            await this.setPlayersData(aParticipant);
-            this.setCommunityCards(aCommunityCard);
+            this.updatePotAmount(boardSnapshot.nTableChips);
+            this.checkGameEState(boardSnapshot.eState);
+            await this.setPlayersData(boardSnapshot.aParticipant);
+            this.setCommunityCards(boardSnapshot.aCommunityCard);
             // Render the current player's cards if joining mid-hand (reconnect with hand in progress)
             const me = this.players.get(this.iUserId);
             if (Array.isArray(me?.aCardHand) && me.aCardHand.length > 0) {
@@ -2375,7 +2399,7 @@ setButtons() {
             }
             this.setDealerAndBlind();
             this.syncTutorialState(this.oTutorialState);
-            this.nTableRound = Number(nTableRound) || 1;
+            this.nTableRound = boardSnapshot.nTableRound;
             this.sActiveTurnKey = null;
             this.isOverlayReady = true;
             this.syncGameActionOverlay();
@@ -2700,27 +2724,45 @@ setButtons() {
     }
     async setBoardState({ _id, aCommunityCard, iBigBlindId, iDealerId, iSmallBlindId, nTableFee, nTableChips, nDeck, aWinningAmount, nMaxPlayer, eState, ePokerType, nMaxTableAmount, nMinBuyIn, nMaxBuyIn, nMinBet, nMaxBet, iUserTurn, nTurnTime, nGraceTime, nTableRound, aOpenDeck, oWildJoker, oSetting, aParticipant, oTutorial }) {
         try {
-            if (eState === 'playing') this.cancelHandResultCleanup();
+            const boardSnapshot = normalizeBoardSnapshot({
+                aCommunityCard,
+                iBigBlindId,
+                iDealerId,
+                iSmallBlindId,
+                nTableChips,
+                nMaxPlayer,
+                eState,
+                nMinBet,
+                nTableRound,
+                oSetting,
+                aParticipant,
+                oTutorial,
+            }, {
+                oSetting: this.oGameManager?.oSetting,
+                oGameInfo: this.oGameManager?.oGameInfo,
+                oTutorial: this.oTutorialState,
+            });
+            if (shouldCancelResultForBoardState(boardSnapshot.eState)) this.cancelHandResultCleanup();
             this.clearStagedBetPiles();
-            this.oTutorialState = oTutorial || this.oTutorialState;
-            this.emitSideBetConfig({ nMinBet });
-            if (eState === 'playing') this.emitSideBetWindow(false);
-            this.iDealerId = iDealerId;
-            this.iBigBlindId = iBigBlindId;
-            this.iSmallBlindId = iSmallBlindId;
-            this.updatePotAmount(nTableChips);
+            this.oTutorialState = boardSnapshot.oTutorial;
+            this.emitSideBetConfig({ nMinBet: boardSnapshot.nMinBet });
+            if (shouldHideSideBetWindowForBoardState(boardSnapshot.eState)) this.emitSideBetWindow(false);
+            this.iDealerId = boardSnapshot.iDealerId;
+            this.iBigBlindId = boardSnapshot.iBigBlindId;
+            this.iSmallBlindId = boardSnapshot.iSmallBlindId;
+            this.updatePotAmount(boardSnapshot.nTableChips);
             // Don't wipe community cards while the hand-result display window is active
             if (!this.bShowingHandResult) {
-                this.setCommunityCards(aCommunityCard);
+                this.setCommunityCards(boardSnapshot.aCommunityCard);
             }
-            this.checkGameEState(eState);
-            const myPlayer = await this.findMyPlayer(aParticipant);
+            this.checkGameEState(boardSnapshot.eState);
+            const myPlayer = await this.findMyPlayer(boardSnapshot.aParticipant);
             if (!myPlayer) {
                 console.error('[setBoardState] Could not match current player in participant list â€” skipping seat setup');
                 return;
             }
             this.arrangeSeats(myPlayer.nSeat);
-            await this.setPlayersData(aParticipant);
+            await this.setPlayersData(boardSnapshot.aParticipant);
             // Render the current player's cards if joining mid-hand
             const me = this.players.get(this.iUserId);
             if (Array.isArray(me?.aCardHand) && me.aCardHand.length > 0) {
@@ -2729,7 +2771,7 @@ setButtons() {
             this.isFinishGame = false;
             this.setDealerAndBlind();
             this.syncTutorialState(this.oTutorialState);
-            this.nTableRound = Number(nTableRound) || 1;
+            this.nTableRound = boardSnapshot.nTableRound;
             this.sActiveTurnKey = null;
             this.isOverlayReady = true;
             this.syncGameActionOverlay();

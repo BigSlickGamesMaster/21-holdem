@@ -193,3 +193,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/participantState.js src/scripts/participantState.test.js` passed.
+
+### Step 13: Board Snapshot Normalization
+
+- Goal: start unifying `setGameData()` and `setBoardState()` around one board payload interpretation.
+- Scope: extract pure helpers for board identity/blinds/settings/round/tutorial/community/pot fields.
+- Non-goal: do not move Phaser rendering, player profile updates, socket timing, or seat arrangement in this step.
+- Expected benefit: board-state and join-state paths become easier to compare before building a full client reducer.
+- Implemented:
+  - Added `src/scripts/boardSnapshot.js`.
+  - Added `src/scripts/boardSnapshot.test.js`.
+  - Updated `Level.setGameData()` and `Level.setBoardState()` to use normalized board snapshot fields for shared data.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/boardSnapshot.js src/scripts/boardSnapshot.test.js` passed.
