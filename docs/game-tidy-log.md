@@ -95,3 +95,18 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/handResultLifecycle.js src/scripts/handResultLifecycle.test.js` passed.
+
+### Step 6: Socket Event Constants
+
+- Goal: centralize socket request/response event names before changing socket flow.
+- Scope: add shared constants for existing client socket event strings and wire the current socket bridge to them.
+- Non-goal: do not rename any server-facing event, payload key, or handler method in this step.
+- Expected benefit: fewer typo regressions and a clearer event inventory for the later state reducer work.
+- Implemented:
+  - Added `src/scripts/socketEvents.js`.
+  - Added `src/scripts/socketEvents.test.js` to lock server-facing event names.
+  - Updated `SocketManager.js`, `emitter.js`, and raw socket-name comparisons in `Level.js`.
+  - Added missing legacy emitter aliases for `reqSideBets`, `reqDiscardCard`, and `reqFinish`.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/socketEvents.js src/scripts/socketEvents.test.js src/scripts/emitter.js src/scripts/SocketManager.js` passed.

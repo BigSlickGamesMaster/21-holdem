@@ -1,0 +1,48 @@
+export const SOCKET_TRANSPORT_EVENTS = Object.freeze({
+    CONNECT: 'connect',
+    DISCONNECT: 'disconnect',
+    RECONNECT: 'reconnect',
+    CONNECT_ERROR: 'connect_error',
+    PING: 'ping',
+});
+
+export const SOCKET_REQUEST_EVENTS = Object.freeze({
+    JOIN_BOARD: 'reqJoinBoard',
+    CALL: 'reqCall',
+    RAISE: 'reqRaise',
+    DOUBLE_DOWN: 'reqDoubleDown',
+    FOLD: 'reqFold',
+    LEAVE: 'reqLeave',
+    STAND: 'reqStand',
+    CHECK: 'reqCheck',
+    FORCE_PAIR: 'reqForcePair',
+    REACTION: 'reqReaction',
+    SIDE_BETS: 'reqSideBets',
+    DISCARD_CARD: 'reqDiscardCard',
+    FINISH: 'reqFinish',
+});
+
+export const SOCKET_RESPONSE_EVENTS = Object.freeze({
+    INITIALIZE_GAME: 'initializeGame',
+    USER_JOINED: 'resUserJoined',
+    BOARD_STATE: 'resBoardState',
+    COLLECT_BOOT_AMOUNT: 'resCollectBootAmount',
+    COMMUNITY_CARD: 'resCommunityCard',
+    CLEAR_BETTING_LABELS: 'resClearBettingLabels',
+    CARD_HAND: 'resCardHand',
+    PLAYER_TURN: 'resPlayerTurn',
+    PLAYER_LEFT: 'resPlayerLeft',
+    TURN_MISSED: 'resTurnMissed',
+    FOLD_PLAYER: 'resFoldPlayer',
+    DECLARE_RESULT: 'resDeclareResult',
+    KICK_OUT: 'resKickOut',
+    REFUND_ON_LONG_WAIT: 'resRefundOnLongWait',
+    CALL: 'resCall',
+    CHECK: 'resCheck',
+    RAISE: 'resRaise',
+    STAND: 'resStand',
+    DOUBLE_DOWN: 'resDoubledown',
+    REACTION: 'resReaction',
+    SIDE_BETS: 'resSideBets',
+    DISCONNECT: 'disconnect',
+});

@@ -1,13 +1,18 @@
+import { SOCKET_REQUEST_EVENTS } from './socketEvents';
+
 const emitter = {
-    reqCall: 'reqCall',
-    reqRaise: 'reqRaise',
-    reqDoubleDown: 'reqDoubleDown',
-    reqFold: 'reqFold',
-    reqLeave: 'reqLeave',
-    reqStand: 'reqStand',
-    reqCheck: 'reqCheck',
-    reqForcePair: 'reqForcePair',
-    reqReaction: 'reqReaction',
+    reqCall: SOCKET_REQUEST_EVENTS.CALL,
+    reqRaise: SOCKET_REQUEST_EVENTS.RAISE,
+    reqDoubleDown: SOCKET_REQUEST_EVENTS.DOUBLE_DOWN,
+    reqFold: SOCKET_REQUEST_EVENTS.FOLD,
+    reqLeave: SOCKET_REQUEST_EVENTS.LEAVE,
+    reqStand: SOCKET_REQUEST_EVENTS.STAND,
+    reqCheck: SOCKET_REQUEST_EVENTS.CHECK,
+    reqForcePair: SOCKET_REQUEST_EVENTS.FORCE_PAIR,
+    reqReaction: SOCKET_REQUEST_EVENTS.REACTION,
+    reqSideBets: SOCKET_REQUEST_EVENTS.SIDE_BETS,
+    reqDiscardCard: SOCKET_REQUEST_EVENTS.DISCARD_CARD,
+    reqFinish: SOCKET_REQUEST_EVENTS.FINISH,
 }
 
 export default emitter;

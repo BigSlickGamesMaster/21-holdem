@@ -8,6 +8,7 @@
 
 import io from 'socket.io-client';
 import { getApiRoot } from '../axios';
+import { SOCKET_REQUEST_EVENTS, SOCKET_RESPONSE_EVENTS, SOCKET_TRANSPORT_EVENTS } from './socketEvents';
 
 export default class SocketManager {
     // scene: Level instance. options: { sAuthToken, iBoardId }.
@@ -24,12 +25,12 @@ export default class SocketManager {
             },
         });
 
-        this.socket.on("connect", () => {
+        this.socket.on(SOCKET_TRANSPORT_EVENTS.CONNECT, () => {
             this.sRootSocket = this.socket.id;
         });
-        this.socket.on("disconnect", () => {});
-        this.socket.on("reconnect", () => {});
-        this.socket.on("connect_error", (error) => {
+        this.socket.on(SOCKET_TRANSPORT_EVENTS.DISCONNECT, () => {});
+        this.socket.on(SOCKET_TRANSPORT_EVENTS.RECONNECT, () => {});
+        this.socket.on(SOCKET_TRANSPORT_EVENTS.CONNECT_ERROR, (error) => {
             console.error("Socket connect_error:", error?.message || error);
         });
         this.socket.on(this.iBoardId, (data) => {
@@ -40,7 +41,7 @@ export default class SocketManager {
             }
         });
 
-        this.socket.emit("reqJoinBoard", { iBoardId: this.iBoardId }, (data) => {
+        this.socket.emit(SOCKET_REQUEST_EVENTS.JOIN_BOARD, { iBoardId: this.iBoardId }, (data) => {
             if (data.error && data.error.code == 404) {
                 this.oScene.exitGame();
             } else {
@@ -66,64 +67,64 @@ export default class SocketManager {
     }
     onReceive(data) {
         switch (data.sEventName) {
-            case 'initializeGame':
+            case SOCKET_RESPONSE_EVENTS.INITIALIZE_GAME:
                 this.oScene.waitingForGameStart(data.oData);
                 break;
-            case 'resUserJoined':
+            case SOCKET_RESPONSE_EVENTS.USER_JOINED:
                 this.oScene.setUserJoined(data.oData);
                 break;
-            case 'resBoardState':
+            case SOCKET_RESPONSE_EVENTS.BOARD_STATE:
                 this.oScene.setBoardState(data.oData);
                 break;
-            case 'resCollectBootAmount':
+            case SOCKET_RESPONSE_EVENTS.COLLECT_BOOT_AMOUNT:
                 this.oScene.setCollectBootAmount(data.oData);
                 break;
-            case 'resCommunityCard':
+            case SOCKET_RESPONSE_EVENTS.COMMUNITY_CARD:
                 this.oScene.handleCommunityCard(data.oData);
                 break;
-            case 'resClearBettingLabels':
+            case SOCKET_RESPONSE_EVENTS.CLEAR_BETTING_LABELS:
                 this.oScene.handleClearBettingLabels();
                 break;
-            case 'resCardHand':
+            case SOCKET_RESPONSE_EVENTS.CARD_HAND:
                 this.oScene.setCardHand(data.oData);
                 break;
-            case 'resPlayerTurn':
+            case SOCKET_RESPONSE_EVENTS.PLAYER_TURN:
                 this.oScene.setPlayerTurn(data.oData);
                 break;
-            case 'resPlayerLeft':
+            case SOCKET_RESPONSE_EVENTS.PLAYER_LEFT:
                 this.oScene.setPlayerLeft(data.oData);
                 break;
-            case 'resTurnMissed':
+            case SOCKET_RESPONSE_EVENTS.TURN_MISSED:
                 this.oScene.resetTurnTimer();
                 break;
-            case 'resFoldPlayer':
+            case SOCKET_RESPONSE_EVENTS.FOLD_PLAYER:
                 this.oScene.setFoldPlayer(data.oData.iUserId, data.oData.oLeave.eBehaviour, data.oData.oLeave.sReason, data.oData.oLeave.bShowMessage);
                 break;
-            case 'resDeclareResult':
+            case SOCKET_RESPONSE_EVENTS.DECLARE_RESULT:
                 this.oScene.setDeclareResult(data.oData);
                 break;
-            case 'resKickOut':
+            case SOCKET_RESPONSE_EVENTS.KICK_OUT:
                 this.oScene.kickOut({ title: 'LEAVE TABLE', message: 'Oops! Not enough players joined.' });
                 break;
-            case 'resRefundOnLongWait':
+            case SOCKET_RESPONSE_EVENTS.REFUND_ON_LONG_WAIT:
                 this.oScene.setRefundOnLongWait(data.oData);
                 break;
-            case 'resCall':
-            case 'resCheck':
-            case 'resRaise':
-            case 'resStand':
+            case SOCKET_RESPONSE_EVENTS.CALL:
+            case SOCKET_RESPONSE_EVENTS.CHECK:
+            case SOCKET_RESPONSE_EVENTS.RAISE:
+            case SOCKET_RESPONSE_EVENTS.STAND:
                 this.oScene.handlePlayerBet(data.oData, data.sEventName);
                 break;
-            case 'resDoubledown':
+            case SOCKET_RESPONSE_EVENTS.DOUBLE_DOWN:
                 this.oScene.handleDoubleDown(data.oData, data.sEventName);
                 break;
-            case 'resReaction':
+            case SOCKET_RESPONSE_EVENTS.REACTION:
                 this.oScene.handleResReaction?.(data.oData);
                 break;
-            case 'resSideBets':
+            case SOCKET_RESPONSE_EVENTS.SIDE_BETS:
                 this.oScene.handleSideBetsState?.(data.oData);
                 break;
-            case 'disconnect':
+            case SOCKET_RESPONSE_EVENTS.DISCONNECT:
                 this.oScene.exitGame();
                 break;
             default:
@@ -136,20 +137,20 @@ export default class SocketManager {
             return;
         }
         switch (sEventName) {
-            case 'reqLeave':
+            case SOCKET_REQUEST_EVENTS.LEAVE:
                 this.oScene.prompt.showForSeconds(error.error);
                 break;
-            case 'reqCall':
-                this.oScene.handleActionError?.('reqCall', error.error);
+            case SOCKET_REQUEST_EVENTS.CALL:
+                this.oScene.handleActionError?.(SOCKET_REQUEST_EVENTS.CALL, error.error);
                 break;
-            case 'reqRaise':
-                this.oScene.handleActionError?.('reqRaise', error.error);
+            case SOCKET_REQUEST_EVENTS.RAISE:
+                this.oScene.handleActionError?.(SOCKET_REQUEST_EVENTS.RAISE, error.error);
                 break;
-            case 'reqDoubleDown':
-                this.oScene.handleActionError?.('reqDoubleDown', error.error);
+            case SOCKET_REQUEST_EVENTS.DOUBLE_DOWN:
+                this.oScene.handleActionError?.(SOCKET_REQUEST_EVENTS.DOUBLE_DOWN, error.error);
                 break;
-            case 'reqSideBets':
-                if (error?.error) this.oScene.handleActionError?.('reqSideBets', error.error);
+            case SOCKET_REQUEST_EVENTS.SIDE_BETS:
+                if (error?.error) this.oScene.handleActionError?.(SOCKET_REQUEST_EVENTS.SIDE_BETS, error.error);
                 break;
             default:
                 break;
@@ -157,7 +158,7 @@ export default class SocketManager {
     }
     reqPingCheck() {
         const startTime = Date.now();
-        this.socket.emit("ping", {}, () => {
+        this.socket.emit(SOCKET_TRANSPORT_EVENTS.PING, {}, () => {
             const endTime = Date.now();
             const pingTime = endTime - startTime;
             this.oScene.setPing(pingTime);

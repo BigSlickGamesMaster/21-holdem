@@ -35,6 +35,7 @@ import {
     isActiveHandResultToken,
     shouldShowNextRoundCountdown,
 } from '../scripts/handResultLifecycle';
+import { SOCKET_REQUEST_EVENTS, SOCKET_RESPONSE_EVENTS } from '../scripts/socketEvents';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -1240,7 +1241,7 @@ handleActionError(sEventName, sErrorMessage) {
         this.prompt.showForSeconds(sErrorMessage);
     }
 
-    if (sEventName === 'reqRaise') {
+    if (sEventName === SOCKET_REQUEST_EVENTS.RAISE) {
         this.restoreTurnUiAfterError(true);
         return;
     }
@@ -2113,7 +2114,7 @@ setButtons() {
         const sSerializedBets = JSON.stringify(bets);
         if (sSerializedBets === this.sLastSideBetsSent) return;
         this.sLastSideBetsSent = sSerializedBets;
-        this.oSocketManager.emit('reqSideBets', { bets });
+        this.oSocketManager.emit(SOCKET_REQUEST_EVENTS.SIDE_BETS, { bets });
     }
     handleSideBetsState(oData = {}) {
         if (typeof window !== 'undefined') {
@@ -2416,7 +2417,7 @@ setButtons() {
         this.oSoundManager.playSound(this.oSoundManager.doubleDown_sound, false);
         player?.playerProfile?.setAmountIn(oData.nChips);
         this.syncPlayerScoreDisplay(player, nUpdatedScore, oData.aCardHand || [oData.oCard].filter(Boolean));
-        if (oData.iUserId !== this.iUserId && sEventName === 'resDoubledown') {
+        if (oData.iUserId !== this.iUserId && sEventName === SOCKET_RESPONSE_EVENTS.DOUBLE_DOWN) {
             player?.playerProfile?.setBettingLabel('DD', oData.nLastBidChips);
         }
         if (potIncrease > 0) {
@@ -2451,10 +2452,10 @@ setButtons() {
         const player = this.players.get(oData.iUserId);
         if (!player) return;
         const potIncrease = Math.max(0, Number(oData.nTableChips || 0) - Number(this.oGameManager.nPotAmount || 0));
-        const isAllInAction = (sEventName === 'resRaise' || sEventName === 'resCall') && Number(oData.nChips) === 0;
+        const isAllInAction = (sEventName === SOCKET_RESPONSE_EVENTS.RAISE || sEventName === SOCKET_RESPONSE_EVENTS.CALL) && Number(oData.nChips) === 0;
         const aParticipantAdjustments = Array.isArray(oData.aParticipantAdjustments) ? oData.aParticipantAdjustments : [];
 
-        if (sEventName === 'resStand') {
+        if (sEventName === SOCKET_RESPONSE_EVENTS.STAND) {
             player.isDoubleDownLock = true;
             player.bPendingAllInStandChoice = false;
             player.nStandAtRound = Number(oData.nStandAtRound) || this.nTableRound || 1;
@@ -2472,7 +2473,7 @@ setButtons() {
                     playerProfile: player?.playerProfile,
                     effectName: 'allIn',
                 });
-            } else if (sEventName === 'resRaise') {
+            } else if (sEventName === SOCKET_RESPONSE_EVENTS.RAISE) {
                 this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
                 this.queuePotUpdate({
                     amount: potIncrease,
@@ -2480,7 +2481,7 @@ setButtons() {
                     playerProfile: player?.playerProfile,
                     effectName: 'bigBet',
                 });
-            } else if (sEventName === 'resCall') {
+            } else if (sEventName === SOCKET_RESPONSE_EVENTS.CALL) {
                 this.oSoundManager.playSound(this.oSoundManager.chipsIn_sound, false);
                 this.queuePotUpdate({
                     amount: potIncrease,
@@ -2489,21 +2490,21 @@ setButtons() {
                     effectName: 'smallBet',
                 });
             }
-        } else if (sEventName === 'resCheck') {
+        } else if (sEventName === SOCKET_RESPONSE_EVENTS.CHECK) {
             this.oSoundManager.playSound(this.oSoundManager.check_sound, false);
             this.updatePotAmount(oData.nTableChips);
         }
         this.oGameManager.nMinRaiseAmount = oData.nMinBet ?? this.oGameManager.nMinRaiseAmount;
-        if (potIncrease <= 0 && sEventName !== 'resCheck') {
+        if (potIncrease <= 0 && sEventName !== SOCKET_RESPONSE_EVENTS.CHECK) {
             this.updatePotAmount(oData.nTableChips);
         }
 
         if (this.isGuestTutorial && oData.iUserId === this.iUserId) {
             const sActionMap = {
-                resCall: 'call',
-                resStand: 'stand',
-                resCheck: 'check',
-                resRaise: 'raise',
+                [SOCKET_RESPONSE_EVENTS.CALL]: 'call',
+                [SOCKET_RESPONSE_EVENTS.STAND]: 'stand',
+                [SOCKET_RESPONSE_EVENTS.CHECK]: 'check',
+                [SOCKET_RESPONSE_EVENTS.RAISE]: 'raise',
             };
             const sTutorialAction = sActionMap[sEventName];
             if (sTutorialAction) {
@@ -2515,18 +2516,18 @@ setButtons() {
             }
         }
 
-        if (sEventName === 'resCall') {
+        if (sEventName === SOCKET_RESPONSE_EVENTS.CALL) {
             const callAmount = oData.nLastBidChips ?? oData.nCurrentChips ?? 0;
             if (oData.iUserId != this.iUserId) {
                 player?.playerProfile?.setBettingLabel(oData.bAllIn ? 'All In' : 'Call', callAmount);
             }
-        } else if (sEventName === 'resRaise') {
+        } else if (sEventName === SOCKET_RESPONSE_EVENTS.RAISE) {
             this.markRaiseOccurred();
             const raiseAmount = oData.nLastBidChips ?? oData.nCurrentChips ?? 0;
             if (oData.iUserId != this.iUserId) {
                 player?.playerProfile?.setBettingLabel('Raised', raiseAmount);
             }
-        } else if (sEventName === 'resStand') {
+        } else if (sEventName === SOCKET_RESPONSE_EVENTS.STAND) {
             const logs = this.oGameManager.recentLogs || [];
             const lastRaiseLog = logs.find(log =>
                 log.sAction === 'raise+stand' && log.iUserId === oData.iUserId
@@ -2547,7 +2548,7 @@ setButtons() {
                     player?.playerProfile?.setBettingLabel('Stand');
                 }
             }
-        } else if (sEventName === 'resCheck') {
+        } else if (sEventName === SOCKET_RESPONSE_EVENTS.CHECK) {
             this.markCheckCommitment(oData.iUserId);
             if (oData.iUserId != this.iUserId) {
                 player?.playerProfile?.setBettingLabel('Check');
