@@ -11,6 +11,7 @@ import { getApiRoot } from '../axios';
 import { SOCKET_REQUEST_EVENTS, SOCKET_TRANSPORT_EVENTS } from './socketEvents';
 import { routeSocketEventToScene } from './socketReceiveRouter';
 import { routeSocketCallbackToScene } from './socketCallbackRouter';
+import CleanupRegistry from './CleanupRegistry';
 
 export default class SocketManager {
     // scene: Level instance. options: { sAuthToken, iBoardId }.
@@ -19,6 +20,7 @@ export default class SocketManager {
         this.sRoot = getApiRoot();
         this.sAuthToken = sAuthToken;
         this.iBoardId = iBoardId;
+        this.cleanupRegistry = new CleanupRegistry();
         this.socket = io(this.sRoot, {
             transports: ["websocket", "polling"],
             forceNew: true,
@@ -52,6 +54,12 @@ export default class SocketManager {
         });
         this.reqPingCheck();
         this.pingInterval = setInterval(() => this.reqPingCheck(), 1000);
+        this.cleanupRegistry.addInterval(this.pingInterval);
+        this.cleanupRegistry.add(() => {
+            if (!this.socket) return;
+            this.socket.removeAllListeners();
+            this.socket.disconnect();
+        });
     }
     emit(sEventName, oData = {}, callback) {
         this.socket.emit(this.iBoardId, { sEventName, oData }, (error, response) => {
@@ -82,9 +90,7 @@ export default class SocketManager {
         });
     }
     destroy() {
-        this.pingInterval && clearInterval(this.pingInterval);
-        if (!this.socket) return;
-        this.socket.removeAllListeners();
-        this.socket.disconnect();
+        this.cleanupRegistry?.cleanup();
+        this.pingInterval = null;
     }
 }

@@ -138,3 +138,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/socketCallbackRouter.js src/scripts/socketCallbackRouter.test.js src/scripts/SocketManager.js` passed.
+
+### Step 9: Socket Lifecycle Cleanup
+
+- Goal: make socket-owned intervals/listeners deterministic on teardown.
+- Scope: use `CleanupRegistry` inside `SocketManager` for ping interval cleanup and socket disconnect/listener cleanup.
+- Non-goal: do not change socket connection options, ping frequency, join-board behavior, or event routing.
+- Expected benefit: fewer orphaned ping intervals and socket listeners after leaving/destroying a game scene.
+- Implemented:
+  - `SocketManager` now owns a `CleanupRegistry`.
+  - Ping interval cleanup and socket listener/disconnect teardown are registered centrally.
+  - Added `src/scripts/CleanupRegistry.test.js`.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/CleanupRegistry.js src/scripts/CleanupRegistry.test.js src/scripts/SocketManager.js` passed.
