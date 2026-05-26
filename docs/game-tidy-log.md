@@ -304,3 +304,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.
+
+### Step 21: Socket-To-State Reducer Mapping
+
+- Goal: let socket replay update normalized reducer state directly.
+- Scope: map selected socket response events to `clientGameState` reducer actions.
+- Non-goal: do not change live socket routing, Phaser rendering, or server payloads in this step.
+- Expected benefit: mini game-flow regressions can be tested from socket events to final state.
+- Implemented:
+  - Added `src/scripts/socketStateReducer.js`.
+  - Added `src/scripts/socketStateReducer.test.js`.
+  - Covered board state, user join, local hand, fold status, bet/pot updates, and a mini hand replay.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/socketStateReducer.js src/scripts/socketStateReducer.test.js` passed.
