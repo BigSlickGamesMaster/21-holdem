@@ -57,7 +57,9 @@ export const saveGameUiLayout = (layout = DEFAULT_GAME_UI_LAYOUT) => {
     if (typeof window !== 'undefined') {
         try {
             window.localStorage.setItem(GAME_UI_LAYOUT_STORAGE_KEY, JSON.stringify(sanitizedLayout));
-        } catch (_error) {}
+        } catch (_error) {
+            return sanitizedLayout;
+        }
     }
 
     return sanitizedLayout;
@@ -67,7 +69,9 @@ export const clearSavedGameUiLayout = () => {
     if (typeof window !== 'undefined') {
         try {
             window.localStorage.removeItem(GAME_UI_LAYOUT_STORAGE_KEY);
-        } catch (_error) {}
+        } catch (_error) {
+            return { ...DEFAULT_GAME_UI_LAYOUT };
+        }
     }
 
     return { ...DEFAULT_GAME_UI_LAYOUT };

@@ -2,7 +2,7 @@ export default class Animations {
     constructor(oScene) {
         this.oScene = oScene;
     }
-    move({ aGameObjects = [], startX = 0, startY = 0, targetX = 0, targetY = 0, duration = 0, delay = 0, ease = 'Linear', yoyo = false, repeat = 0, onComplete = () => { } }) {
+    move({ aGameObjects = [], targetX = 0, targetY = 0, duration = 0, delay = 0, ease = 'Linear', yoyo = false, repeat = 0, onComplete = () => { } }) {
         this.oScene.tweens.add({
             targets: aGameObjects,
             x: targetX,

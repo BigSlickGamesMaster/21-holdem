@@ -379,3 +379,19 @@ This file records each stabilization/refactor step so future work can see what c
   - `npx eslint src/scenes/Level.js` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/clientGameSelectors.test.js src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/gameActionState.test.js src/scripts/potState.test.js --watchAll=false` passed.
   - `npx eslint src/scenes/Level.js src/scripts/clientGameSelectors.js src/scripts/clientGameSelectors.test.js` passed.
+
+### Step 26: Game Lint Safety Gate
+
+- Goal: create a reliable lint command for the live game code.
+- Scope: align flat ESLint config with the React/Jest/Node environment, ignore the old source backup folder, and clean the remaining game-script lint blockers.
+- Non-goal: do not clean unrelated dashboard/login/admin UI lint debt in this step.
+- Expected benefit: game scene, script, and prefab changes can now be checked with one stable command.
+- Implemented:
+  - Updated `eslint.config.mjs` to ignore `src/_backup_25apr_profilefix/**`, detect React, and include browser/node/jest globals.
+  - Disabled React rules that do not fit this React 18 codebase: `react/react-in-jsx-scope` and `react/prop-types`.
+  - Added `npm run lint:game` for `src/scenes`, `src/scripts`, and `src/prefabs`.
+  - Removed unused animation/GameManager parameters and made game UI layout storage catches explicit.
+- Checks:
+  - `npm run lint:game` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameUiLayout.test.js src/scripts/clientGameSelectors.test.js src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/gameActionState.test.js src/scripts/potState.test.js --watchAll=false` passed.
+  - `npm run lint -- --max-warnings=0` still fails on unrelated active UI/admin unused-code debt; the game lint gate is clean.

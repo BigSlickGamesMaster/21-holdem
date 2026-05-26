@@ -125,7 +125,7 @@ export default class GameManager {
         let newGroupId = 0;
         Array.from(groupMap.entries())
             .sort(([a], [b]) => a - b)
-            .forEach(([_, group]) => {
+            .forEach(([, group]) => {
                 group.forEach(card => card.nGroupId = newGroupId);
                 groupedHand.push(group);
                 newGroupId++;
