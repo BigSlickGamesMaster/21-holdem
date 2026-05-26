@@ -19,6 +19,14 @@ import ChipAnimationController from '../scripts/ChipAnimationController';
 import CleanupRegistry from '../scripts/CleanupRegistry';
 import { GAME_BROWSER_EVENTS } from '../scripts/gameEvents';
 import { buildGameActionState } from '../scripts/gameActionState';
+import {
+    getIncomingHandIds,
+    getRenderedHandIds,
+    playerHandNeedsReset,
+    playerHasRenderedCard,
+    shouldRevealPlayerScore,
+    shouldShowPlayerScore,
+} from '../scripts/playerHandSync';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -227,38 +235,30 @@ layoutButtonIconText(btn) {
 }
 
 playerHasRenderedCard(player, sCardId) {
-    const aCards = player?.playerProfile?.container_cards?.list || [];
-    return aCards.some(card => String(card?._id) === String(sCardId));
+    return playerHasRenderedCard(player, sCardId);
 }
 
 getRenderedHandIds(player) {
-    return (player?.playerProfile?.container_cards?.list || [])
-        .map(card => String(card?._id || ''))
-        .filter(Boolean);
+    return getRenderedHandIds(player);
 }
 
 getIncomingHandIds(aCardHand = []) {
-    return (Array.isArray(aCardHand) ? aCardHand : [])
-        .map(card => String(card?._id || ''))
-        .filter(Boolean);
+    return getIncomingHandIds(aCardHand);
 }
 
 shouldShowPlayerScore(aCardHand = [], nCardScore = 0, playerProfile = null) {
-    const nParsedScore = Number(nCardScore);
-    if (!Number.isFinite(nParsedScore) || nParsedScore <= 0) return false;
-
-    if (this.getIncomingHandIds(aCardHand).length > 0) return true;
-
-    return (Number(playerProfile?.container_cards?.list?.length) || 0) > 0;
+    return shouldShowPlayerScore(aCardHand, nCardScore, playerProfile);
 }
 
 shouldRevealPlayerScore(player = null, aCardHand = [], nCardScore = 0, options = {}) {
     const { forceReveal = false } = options;
-    if (!player?.playerProfile) return false;
-    if (!this.shouldShowPlayerScore(aCardHand, nCardScore, player.playerProfile)) return false;
-    if (forceReveal) return true;
-
-    return player.iUserId === this.iUserId;
+    return shouldRevealPlayerScore({
+        player,
+        aCardHand,
+        nCardScore,
+        localUserId: this.iUserId,
+        forceReveal,
+    });
 }
 
 syncPlayerScoreDisplay(player = null, nCardScore = 0, aCardHand = [], options = {}) {
@@ -273,15 +273,7 @@ syncPlayerScoreDisplay(player = null, nCardScore = 0, aCardHand = [], options = 
 }
 
 playerHandNeedsReset(player, aCardHand = []) {
-    const renderedIds = this.getRenderedHandIds(player);
-    const incomingIds = this.getIncomingHandIds(aCardHand);
-
-    if (!renderedIds.length) return false;
-    if (!incomingIds.length) return true;
-    if (renderedIds.length > incomingIds.length) return true;
-
-    const incomingIdSet = new Set(incomingIds);
-    return renderedIds.some(id => !incomingIdSet.has(id));
+    return playerHandNeedsReset(player, aCardHand);
 }
 
 syncPlayerHandSnapshot(player, aCardHand = []) {

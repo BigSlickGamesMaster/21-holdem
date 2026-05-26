@@ -67,3 +67,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/gameActionState.js src/scripts/gameActionState.test.js` passed.
+
+### Step 4: Player Hand Sync Extraction
+
+- Goal: separate card/score reconciliation decisions from Phaser scene mutation.
+- Scope: extract helpers that decide rendered hand IDs, incoming hand IDs, score visibility, score reveal, and whether a rendered hand needs reset.
+- Non-goal: do not change card creation, animation, seat rendering, score graphics, or server payload handling in this step.
+- Expected benefit: stale/duplicate card bugs become easier to test without a running Phaser scene.
+- Implemented:
+  - Added `src/scripts/playerHandSync.js`.
+  - Added focused tests in `src/scripts/playerHandSync.test.js`.
+  - Kept existing `Level.js` method names as thin wrappers so call sites stay stable.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/playerHandSync.js src/scripts/playerHandSync.test.js` passed.
