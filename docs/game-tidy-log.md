@@ -318,3 +318,16 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/socketStateReducer.test.js src/scripts/clientGameState.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/socketStateReducer.js src/scripts/socketStateReducer.test.js` passed.
+
+### Step 22: Live Socket-To-State Integration
+
+- Goal: feed live incoming socket events into normalized client state before existing Phaser handlers run.
+- Scope: add a scene hook for socket events and call it from `SocketManager.onReceive()`.
+- Non-goal: do not remove existing scene mutations or make rendering depend on reducer state in this step.
+- Expected benefit: runtime state mirrors replay-tested socket transitions, creating the bridge for later reducer-driven rendering.
+- Implemented:
+  - Added `Level.applySocketEventToClientState()`.
+  - `SocketManager.onReceive()` now calls the state hook before routing to existing scene handlers.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/socketStateReducer.test.js src/scripts/socketReceiveRouter.test.js src/scripts/clientGameState.test.js src/scripts/socketEvents.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/SocketManager.js src/scripts/socketStateReducer.js src/scripts/clientGameState.js` passed.

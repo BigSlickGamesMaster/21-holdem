@@ -48,6 +48,7 @@ import {
     clientGameStateReducer,
     createInitialClientGameState,
 } from '../scripts/clientGameState';
+import { reduceSocketEventToClientState } from '../scripts/socketStateReducer';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -2443,6 +2444,11 @@ setButtons() {
     }
     updatePotAmount(nTableChips) {
         this.commitPotAmount(nTableChips);
+    }
+    applySocketEventToClientState(data) {
+        this.oClientGameState = reduceSocketEventToClientState(this.oClientGameState, data, {
+            localUserId: this.iUserId,
+        });
     }
     handleDoubleDown(oData, sEventName) {
         const player = this.players.get(oData.iUserId);

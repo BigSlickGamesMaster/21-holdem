@@ -76,6 +76,7 @@ export default class SocketManager {
         this.oScene.setGameData(callback);
     }
     onReceive(data) {
+        this.oScene.applySocketEventToClientState?.(data);
         routeSocketEventToScene(this.oScene, data);
     }
     onCallBackReceive(sEventName, response, error) {
