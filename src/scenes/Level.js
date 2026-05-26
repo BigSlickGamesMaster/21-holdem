@@ -2677,6 +2677,10 @@ setButtons() {
         const iUserId = participantData?.iUserId;
         if (!iUserId || !this.players.has(iUserId)) return;
 
+        this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+            type: CLIENT_GAME_STATE_ACTIONS.APPLY_PARTICIPANT_PATCH,
+            payload: participantData,
+        });
         const player = this.players.get(iUserId);
         Object.assign(player, participantData);
         player?.playerProfile?.setAmountIn(participantData?.nChips);
@@ -2702,6 +2706,10 @@ setButtons() {
         await this.setProfiles(iUserId);
     };
     async setUserJoined(oData) {
+        this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+            type: CLIENT_GAME_STATE_ACTIONS.APPLY_PARTICIPANT_PATCH,
+            payload: oData,
+        });
         if (!this.players.has(oData.iUserId)) {
             await this.mapPlayerData(oData.iUserId, { ...oData, playerProfile: this.aPlayerProfiles[oData.nSeat] });
         }

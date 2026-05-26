@@ -3,6 +3,7 @@ import { normalizeParticipants } from './participantState';
 
 export const CLIENT_GAME_STATE_ACTIONS = Object.freeze({
     APPLY_BOARD_SNAPSHOT: 'applyBoardSnapshot',
+    APPLY_PARTICIPANT_PATCH: 'applyParticipantPatch',
 });
 
 export function createInitialClientGameState() {
@@ -59,10 +60,37 @@ export function applyBoardSnapshotToClientState(state = createInitialClientGameS
     };
 }
 
+export function applyParticipantPatchToClientState(state = createInitialClientGameState(), participantPatch = {}) {
+    if (!participantPatch || participantPatch.iUserId === undefined || participantPatch.iUserId === null) {
+        return state;
+    }
+
+    const participantId = String(participantPatch.iUserId);
+    const previousParticipant = state.participantsById?.[participantId] || {};
+    const participantsById = {
+        ...(state.participantsById || {}),
+        [participantId]: {
+            ...previousParticipant,
+            ...participantPatch,
+        },
+    };
+    const participantOrder = Array.isArray(state.participantOrder) && state.participantOrder.includes(participantId)
+        ? state.participantOrder
+        : [...(state.participantOrder || []), participantId];
+
+    return {
+        ...state,
+        participantsById,
+        participantOrder,
+    };
+}
+
 export function clientGameStateReducer(state = createInitialClientGameState(), action = {}) {
     switch (action.type) {
         case CLIENT_GAME_STATE_ACTIONS.APPLY_BOARD_SNAPSHOT:
             return applyBoardSnapshotToClientState(state, action.payload);
+        case CLIENT_GAME_STATE_ACTIONS.APPLY_PARTICIPANT_PATCH:
+            return applyParticipantPatchToClientState(state, action.payload);
         default:
             return state;
     }

@@ -1,6 +1,7 @@
 /* global describe, test, expect */
 import {
     applyBoardSnapshotToClientState,
+    applyParticipantPatchToClientState,
     clientGameStateReducer,
     CLIENT_GAME_STATE_ACTIONS,
     createInitialClientGameState,
@@ -64,5 +65,49 @@ describe('clientGameState', () => {
         expect(nextState.board.nTableChips).toBe(1000);
         expect(nextState.participantOrder).toEqual(['u1']);
         expect(clientGameStateReducer(nextState, { type: 'unknown' })).toBe(nextState);
+    });
+
+    test('applies participant patch by merging existing participant data', () => {
+        const state = applyBoardSnapshotToClientState(createInitialClientGameState(), {
+            aParticipant: [{ iUserId: 'u1', nChips: 100, eState: 'playing' }],
+        });
+        const nextState = applyParticipantPatchToClientState(state, {
+            iUserId: 'u1',
+            nChips: 50,
+        });
+
+        expect(nextState.participantsById.u1).toEqual({
+            iUserId: 'u1',
+            nChips: 50,
+            eState: 'playing',
+        });
+        expect(nextState.participantOrder).toEqual(['u1']);
+    });
+
+    test('adds participant patch for a new participant id', () => {
+        const state = applyParticipantPatchToClientState(createInitialClientGameState(), {
+            iUserId: 2,
+            nSeat: 1,
+        });
+
+        expect(state.participantsById).toEqual({
+            2: { iUserId: 2, nSeat: 1 },
+        });
+        expect(state.participantOrder).toEqual(['2']);
+    });
+
+    test('ignores participant patch without user id', () => {
+        const state = createInitialClientGameState();
+
+        expect(applyParticipantPatchToClientState(state, { nChips: 100 })).toBe(state);
+    });
+
+    test('reducer applies participant patch action', () => {
+        const nextState = clientGameStateReducer(createInitialClientGameState(), {
+            type: CLIENT_GAME_STATE_ACTIONS.APPLY_PARTICIPANT_PATCH,
+            payload: { iUserId: 'u1', nChips: 100 },
+        });
+
+        expect(nextState.participantsById.u1).toEqual({ iUserId: 'u1', nChips: 100 });
     });
 });

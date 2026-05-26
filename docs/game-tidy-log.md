@@ -234,3 +234,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.
+
+### Step 16: Participant Patch Reducer
+
+- Goal: let the client reducer track incremental participant updates after the initial board snapshot.
+- Scope: add reducer support for one participant patch and wire join/participant-adjustment paths into it.
+- Non-goal: do not render from reducer state or remove existing Phaser player mutation in this step.
+- Expected benefit: socket replay can eventually assert participant chip/state changes without a Phaser scene.
+- Implemented:
+  - Added `APPLY_PARTICIPANT_PATCH` support in `src/scripts/clientGameState.js`.
+  - Added reducer tests for participant patch merge/add/ignore behavior.
+  - Updated `Level.setUserJoined()` and `Level.applyParticipantAdjustment()` to update `oClientGameState` alongside existing scene mutation.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.
