@@ -110,3 +110,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/socketEvents.js src/scripts/socketEvents.test.js src/scripts/emitter.js src/scripts/SocketManager.js` passed.
+
+### Step 7: Socket Receive Router Extraction
+
+- Goal: make server event routing testable without a live socket or Phaser scene.
+- Scope: extract `SocketManager.onReceive()` routing into a helper that maps response event names to scene methods.
+- Non-goal: do not change event names, payload forwarding, scene method names, or socket connection behavior in this step.
+- Expected benefit: replay tests can later feed server events through one routing surface.
+- Implemented:
+  - Added `src/scripts/socketReceiveRouter.js`.
+  - Added `src/scripts/socketReceiveRouter.test.js`.
+  - Updated `SocketManager.onReceive()` to delegate to the router while keeping the public method.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/socketReceiveRouter.js src/scripts/socketReceiveRouter.test.js src/scripts/SocketManager.js` passed.

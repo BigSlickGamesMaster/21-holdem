@@ -8,7 +8,8 @@
 
 import io from 'socket.io-client';
 import { getApiRoot } from '../axios';
-import { SOCKET_REQUEST_EVENTS, SOCKET_RESPONSE_EVENTS, SOCKET_TRANSPORT_EVENTS } from './socketEvents';
+import { SOCKET_REQUEST_EVENTS, SOCKET_TRANSPORT_EVENTS } from './socketEvents';
+import { routeSocketEventToScene } from './socketReceiveRouter';
 
 export default class SocketManager {
     // scene: Level instance. options: { sAuthToken, iBoardId }.
@@ -66,70 +67,7 @@ export default class SocketManager {
         this.oScene.setGameData(callback);
     }
     onReceive(data) {
-        switch (data.sEventName) {
-            case SOCKET_RESPONSE_EVENTS.INITIALIZE_GAME:
-                this.oScene.waitingForGameStart(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.USER_JOINED:
-                this.oScene.setUserJoined(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.BOARD_STATE:
-                this.oScene.setBoardState(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.COLLECT_BOOT_AMOUNT:
-                this.oScene.setCollectBootAmount(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.COMMUNITY_CARD:
-                this.oScene.handleCommunityCard(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.CLEAR_BETTING_LABELS:
-                this.oScene.handleClearBettingLabels();
-                break;
-            case SOCKET_RESPONSE_EVENTS.CARD_HAND:
-                this.oScene.setCardHand(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.PLAYER_TURN:
-                this.oScene.setPlayerTurn(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.PLAYER_LEFT:
-                this.oScene.setPlayerLeft(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.TURN_MISSED:
-                this.oScene.resetTurnTimer();
-                break;
-            case SOCKET_RESPONSE_EVENTS.FOLD_PLAYER:
-                this.oScene.setFoldPlayer(data.oData.iUserId, data.oData.oLeave.eBehaviour, data.oData.oLeave.sReason, data.oData.oLeave.bShowMessage);
-                break;
-            case SOCKET_RESPONSE_EVENTS.DECLARE_RESULT:
-                this.oScene.setDeclareResult(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.KICK_OUT:
-                this.oScene.kickOut({ title: 'LEAVE TABLE', message: 'Oops! Not enough players joined.' });
-                break;
-            case SOCKET_RESPONSE_EVENTS.REFUND_ON_LONG_WAIT:
-                this.oScene.setRefundOnLongWait(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.CALL:
-            case SOCKET_RESPONSE_EVENTS.CHECK:
-            case SOCKET_RESPONSE_EVENTS.RAISE:
-            case SOCKET_RESPONSE_EVENTS.STAND:
-                this.oScene.handlePlayerBet(data.oData, data.sEventName);
-                break;
-            case SOCKET_RESPONSE_EVENTS.DOUBLE_DOWN:
-                this.oScene.handleDoubleDown(data.oData, data.sEventName);
-                break;
-            case SOCKET_RESPONSE_EVENTS.REACTION:
-                this.oScene.handleResReaction?.(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.SIDE_BETS:
-                this.oScene.handleSideBetsState?.(data.oData);
-                break;
-            case SOCKET_RESPONSE_EVENTS.DISCONNECT:
-                this.oScene.exitGame();
-                break;
-            default:
-                break;
-        }
+        routeSocketEventToScene(this.oScene, data);
     }
     onCallBackReceive(sEventName, response, error) {
         if (response && response.message) {
