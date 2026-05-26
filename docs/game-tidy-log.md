@@ -220,3 +220,17 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `CI=true npx react-scripts test src/scripts/participantState.test.js src/scripts/boardSnapshot.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
   - `npx eslint src/scripts/participantState.js src/scripts/participantState.test.js` passed.
+
+### Step 15: Client Game State Reducer Foundation
+
+- Goal: introduce a normalized client state object that can receive board snapshots.
+- Scope: add a pure reducer for board fields and participants, then store the latest reducer state in `Level.js`.
+- Non-goal: do not make Phaser or React render from this state yet.
+- Expected benefit: future socket replay tests can assert state transitions before UI mutation.
+- Implemented:
+  - Added `src/scripts/clientGameState.js`.
+  - Added `src/scripts/clientGameState.test.js`.
+  - `Level.js` now initializes `oClientGameState` and applies board snapshots in `setGameData()` and `setBoardState()`.
+- Checks:
+  - `CI=true npx react-scripts test src/scripts/clientGameState.test.js src/scripts/boardSnapshot.test.js src/scripts/participantState.test.js src/scripts/socketReplay.test.js src/scripts/potState.test.js src/scripts/CleanupRegistry.test.js src/scripts/socketCallbackRouter.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketEvents.test.js src/scripts/handResultLifecycle.test.js src/scripts/playerHandSync.test.js src/scripts/gameActionState.test.js --watchAll=false` passed.
+  - `npx eslint src/scripts/clientGameState.js src/scripts/clientGameState.test.js` passed.

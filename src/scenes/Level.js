@@ -43,6 +43,11 @@ import {
     shouldCancelResultForBoardState,
     shouldHideSideBetWindowForBoardState,
 } from '../scripts/boardSnapshot';
+import {
+    CLIENT_GAME_STATE_ACTIONS,
+    clientGameStateReducer,
+    createInitialClientGameState,
+} from '../scripts/clientGameState';
 import { getApiRoot } from '../axios';
 import { GAME_UI_LAYOUT_EVENT, readSavedGameUiLayout, sanitizeGameUiLayout } from '../scripts/gameUiLayout';
 import {
@@ -2030,6 +2035,7 @@ setButtons() {
         this.iSmallBlindId = '';
         this.iLastTurnId = '';
         this.oBoard = {};
+        this.oClientGameState = createInitialClientGameState();
         this.iGameId = '';
         this.isMyTurn = false;
         this.isFinishGame = false;
@@ -2370,6 +2376,13 @@ setButtons() {
                 oSetting: this.oGameManager?.oSetting,
                 oGameInfo: this.oGameManager?.oGameInfo,
                 oTutorial: this.oTutorialState,
+            });
+            this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+                type: CLIENT_GAME_STATE_ACTIONS.APPLY_BOARD_SNAPSHOT,
+                payload: {
+                    ...boardSnapshot,
+                    aParticipant: boardSnapshot.aParticipant,
+                },
             });
             if (shouldCancelResultForBoardState(boardSnapshot.eState)) this.cancelHandResultCleanup();
             this.clearStagedBetPiles();
@@ -2737,6 +2750,13 @@ setButtons() {
                 oSetting: this.oGameManager?.oSetting,
                 oGameInfo: this.oGameManager?.oGameInfo,
                 oTutorial: this.oTutorialState,
+            });
+            this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+                type: CLIENT_GAME_STATE_ACTIONS.APPLY_BOARD_SNAPSHOT,
+                payload: {
+                    ...boardSnapshot,
+                    aParticipant: boardSnapshot.aParticipant,
+                },
             });
             if (shouldCancelResultForBoardState(boardSnapshot.eState)) this.cancelHandResultCleanup();
             this.clearStagedBetPiles();
