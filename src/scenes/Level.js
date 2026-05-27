@@ -647,6 +647,7 @@ bindGameActionOverlayEvents() {
                 this.oSocketManager.emit(emitter.reqDoubleDown);
                 break;
             case 'stand':
+                this.lockLocalConsoleHand();
                 if (this.oButtons?.btn_stand?.bCallStandMode) {
                     this.oSocketManager.emit(emitter.reqCall, { bTakeCard: false });
                 } else {
@@ -680,6 +681,7 @@ bindGameActionOverlayEvents() {
                 this.confirmTakeCardRaiseRequest();
                 break;
             case 'standRaise':
+                this.lockLocalConsoleHand();
                 this.submitRaiseRequest({ bTakeCard: false });
                 break;
             case 'cancelRaiseConfirm':
@@ -1325,6 +1327,8 @@ restoreTurnUiAfterError(preferRaiseBuilder = false) {
 }
 
 handleActionError(sEventName, sErrorMessage) {
+    this.oLocalConsoleHandLock = null;
+
     if (sErrorMessage) {
         this.prompt.showForSeconds(sErrorMessage);
     }
@@ -1364,6 +1368,7 @@ submitRaiseRequest(extraData = {}) {
     const bAllIn = this.oGameManager?.tempRaiseIsAllIn === true;
     const { toCallAmount, myChips } = this.getRaiseContext();
     this.setConsolePrompt(bAllIn ? 'Submitting all in' : 'Submitting raise');
+    if (extraData?.bTakeCard === false) this.lockLocalConsoleHand();
 
     if (bAllIn && toCallAmount >= myChips) {
         this.oSocketManager.emit(emitter.reqCall, {
@@ -2565,7 +2570,15 @@ setButtons() {
         const effectName = getBetPotEffectName({ sEventName, nChips: oData.nChips, potIncrease });
         const aParticipantAdjustments = Array.isArray(oData.aParticipantAdjustments) ? oData.aParticipantAdjustments : [];
 
-        if (sEventName === SOCKET_RESPONSE_EVENTS.STAND) {
+        const bStandWithoutCard = (
+            sEventName === SOCKET_RESPONSE_EVENTS.STAND
+            || (
+                (sEventName === SOCKET_RESPONSE_EVENTS.CALL || sEventName === SOCKET_RESPONSE_EVENTS.RAISE)
+                && oData?.bTakeCard === false
+            )
+        );
+
+        if (bStandWithoutCard) {
             if (player.iUserId === this.iUserId) this.lockLocalConsoleHand();
             player.isDoubleDownLock = true;
             player.bPendingAllInStandChoice = false;

@@ -580,3 +580,19 @@ This file records each stabilization/refactor step so future work can see what c
   - `npm run lint:game` passed.
   - `git diff --check -- src/views/game/index.jsx src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 38: Lock Console On Stand Intent
+
+- Goal: ensure the local player never receives extra console cards after choosing any stand action.
+- Scope: local action command handling and bet response handling in `Level`.
+- Non-goal: do not change server rules, pot updates, bankroll updates, or table community-card display.
+- Expected benefit: `Stand`, `Call/Stand`, and `Raise+Stand` all freeze the local console hand before later socket card updates can repaint it.
+- Implemented:
+  - Locked the local console hand immediately when the stand command is sent.
+  - Locked the local console hand before stand-raise requests with `bTakeCard: false`.
+  - Treated `CALL`/`RAISE` responses with `bTakeCard: false` as stand confirmations.
+  - Cleared the local console lock if the action request returns an error.
+- Checks:
+  - `npm run lint:game` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
+  - `git diff --check -- src/scenes/Level.js docs/game-tidy-log.md` passed.
