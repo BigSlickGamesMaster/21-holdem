@@ -740,3 +740,18 @@ This file records each stabilization/refactor step so future work can see what c
   - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
   - `git diff --check -- src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 48: Increase Mobile Gameplay UI Scale
+
+- Goal: make the mobile portrait UI readable and playable by increasing the overlay controls by about 20%.
+- Scope: mobile game SCSS for the bottom console, action buttons, side bets, hole cards, and top utility controls.
+- Non-goal: do not change gameplay logic, card state, server events, desktop sizing, or the Phaser playfield.
+- Expected benefit: larger touch targets and more readable bankrolls, side bets, hole cards, action buttons, and top icons on mobile.
+- Implemented:
+  - Added a final mobile override block so it wins over earlier mobile sizing rules.
+  - Increased the bottom console height from 75px to 90px on mobile and recalculated button/card positions from that height.
+  - Increased action button min-height, padding, and font size by roughly 20%.
+  - Increased hole cards, side-bet controls, bankroll text, avatar, and top utility controls by roughly 20%.
+- Checks:
+  - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.

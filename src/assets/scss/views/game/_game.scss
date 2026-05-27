@@ -2945,6 +2945,166 @@ body,
     }
 }
 
+@media (max-width: 767px) {
+    .game-action-overlay {
+        --game-mobile-console-height: 90px;
+        --game-action-buttons-bottom: calc(var(--game-mobile-console-height) + env(safe-area-inset-bottom, 0px) + 8px - var(--game-action-buttons-shift-y));
+        --game-hole-cards-bottom: calc(var(--game-action-buttons-bottom) + 151px);
+    }
+
+    .game-action-overlay__tray,
+    .game-action-overlay__console-shell {
+        height: var(--game-mobile-console-height);
+        min-height: var(--game-mobile-console-height);
+    }
+
+    .game-action-overlay__console-shell {
+        padding: 10px 12px;
+    }
+
+    .game-action-overlay__console-col--left {
+        grid-template-columns: 60px minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .game-action-overlay__console-avatar {
+        width: 60px;
+        height: 60px;
+
+        span {
+            font-size: 25px;
+        }
+    }
+
+    .game-action-overlay__console-bankroll,
+    .game-action-overlay__table-bankroll {
+        span {
+            font-size: 11px;
+        }
+
+        strong {
+            font-size: 20px;
+        }
+    }
+
+    .game-action-overlay__console-side-bets {
+        .game-action-overlay__side-bets {
+            width: min(100%, 202px);
+        }
+
+        .game-action-overlay__side-bets-rows {
+            gap: 7px;
+            min-height: 50px;
+        }
+
+        .game-action-overlay__side-bet-option {
+            width: 50px;
+            height: 50px;
+        }
+
+        .game-action-overlay__side-bets-heading {
+            font-size: 14px;
+        }
+    }
+
+    .game-action-overlay__console-side-bets-footer {
+        gap: 8px;
+        font-size: 11px;
+    }
+
+    .game-action-overlay__side-bet-clear {
+        min-height: 26px;
+        padding: 4px 12px 3px;
+        font-size: 12px;
+    }
+
+    .game-action-overlay__side-bet-icon {
+        width: 48px;
+    }
+
+    .game-action-overlay__side-bet-badge {
+        min-width: 46px;
+        min-height: 19px;
+
+        img {
+            width: 12px;
+            height: 12px;
+        }
+
+        span {
+            font-size: 11px;
+        }
+    }
+
+    .game-action-overlay__hole-card-row {
+        gap: 10px;
+    }
+
+    .game-action-overlay__hole-card {
+        width: clamp(60px, 13.8vw, 82px);
+        height: clamp(84px, 19.2vw, 113px);
+
+        strong {
+            font-size: clamp(34px, 8.2vw, 48px);
+        }
+    }
+
+    .game-action-overlay__hole-card-total {
+        min-width: 50px;
+        height: 50px;
+        padding: 0 12px;
+        font-size: 25px;
+    }
+
+    .game-action-overlay__rows {
+        gap: 12px;
+    }
+
+    .game-action-overlay__row {
+        gap: 12px;
+
+        .guest-entry-btn,
+        .about-entry-btn {
+            min-height: 48px;
+            padding: 13px 24px 11px;
+            font-size: 24px;
+        }
+    }
+
+    .game-action-overlay__row--preset {
+        gap: 10px;
+
+        .guest-entry-btn,
+        .about-entry-btn {
+            min-height: 42px;
+            padding: 11px 10px 9px;
+            font-size: 19px;
+        }
+    }
+
+    .game-stage-utility {
+        min-height: calc((var(--game-top-banner-height, 54px) * 1.2) + env(safe-area-inset-top, 0px));
+        gap: 10px;
+    }
+
+    .game-stage-utility__icon-btn,
+    .sound-toggle {
+        width: 41px;
+        height: 41px;
+    }
+
+    .game-stage-utility__icon-btn img {
+        width: 26px;
+        height: 26px;
+    }
+
+    .game-stage-utility__exit-btn {
+        height: 41px;
+        padding: 0 14px;
+        font-size: 13px;
+    }
+}
+
 // -----------------------------------------------
 // Keyframes
 // -----------------------------------------------
