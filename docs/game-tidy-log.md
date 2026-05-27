@@ -612,3 +612,18 @@ This file records each stabilization/refactor step so future work can see what c
   - `npm run lint:game` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
   - `git diff --check -- src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss src/prefabs/Card.js docs/game-tidy-log.md` passed.
+
+### Step 40: Remove Action Button Glass Treatment
+
+- Goal: remove the glass highlight treatment from the gameplay action buttons without redesigning their layout.
+- Scope: React action button CSS in the game overlay.
+- Non-goal: do not change button commands, row layout, sizing, or console structure.
+- Expected benefit: action buttons keep their rounded form and color variants but no longer show the white glass band/inset shine.
+- Implemented:
+  - Removed layered white gloss gradients from action buttons.
+  - Removed the pseudo-element highlight and inner glass border.
+  - Replaced inset glass shadows with simpler outer depth shadows.
+- Checks:
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `npm run lint:game` passed.
+  - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
