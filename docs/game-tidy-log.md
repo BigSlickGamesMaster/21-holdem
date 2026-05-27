@@ -755,3 +755,23 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 49: Banner Blinds Bankroll And Button Size Adjustment
+
+- Goal: lower hole-card layering for modals, reduce action button size, fix zero bankroll fallback, and show table blinds in the top banner.
+- Scope: React game overlay, overlay state bridge, Level overlay payload, and game SCSS.
+- Non-goal: do not change gameplay rules, card dealing, side-bet rules, or modal behavior.
+- Expected benefit: modal windows render above hole cards, mobile action buttons are smaller after the previous scale increase, the player bankroll avoids stale zero values when live/profile values exist, and the top banner displays blinds such as `50/100`.
+- Implemented:
+  - Lowered `.game-action-overlay__hole-card-display` from z-index `6` to `2`.
+  - Reduced the final mobile action button override by about 20%.
+  - Added `smallBlind` and `bigBlind` to the overlay state.
+  - Emitted blind values from `Level.syncGameActionOverlay()`.
+  - Added a left-aligned top-banner blind pill.
+  - Changed bankroll selection to prefer positive override/profile/live values before falling back to zero.
+- Checks:
+  - `npx eslint src/views/game/GameActionOverlay.jsx src/scripts/gameActionOverlayBridge.js --max-warnings=0` passed.
+  - `npm run lint:game` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
+  - `git diff --check -- src/views/game/GameActionOverlay.jsx src/scripts/gameActionOverlayBridge.js src/scenes/Level.js src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.

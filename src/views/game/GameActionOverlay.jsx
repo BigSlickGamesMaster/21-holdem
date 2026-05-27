@@ -68,6 +68,21 @@ function formatStorePrice(nPrice, sCurrency = 'USD') {
     }
 }
 
+function getPreferredBankrollValue(...values) {
+    const numericValues = values
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value));
+    const positiveValue = numericValues.find((value) => value > 0);
+    if (Number.isFinite(positiveValue)) return positiveValue;
+    return numericValues.length ? numericValues[0] : null;
+}
+
+function formatBlindAmount(value) {
+    const nValue = Number(value);
+    if (!Number.isFinite(nValue) || nValue <= 0) return '';
+    return Number.isInteger(nValue) ? String(nValue) : String(Number(nValue.toFixed(2)));
+}
+
 function SoundToggle() {
     const [muted, setMuted] = useState(false);
 
@@ -777,12 +792,13 @@ function GameActionOverlay({ isPaused = false }) {
     const nLiveTableBankroll = Number(overlayState.tableBankroll);
     const nProfileBankroll = Number(profileData?.nChips);
     const nOverrideBankroll = Number(bankrollOverride);
-    const nConsoleBankroll = Number.isFinite(nOverrideBankroll)
-        ? nOverrideBankroll
-        : (Number.isFinite(nProfileBankroll) && nProfileBankroll > 0)
-            ? nProfileBankroll
-            : nLiveTableBankroll;
+    const nConsoleBankroll = getPreferredBankrollValue(nOverrideBankroll, nProfileBankroll, nLiveTableBankroll);
     const bankrollAmount = Number.isFinite(Number(nConsoleBankroll)) ? _.formatCurrency(Number(nConsoleBankroll)) : '--';
+    const nBigBlind = Number(overlayState.bigBlind);
+    const nSmallBlind = Number(overlayState.smallBlind);
+    const sBlindLabel = Number.isFinite(nBigBlind) && nBigBlind > 0
+        ? `${formatBlindAmount(Number.isFinite(nSmallBlind) && nSmallBlind > 0 ? nSmallBlind : nBigBlind / 2)}/${formatBlindAmount(nBigBlind)}`
+        : '';
     const sConsoleName = profileData?.sUserName || 'Player';
     const sConsoleAvatar = getAvatarImageSrc(profileData?.sAvatar, sConsoleName);
     const isVisible = Boolean(overlayState.visible);
@@ -792,6 +808,12 @@ function GameActionOverlay({ isPaused = false }) {
     return (
         <>
             <div className='game-stage-utility' aria-label='Game utility controls'>
+                {sBlindLabel ? (
+                    <div className='game-stage-utility__blind' aria-label={`Table blinds ${sBlindLabel}`}>
+                        <span>Blinds</span>
+                        <strong>{sBlindLabel}</strong>
+                    </div>
+                ) : null}
                 <button
                     type='button'
                     className='game-stage-utility__icon-btn'

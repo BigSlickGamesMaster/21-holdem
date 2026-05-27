@@ -575,6 +575,8 @@ createGameActionOverlayRows(idPrefix, buttonKeys = [], buttonsPerRow = 2, classN
         const tableBankroll = Number.isFinite(Number(this.nOverlayTableBankroll))
             ? Number(this.nOverlayTableBankroll)
             : Number(this.oGameManager?.nMyPlayerChips);
+        const nSmallBlind = Number(this.oGameManager?.oGameInfo?.nSmallBlindAmount);
+        const nBigBlind = Number(this.oGameManager?.oGameInfo?.nBigBlindAmount);
         const shouldShowTray = Boolean(this.isOverlayReady && (aVisibleRows.length > 0 || Number.isFinite(tableBankroll)));
 
         emitGameActionOverlayState({
@@ -587,6 +589,8 @@ createGameActionOverlayRows(idPrefix, buttonKeys = [], buttonsPerRow = 2, classN
                     : ''),
             rows: aVisibleRows,
             tableBankroll: Number.isFinite(tableBankroll) ? tableBankroll : null,
+            smallBlind: Number.isFinite(nSmallBlind) && nSmallBlind > 0 ? nSmallBlind : null,
+            bigBlind: Number.isFinite(nBigBlind) && nBigBlind > 0 ? nBigBlind : null,
         });
     }
 
