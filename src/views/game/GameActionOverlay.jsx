@@ -15,6 +15,11 @@ import { chips1, chips2, chips3, chips4, chips5 } from '../../assets/images/shop
 import twentyOneIcon from '../../assets/images/icons/new21.png';
 import flushIcon from '../../assets/images/icons/newflush.png';
 import straightIcon from '../../assets/images/icons/newstraight.png';
+import clubImage from '../../assets/images/card/club.png';
+import diamondImage from '../../assets/images/card/diamond.png';
+import heartImage from '../../assets/images/card/heart.png';
+import spadeImage from '../../assets/images/card/spades.png';
+import cardFrontImage from '../../assets/images/card/card_front.png';
 import {
     createHiddenGameActionOverlayState,
     emitGameActionOverlayCommand,
@@ -227,6 +232,60 @@ SideBetsModule.defaultProps = {
     showHeading: false,
     statuses: {},
     unitAmount: SIDE_BET_STEP,
+};
+
+function getHoleCardLabel(card) {
+    const nLabel = Number(card?.nLabel);
+    if (nLabel === 1) return 'A';
+    if (nLabel === 11) return 'J';
+    if (nLabel === 12) return 'Q';
+    if (nLabel === 13) return 'K';
+    return String(card?.nLabel || '');
+}
+
+function getHoleCardSuit(card) {
+    const sSuitKey = String(card?.eSuit || '').toLowerCase()[0];
+    return {
+        c: { image: clubImage, name: 'club', red: false },
+        d: { image: diamondImage, name: 'diamond', red: true },
+        h: { image: heartImage, name: 'heart', red: true },
+        s: { image: spadeImage, name: 'spade', red: false },
+    }[sSuitKey] || { image: spadeImage, name: 'spade', red: false };
+}
+
+function HoleCardDisplay({ cards, score }) {
+    const visibleCards = cards.slice(0, 2);
+    if (!visibleCards.length) return null;
+
+    return (
+        <div className='game-action-overlay__hole-card-display' aria-label='Your hole cards'>
+            <div className='game-action-overlay__hole-card-row'>
+                {visibleCards.map((card, index) => {
+                    const suit = getHoleCardSuit(card);
+                    const label = getHoleCardLabel(card);
+                    const key = card?._id || `${card?.eSuit || 'card'}-${card?.nLabel || index}-${index}`;
+                    return (
+                        <span className={`game-action-overlay__hole-card${suit.red ? ' is-red' : ''}`} key={key}>
+                            <img className='game-action-overlay__hole-card-face' src={cardFrontImage} alt='' draggable='false' />
+                            <img className='game-action-overlay__hole-card-suit' src={suit.image} alt={suit.name} draggable='false' />
+                            <strong>{label}</strong>
+                        </span>
+                    );
+                })}
+                <span className='game-action-overlay__hole-card-total'>{Number(score) || 0}</span>
+            </div>
+        </div>
+    );
+}
+
+HoleCardDisplay.propTypes = {
+    cards: PropTypes.arrayOf(PropTypes.object),
+    score: PropTypes.number,
+};
+
+HoleCardDisplay.defaultProps = {
+    cards: [],
+    score: 0,
 };
 
 function hasCardRun(cards = [], nMinimumLength = 3) {
@@ -727,7 +786,8 @@ function GameActionOverlay({ isPaused = false }) {
     const sConsoleName = profileData?.sUserName || 'Player';
     const sConsoleAvatar = getAvatarImageSrc(profileData?.sAvatar, sConsoleName);
     const isVisible = Boolean(overlayState.visible);
-    const bKeepConsoleVisible = isVisible || bSideBetWindowOpen || sideBetPayout.total > 0;
+    const bHasHoleCards = consoleCards.hand.length > 0;
+    const bKeepConsoleVisible = isVisible || bSideBetWindowOpen || sideBetPayout.total > 0 || bHasHoleCards;
 
     return (
         <>
@@ -768,6 +828,9 @@ function GameActionOverlay({ isPaused = false }) {
                     </div>
                 ) : null}
                 <div className='game-action-overlay__tray'>
+                    {bHasHoleCards ? (
+                        <HoleCardDisplay cards={consoleCards.hand} score={consoleCards.score} />
+                    ) : null}
                     {hasButtons ? (
                         <div className={`game-action-overlay__rows game-action-overlay__rows--interactive${DEBUG_CONSOLE_LAYOUT ? ' is-debug-layout' : ''}`}>
                             {rows.map((row, rowIndex) => {

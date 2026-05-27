@@ -724,3 +724,19 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 47: Add Fresh Hole Card Display Above Lowered Buttons
+
+- Goal: move the action buttons down 20px and add a new local hole-card display above them without restoring the removed console card renderer.
+- Scope: React game overlay and game SCSS.
+- Non-goal: do not change Phaser table card logic, gameplay state, side bets, chip flow, or old card animation code.
+- Expected benefit: action buttons sit lower, and the local hand appears above them using the same face/suit assets and visual structure as the table cards.
+- Implemented:
+  - Added a fresh `HoleCardDisplay` component with new `hole-card` class names.
+  - Used `card_front` and the existing suit PNG assets used by table cards.
+  - Kept the display limited to local hand cards from the existing `CONSOLE_CARDS` payload.
+  - Added layout variables for a 20px action-button downward shift and for positioning the hole-card display above the buttons.
+- Checks:
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `git diff --check -- src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.
