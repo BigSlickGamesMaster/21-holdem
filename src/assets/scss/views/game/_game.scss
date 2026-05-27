@@ -271,17 +271,6 @@ body,
     100% { filter: brightness(1); transform: translateX(0); }
 }
 
-@keyframes consoleCardDeal {
-    0% { opacity: 0; transform: translate3d(-42px, -62px, 0) rotate(-10deg) scale(0.72); }
-    64% { opacity: 1; transform: translate3d(4px, 4px, 0) rotate(2deg) scale(1.04); }
-    100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
-}
-
-@keyframes consoleCardClear {
-    0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
-    100% { opacity: 0; transform: translate3d(44px, -58px, 0) rotate(12deg) scale(0.62); }
-}
-
 .game-action-overlay__console-col {
     position: relative;
     min-width: 0;
@@ -796,22 +785,6 @@ body,
         padding: 0 13px;
         font-size: 28px;
     }
-}
-
-.game-action-overlay__floating-console-cards.is-dealing .game-action-overlay__console-card.is-new {
-    animation: consoleCardDeal 0.58s cubic-bezier(0.16, 0.85, 0.2, 1.05) both;
-}
-
-.game-action-overlay__floating-console-cards.is-dealing .game-action-overlay__console-card.is-new:nth-child(2) {
-    animation-delay: 0.07s;
-}
-
-.game-action-overlay__floating-console-cards.is-dealing .game-action-overlay__console-card.is-new:nth-child(3) {
-    animation-delay: 0.13s;
-}
-
-.game-action-overlay__floating-console-cards.is-clearing .game-action-overlay__console-card {
-    animation: consoleCardClear 0.42s cubic-bezier(0.45, 0, 0.2, 1) both;
 }
 
 .game-action-overlay__action-cards {

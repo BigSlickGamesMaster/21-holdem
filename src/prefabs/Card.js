@@ -127,24 +127,4 @@ export default class Card extends Phaser.GameObjects.Container {
         this.container_card.setVisible(false);
         this.closed_card.setVisible(true);
     }
-    animateCard(isOpen = true) {
-        isOpen ? this.container_card.setScale(0, 1) : this.closed_card.setScale(0, 1);
-        this?.scene?.tweens?.add({
-            targets: isOpen ? this.closed_card : this.container_card,
-            scaleX: 0,
-            duration: 200,
-            ease: 'Sine.easeInOut',
-            onComplete: () => {
-                isOpen ? this.closed_card.setVisible(false) : this.container_card.setVisible(false);
-                isOpen ? this.closed_card.setScale(1) : this.container_card.setScale(1);
-                isOpen ? this.container_card.setVisible(true).setScale(0, 1) : this.closed_card.setVisible(true).setScale(0, 1);
-                this?.scene?.tweens?.add({
-                    targets: isOpen ? this.container_card : this.closed_card,
-                    scaleX: 1,
-                    duration: 200,
-                    ease: 'Sine.easeInOut',
-                });
-            }
-        });
-    }
 }

@@ -596,3 +596,19 @@ This file records each stabilization/refactor step so future work can see what c
   - `npm run lint:game` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
   - `git diff --check -- src/scenes/Level.js docs/game-tidy-log.md` passed.
+
+### Step 39: Remove Card Animations
+
+- Goal: remove card motion from the game display so cards appear and clear immediately.
+- Scope: React console cards, card animation CSS, and the legacy Phaser card flip helper.
+- Non-goal: do not change chip animations, win/bust/turn feedback, card art, or card layout.
+- Expected benefit: no card deal/clear/flip animation path remains in the active game UI.
+- Implemented:
+  - Removed React console card motion state, delayed clear timing, and new-card class handling.
+  - Removed console card deal/clear keyframes and animation selectors.
+  - Removed the unused `Card.animateCard()` tween helper.
+- Checks:
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `npm run lint:game` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
+  - `git diff --check -- src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss src/prefabs/Card.js docs/game-tidy-log.md` passed.

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
@@ -200,7 +200,7 @@ function getCardRenderKey(card, prefix) {
     return card?._id || `${prefix}-${card?.eSuit}-${card?.nLabel}`;
 }
 
-function ConsoleCard({ card, muted = false, isNew = false }) {
+function ConsoleCard({ card, muted = false }) {
     if (!card) return null;
     const sSuit = String(card.eSuit || '').toLowerCase();
     const sSuitKey = sSuit?.[0];
@@ -224,7 +224,7 @@ function ConsoleCard({ card, muted = false, isNew = false }) {
     const bRed = sSuitKey === 'h' || sSuitKey === 'd';
 
     return (
-        <span className={`game-action-overlay__console-card${bRed ? ' is-red' : ''}${muted ? ' is-muted' : ''}${isNew ? ' is-new' : ''}`}>
+        <span className={`game-action-overlay__console-card${bRed ? ' is-red' : ''}${muted ? ' is-muted' : ''}`}>
             <img className='game-action-overlay__console-card-face' src={cardFrontImage} alt='' draggable='false' />
             <img className='game-action-overlay__console-card-corner-suit' src={sSuitImage} alt={sSuitSymbol} draggable='false' />
             <strong className='game-action-overlay__console-card-rank-center'>{sLabel}</strong>
@@ -238,16 +238,14 @@ ConsoleCard.propTypes = {
         nLabel: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     }),
     muted: PropTypes.bool,
-    isNew: PropTypes.bool,
 };
 
 ConsoleCard.defaultProps = {
     card: null,
     muted: false,
-    isNew: false,
 };
 
-function ConsoleCards({ handCards, communityCards, score, newCardKeys }) {
+function ConsoleCards({ handCards, communityCards, score }) {
     const bHasCards = handCards.length || communityCards.length;
 
     return (
@@ -255,7 +253,7 @@ function ConsoleCards({ handCards, communityCards, score, newCardKeys }) {
             <div className='game-action-overlay__console-card-group'>
                 {handCards.length ? handCards.map((card) => {
                     const key = getCardRenderKey(card, 'hand');
-                    return <ConsoleCard key={key} card={card} isNew={newCardKeys.includes(key)} />;
+                    return <ConsoleCard key={key} card={card} />;
                 }) : (
                     <span className='game-action-overlay__console-card-empty'>Your cards</span>
                 )}
@@ -266,7 +264,7 @@ function ConsoleCards({ handCards, communityCards, score, newCardKeys }) {
                     <div className='game-action-overlay__console-card-group'>
                         {communityCards.map((card) => {
                             const key = getCardRenderKey(card, 'community');
-                            return <ConsoleCard key={key} card={card} muted isNew={newCardKeys.includes(key)} />;
+                            return <ConsoleCard key={key} card={card} muted />;
                         })}
                     </div>
                 </>
@@ -283,12 +281,7 @@ function ConsoleCards({ handCards, communityCards, score, newCardKeys }) {
 ConsoleCards.propTypes = {
     handCards: PropTypes.arrayOf(PropTypes.object).isRequired,
     communityCards: PropTypes.arrayOf(PropTypes.object).isRequired,
-    newCardKeys: PropTypes.arrayOf(PropTypes.string),
     score: PropTypes.number.isRequired,
-};
-
-ConsoleCards.defaultProps = {
-    newCardKeys: [],
 };
 
 function hasCardRun(cards = [], nMinimumLength = 3) {
@@ -409,11 +402,7 @@ function GameActionOverlay({ isPaused = false }) {
     const [clockNow, setClockNow] = useState(() => Date.now());
     const [consoleWin, setConsoleWin] = useState({ visible: false, amount: 0, token: 0 });
     const [consoleBust, setConsoleBust] = useState({ active: false, token: 0 });
-    const [cardMotion, setCardMotion] = useState({ mode: '', token: 0 });
-    const [displayedConsoleCards, setDisplayedConsoleCards] = useState(consoleCards);
-    const [newConsoleCardKeys, setNewConsoleCardKeys] = useState([]);
     const [bankrollOverride, setBankrollOverride] = useState(null);
-    const previousCardSignatureRef = useRef('');
     const { data: profileData } = useQuery('profileData', getProfile, {
         select: (data) => data?.data?.data,
         refetchOnWindowFocus: false,
@@ -671,46 +660,6 @@ function GameActionOverlay({ isPaused = false }) {
     const sConsoleAvatar = getAvatarImageSrc(profileData?.sAvatar, sConsoleName);
     const isVisible = Boolean(overlayState.visible);
     const hasLiveConsoleCards = Boolean(consoleCards.hand.length || consoleCards.community.length);
-    const hasDisplayedConsoleCards = Boolean(displayedConsoleCards.hand.length || displayedConsoleCards.community.length);
-    const sCardSignature = [
-        ...consoleCards.hand.map((card) => getCardRenderKey(card, 'hand')),
-        '|',
-        ...consoleCards.community.map((card) => getCardRenderKey(card, 'community')),
-    ].join(',');
-    const sCardMotionClass = cardMotion.mode ? ` is-${cardMotion.mode}` : '';
-
-    useEffect(() => {
-        const previousSignature = previousCardSignatureRef.current;
-        if (previousSignature === sCardSignature) return;
-
-        const hadCards = Boolean(previousSignature && previousSignature !== '|');
-        const hasCards = Boolean(sCardSignature && sCardSignature !== '|');
-        const previousKeys = previousSignature.split(',').filter((key) => key && key !== '|');
-        const nextKeys = sCardSignature.split(',').filter((key) => key && key !== '|');
-        previousCardSignatureRef.current = sCardSignature;
-
-        if (hasCards) {
-            setDisplayedConsoleCards(consoleCards);
-            setNewConsoleCardKeys(nextKeys.filter((key) => !previousKeys.includes(key)));
-            setCardMotion({ mode: 'dealing', token: Date.now() });
-        } else if (hadCards) {
-            setNewConsoleCardKeys([]);
-            setCardMotion({ mode: 'clearing', token: Date.now() });
-        }
-    }, [consoleCards, sCardSignature]);
-
-    useEffect(() => {
-        if (!cardMotion.mode) return undefined;
-        const nToken = cardMotion.token;
-        const timeout = window.setTimeout(() => {
-            setCardMotion((current) => (current.token === nToken ? { mode: '', token: 0 } : current));
-            if (cardMotion.mode === 'clearing') {
-                setDisplayedConsoleCards(consoleCards);
-            }
-            if (cardMotion.mode === 'dealing') setNewConsoleCardKeys([]);
-        }, cardMotion.mode === 'clearing' ? 520 : 680);
-        return () => window.clearTimeout(timeout);
-    }, [cardMotion.mode, cardMotion.token, consoleCards]);
 
     return (
         <>
@@ -718,7 +667,7 @@ function GameActionOverlay({ isPaused = false }) {
                 <SoundToggle />
                 <ExitUtilityButton />
             </div>
-            <div className={`game-action-overlay ${(isVisible || hasLiveConsoleCards || hasDisplayedConsoleCards) ? 'is-visible' : ''}`.trim()}>
+            <div className={`game-action-overlay ${(isVisible || hasLiveConsoleCards) ? 'is-visible' : ''}`.trim()}>
             <div className='game-action-overlay__shell'>
                 {hasMessage ? (
                     <div className='game-action-overlay__message'>
@@ -782,13 +731,12 @@ function GameActionOverlay({ isPaused = false }) {
                         </button>
                     </div>
                 </div>
-                {hasDisplayedConsoleCards ? (
-                    <div className={`game-action-overlay__floating-console-cards${sCardMotionClass}`}>
+                {hasLiveConsoleCards ? (
+                    <div className='game-action-overlay__floating-console-cards'>
                         <ConsoleCards
-                            handCards={displayedConsoleCards.hand}
-                            communityCards={displayedConsoleCards.community}
-                            score={displayedConsoleCards.score}
-                            newCardKeys={newConsoleCardKeys}
+                            handCards={consoleCards.hand}
+                            communityCards={consoleCards.community}
+                            score={consoleCards.score}
                         />
                     </div>
                 ) : null}
