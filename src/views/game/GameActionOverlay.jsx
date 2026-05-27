@@ -32,9 +32,9 @@ import EmojiPicker from './EmojiPicker';
 
 const DEBUG_CONSOLE_LAYOUT = false;
 const CONSOLE_LAYOUT_STYLE = {
-    '--console-left-width': '58%',
-    '--console-center-width': '0%',
-    '--console-right-width': '42%',
+    '--console-left-width': '45%',
+    '--console-center-width': '22%',
+    '--console-right-width': '33%',
 };
 
 const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
@@ -239,7 +239,7 @@ function getCardRenderKey(card, prefix) {
     return card?._id || `${prefix}-${card?.eSuit}-${card?.nLabel}`;
 }
 
-function ConsoleCard({ card, muted = false }) {
+function ConsoleCard({ card, muted = false, motionNew = false }) {
     if (!card) return null;
     const sSuit = String(card.eSuit || '').toLowerCase();
     const sSuitKey = sSuit?.[0];
@@ -263,7 +263,7 @@ function ConsoleCard({ card, muted = false }) {
     const bRed = sSuitKey === 'h' || sSuitKey === 'd';
 
     return (
-        <span className={`game-action-overlay__console-card${bRed ? ' is-red' : ''}${muted ? ' is-muted' : ''}`}>
+        <span className={`game-action-overlay__console-card${bRed ? ' is-red' : ''}${muted ? ' is-muted' : ''}${motionNew ? ' is-motion-new' : ''}`}>
             <img className='game-action-overlay__console-card-face' src={cardFrontImage} alt='' draggable='false' />
             <img className='game-action-overlay__console-card-corner-suit' src={sSuitImage} alt={sSuitSymbol} draggable='false' />
             <strong className='game-action-overlay__console-card-rank-center'>{sLabel}</strong>
@@ -277,22 +277,25 @@ ConsoleCard.propTypes = {
         nLabel: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     }),
     muted: PropTypes.bool,
+    motionNew: PropTypes.bool,
 };
 
 ConsoleCard.defaultProps = {
     card: null,
     muted: false,
+    motionNew: false,
 };
 
-function ConsoleCards({ handCards, communityCards, score }) {
+function ConsoleCards({ handCards, communityCards, score, motionCardKeys }) {
     const bHasCards = handCards.length || communityCards.length;
+    const motionKeySet = new Set(motionCardKeys);
 
     return (
         <div className={`game-action-overlay__console-cards${bHasCards ? ' has-cards' : ''}`} aria-label='Your cards'>
             <div className='game-action-overlay__console-card-group'>
                 {handCards.length ? handCards.map((card) => {
                     const key = getCardRenderKey(card, 'hand');
-                    return <ConsoleCard key={key} card={card} />;
+                    return <ConsoleCard key={key} card={card} motionNew={motionKeySet.has(key)} />;
                 }) : (
                     <span className='game-action-overlay__console-card-empty'>Your cards</span>
                 )}
@@ -303,7 +306,7 @@ function ConsoleCards({ handCards, communityCards, score }) {
                     <div className='game-action-overlay__console-card-group'>
                         {communityCards.map((card) => {
                             const key = getCardRenderKey(card, 'community');
-                            return <ConsoleCard key={key} card={card} muted />;
+                            return <ConsoleCard key={key} card={card} muted motionNew={motionKeySet.has(key)} />;
                         })}
                     </div>
                 </>
@@ -321,6 +324,11 @@ ConsoleCards.propTypes = {
     handCards: PropTypes.arrayOf(PropTypes.object).isRequired,
     communityCards: PropTypes.arrayOf(PropTypes.object).isRequired,
     score: PropTypes.number.isRequired,
+    motionCardKeys: PropTypes.arrayOf(PropTypes.string),
+};
+
+ConsoleCards.defaultProps = {
+    motionCardKeys: [],
 };
 
 function hasCardRun(cards = [], nMinimumLength = 3) {
@@ -513,7 +521,9 @@ function GameActionOverlay({ isPaused = false }) {
     const [utilityModal, setUtilityModal] = useState('');
     const [displayedConsoleCards, setDisplayedConsoleCards] = useState(consoleCards);
     const [cardMotionPhase, setCardMotionPhase] = useState('');
+    const [motionCardKeys, setMotionCardKeys] = useState([]);
     const previousCardSignatureRef = useRef('|');
+    const consoleCardsLockedRef = useRef(false);
     const { data: profileData } = useQuery('profileData', getProfile, {
         select: (data) => data?.data?.data,
         refetchOnWindowFocus: false,
@@ -643,13 +653,26 @@ function GameActionOverlay({ isPaused = false }) {
             if (payout.total > 0) setSideBetPayout(payout);
         };
         const handleConsoleCards = (event) => {
-            setConsoleCards({
+            const nextConsoleCards = {
                 hand: Array.isArray(event?.detail?.hand) ? event.detail.hand : [],
                 community: Array.isArray(event?.detail?.community) ? event.detail.community : [],
                 sideBetCommunity: Array.isArray(event?.detail?.sideBetCommunity) ? event.detail.sideBetCommunity : [],
                 sideBetLive: event?.detail?.sideBetLive !== false,
                 score: Number(event?.detail?.score) || 0,
-            });
+            };
+            const bClearCards = !nextConsoleCards.hand.length && !nextConsoleCards.community.length;
+            if (bClearCards) {
+                consoleCardsLockedRef.current = false;
+                setConsoleCards(nextConsoleCards);
+                return;
+            }
+            if (event?.detail?.locked === true) {
+                consoleCardsLockedRef.current = true;
+                setConsoleCards(nextConsoleCards);
+                return;
+            }
+            if (consoleCardsLockedRef.current) return;
+            setConsoleCards(nextConsoleCards);
         };
 
         window.addEventListener(GAME_BROWSER_EVENTS.SIDE_BETS_SERVER_STATE, handleServerSideBets);
@@ -749,36 +772,48 @@ function GameActionOverlay({ isPaused = false }) {
     }, [clockNow, turnTimer.active, turnTimer.endsAt]);
 
     useEffect(() => {
-        const nextSignature = [
+        const nextCardKeys = [
             ...consoleCards.hand.map((card) => getCardRenderKey(card, 'hand')),
             '|',
             ...consoleCards.community.map((card) => getCardRenderKey(card, 'community')),
-        ].join(',');
+        ];
+        const nextSignature = nextCardKeys.join(',');
         const previousSignature = previousCardSignatureRef.current;
         if (previousSignature === nextSignature) return undefined;
 
         const hadCards = Boolean(previousSignature && previousSignature !== '|');
         const hasCards = Boolean(nextSignature && nextSignature !== '|');
+        const previousCardKeys = previousSignature
+            .split(',')
+            .filter((key) => key && key !== '|');
         previousCardSignatureRef.current = nextSignature;
 
         if (hasCards) {
+            const freshCardKeys = nextCardKeys.filter((key) => key && key !== '|' && !previousCardKeys.includes(key));
             setDisplayedConsoleCards(consoleCards);
+            setMotionCardKeys(freshCardKeys);
             setCardMotionPhase('arriving');
-            const timeout = window.setTimeout(() => setCardMotionPhase(''), 420);
+            const timeout = window.setTimeout(() => {
+                setCardMotionPhase('');
+                setMotionCardKeys([]);
+            }, 420);
             return () => window.clearTimeout(timeout);
         }
 
         if (hadCards) {
+            setMotionCardKeys(previousCardKeys);
             setCardMotionPhase('leaving');
             const timeout = window.setTimeout(() => {
                 setDisplayedConsoleCards(consoleCards);
                 setCardMotionPhase('');
+                setMotionCardKeys([]);
             }, 320);
             return () => window.clearTimeout(timeout);
         }
 
         setDisplayedConsoleCards(consoleCards);
         setCardMotionPhase('');
+        setMotionCardKeys([]);
         return undefined;
     }, [consoleCards]);
 
@@ -868,14 +903,6 @@ function GameActionOverlay({ isPaused = false }) {
                 <SoundToggle />
                 <ExitUtilityButton />
             </div>
-            <div className='game-action-overlay__bottom-shortcuts' aria-label='Game shortcuts'>
-                <button type='button' onClick={() => setUtilityModal('rewards')} aria-label='Open daily rewards'>
-                    <img src={rewardsIcon} alt='' />
-                </button>
-                <button type='button' onClick={() => setUtilityModal('shop')} aria-label='Open chip shop'>
-                    <img src={shopIcon} alt='' />
-                </button>
-            </div>
             <GameUtilityModal
                 type={utilityModal || 'rewards'}
                 visible={Boolean(utilityModal)}
@@ -955,6 +982,7 @@ function GameActionOverlay({ isPaused = false }) {
                             handCards={displayedConsoleCards.hand}
                             communityCards={displayedConsoleCards.community}
                             score={displayedConsoleCards.score}
+                            motionCardKeys={motionCardKeys}
                         />
                     </div>
                 ) : null}
@@ -1018,13 +1046,22 @@ function GameActionOverlay({ isPaused = false }) {
                                 <strong>{bankrollAmount}</strong>
                             </div>
                         </div>
-                        <div className='game-action-overlay__console-col game-action-overlay__console-col--center' aria-hidden='true' />
+                        <div className='game-action-overlay__console-col game-action-overlay__console-col--center'>
+                            <div className='game-action-overlay__console-tools' aria-label='Game shortcuts'>
+                                <button type='button' onClick={() => setUtilityModal('rewards')} aria-label='Open daily rewards'>
+                                    <img src={rewardsIcon} alt='' />
+                                </button>
+                                <button type='button' onClick={() => setUtilityModal('shop')} aria-label='Open chip shop'>
+                                    <img src={shopIcon} alt='' />
+                                </button>
+                                <EmojiPicker />
+                            </div>
+                        </div>
                         <div className='game-action-overlay__console-col game-action-overlay__console-col--right'>
                             <div className='game-action-overlay__table-bankroll'>
                                 <span>Table</span>
                                 <strong>{tableBankrollAmount}</strong>
                             </div>
-                            <EmojiPicker />
                             {/*
                                 <span className='game-action-overlay__side-bet-callout'>
                                     Place a bet now for the next hand

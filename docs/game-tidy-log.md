@@ -646,3 +646,22 @@ This file records each stabilization/refactor step so future work can see what c
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
   - `git diff --check -- src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 42: Console Stand Lock And New-Card Motion Fix
+
+- Goal: fix the reported regressions where the console could still show community cards after stand, old console cards replayed the incoming animation, and reward/shop buttons sat outside the console controls.
+- Scope: local console card lock state, React console card event filtering, console card motion targeting, and console shortcut placement.
+- Non-goal: do not redesign the table, action buttons, card art, economy rules, or chip animation.
+- Expected benefit: once the local player chooses stand, the console hand freezes until hand clear; only genuinely new cards animate in; reward, shop, and emoji controls live together in the center console area.
+- Implemented:
+  - Added a local stand-intent lock that is set before stand socket requests and kept active even if the server response omits `bTakeCard: false`.
+  - Tagged locked console card payloads and made the React overlay ignore later non-clear console card pushes while locked.
+  - Stopped score/hand display sync from repainting the local console while the stand lock is active.
+  - Changed card motion so the arrive animation only applies to cards whose render key was not already displayed.
+  - Moved Rewards and Shop beside the emoji picker in the console center and removed the floating bottom shortcut cluster.
+- Checks:
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `npm run lint:game` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
+  - `git diff --check -- src/scenes/Level.js src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.

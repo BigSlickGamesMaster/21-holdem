@@ -301,7 +301,68 @@ body,
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 0 6px;
+    padding: 0 4px;
+}
+
+.game-action-overlay__console-tools {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    pointer-events: auto;
+
+    > button {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        border: 1px solid rgba(137, 213, 255, 0.34);
+        border-radius: 999px;
+        background: rgba(7, 29, 48, 0.82);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 5px 12px rgba(0, 0, 0, 0.24);
+        cursor: pointer;
+
+        img {
+            width: 21px;
+            height: 21px;
+            object-fit: contain;
+        }
+    }
+
+    .emoji-picker {
+        position: relative;
+        right: auto;
+        bottom: auto;
+        margin-bottom: 0;
+        transform: none;
+        transform-origin: center;
+        opacity: 0.82;
+    }
+
+    .emoji-picker:hover,
+    .emoji-picker:focus-within {
+        opacity: 1;
+    }
+
+    .emoji-picker__trigger {
+        min-height: 28px;
+        padding: 4px 6px 3px;
+        border-color: rgba(140, 212, 255, 0.28);
+        font-size: 9px;
+    }
+
+    .emoji-picker__trigger-icon {
+        font-size: 14px;
+    }
+
+    .emoji-picker__trigger-arrow {
+        font-size: 8px;
+        opacity: 0.5;
+    }
 }
 
 .game-action-overlay__console-col--right {
@@ -312,35 +373,6 @@ body,
     padding: 0 2px 18px 6px;
     text-align: right;
 
-    .emoji-picker {
-        right: 0;
-        bottom: 1px;
-        margin-bottom: 0;
-        transform: scale(0.78);
-        transform-origin: right bottom;
-        opacity: 0.56;
-    }
-
-    .emoji-picker:hover,
-    .emoji-picker:focus-within {
-        opacity: 1;
-    }
-
-    .emoji-picker__trigger {
-        min-height: 20px;
-        padding: 3px 6px 2px;
-        border-color: rgba(140, 212, 255, 0.18);
-        font-size: 9px;
-    }
-
-    .emoji-picker__trigger-icon {
-        font-size: 12px;
-    }
-
-    .emoji-picker__trigger-arrow {
-        font-size: 8px;
-        opacity: 0.42;
-    }
 }
 
 .game-action-overlay__console-shell.is-debug-layout {
@@ -798,7 +830,7 @@ body,
     }
 }
 
-.game-action-overlay__floating-console-cards.is-arriving .game-action-overlay__console-card {
+.game-action-overlay__floating-console-cards.is-arriving .game-action-overlay__console-card.is-motion-new {
     animation: gameCardArriveFresh 0.38s cubic-bezier(0.16, 0.84, 0.22, 1) both;
 }
 
@@ -2290,35 +2322,6 @@ body,
 
     &:active {
         transform: translateY(0) scale(0.96);
-    }
-}
-
-.game-action-overlay__bottom-shortcuts {
-    position: absolute;
-    left: 10px;
-    bottom: calc(75px + env(safe-area-inset-bottom, 0px) + 10px);
-    z-index: 64;
-    display: flex;
-    gap: 8px;
-    pointer-events: auto;
-
-    button {
-        display: grid;
-        place-items: center;
-        width: 42px;
-        height: 42px;
-        padding: 0;
-        border: 1px solid rgba(137, 213, 255, 0.42);
-        border-radius: 999px;
-        background: linear-gradient(180deg, rgba(8, 32, 54, 0.96), rgba(3, 13, 25, 0.98));
-        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
-        pointer-events: auto;
-
-        img {
-            width: 27px;
-            height: 27px;
-            object-fit: contain;
-        }
     }
 }
 

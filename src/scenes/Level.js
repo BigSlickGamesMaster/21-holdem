@@ -647,7 +647,7 @@ bindGameActionOverlayEvents() {
                 this.oSocketManager.emit(emitter.reqDoubleDown);
                 break;
             case 'stand':
-                this.lockLocalConsoleHand();
+                this.markLocalConsoleStandLock();
                 if (this.oButtons?.btn_stand?.bCallStandMode) {
                     this.oSocketManager.emit(emitter.reqCall, { bTakeCard: false });
                 } else {
@@ -681,7 +681,7 @@ bindGameActionOverlayEvents() {
                 this.confirmTakeCardRaiseRequest();
                 break;
             case 'standRaise':
-                this.lockLocalConsoleHand();
+                this.markLocalConsoleStandLock();
                 this.submitRaiseRequest({ bTakeCard: false });
                 break;
             case 'cancelRaiseConfirm':
@@ -1328,6 +1328,7 @@ restoreTurnUiAfterError(preferRaiseBuilder = false) {
 
 handleActionError(sEventName, sErrorMessage) {
     this.oLocalConsoleHandLock = null;
+    this.bLocalConsoleStandLocked = false;
 
     if (sErrorMessage) {
         this.prompt.showForSeconds(sErrorMessage);
@@ -1368,7 +1369,7 @@ submitRaiseRequest(extraData = {}) {
     const bAllIn = this.oGameManager?.tempRaiseIsAllIn === true;
     const { toCallAmount, myChips } = this.getRaiseContext();
     this.setConsolePrompt(bAllIn ? 'Submitting all in' : 'Submitting raise');
-    if (extraData?.bTakeCard === false) this.lockLocalConsoleHand();
+    if (extraData?.bTakeCard === false) this.markLocalConsoleStandLock();
 
     if (bAllIn && toCallAmount >= myChips) {
         this.oSocketManager.emit(emitter.reqCall, {
@@ -2179,16 +2180,19 @@ setButtons() {
                 sideBetCommunity: [],
                 sideBetLive: true,
                 score: 0,
+                locked: false,
             };
         }
 
-        if (!ignoreLock && this.oLocalConsoleHandLock?.active) {
+        const bLocked = Boolean(this.oLocalConsoleHandLock?.active || this.bLocalConsoleStandLocked);
+        if (!ignoreLock && bLocked && this.oLocalConsoleHandLock) {
             return {
                 hand: this.oLocalConsoleHandLock.hand,
                 community: this.oLocalConsoleHandLock.community,
                 sideBetCommunity: this.oLocalConsoleHandLock.sideBetCommunity,
                 sideBetLive: false,
                 score: this.oLocalConsoleHandLock.score,
+                locked: true,
             };
         }
 
@@ -2203,6 +2207,7 @@ setButtons() {
             sideBetCommunity: aCommunityCards.slice(0, nEligibleCommunityCards),
             sideBetLive: bSideBetLive,
             score: Number(myPlayer?.nCardScore) || 0,
+            locked: false,
         };
     }
     emitConsoleCards() {
@@ -2211,6 +2216,11 @@ setButtons() {
         window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.CONSOLE_CARDS, {
             detail: consoleCards,
         }));
+    }
+    markLocalConsoleStandLock() {
+        this.bLocalConsoleStandLocked = true;
+        this.lockLocalConsoleHand();
+        this.emitConsoleCards();
     }
     lockLocalConsoleHand() {
         const consoleCards = this.getLocalConsoleCardPayload({ ignoreLock: true });
@@ -2224,6 +2234,7 @@ setButtons() {
     }
     clearLocalConsoleHand() {
         this.oLocalConsoleHandLock = null;
+        this.bLocalConsoleStandLocked = false;
         const myPlayer = this.players?.get?.(this.iUserId);
         if (myPlayer) {
             myPlayer.aCardHand = [];
@@ -2570,20 +2581,23 @@ setButtons() {
         const effectName = getBetPotEffectName({ sEventName, nChips: oData.nChips, potIncrease });
         const aParticipantAdjustments = Array.isArray(oData.aParticipantAdjustments) ? oData.aParticipantAdjustments : [];
 
+        const bLocalStandIntent = oData.iUserId === this.iUserId && this.bLocalConsoleStandLocked;
         const bStandWithoutCard = (
-            sEventName === SOCKET_RESPONSE_EVENTS.STAND
+            bLocalStandIntent
             || (
-                (sEventName === SOCKET_RESPONSE_EVENTS.CALL || sEventName === SOCKET_RESPONSE_EVENTS.RAISE)
-                && oData?.bTakeCard === false
+                sEventName === SOCKET_RESPONSE_EVENTS.STAND
+                || (
+                    (sEventName === SOCKET_RESPONSE_EVENTS.CALL || sEventName === SOCKET_RESPONSE_EVENTS.RAISE)
+                    && oData?.bTakeCard === false
+                )
             )
         );
 
         if (bStandWithoutCard) {
-            if (player.iUserId === this.iUserId) this.lockLocalConsoleHand();
+            if (player.iUserId === this.iUserId) this.markLocalConsoleStandLock();
             player.isDoubleDownLock = true;
             player.bPendingAllInStandChoice = false;
             player.nStandAtRound = Number(oData.nStandAtRound) || this.nTableRound || 1;
-            if (player.iUserId === this.iUserId) this.emitConsoleCards();
         }
         player?.playerProfile?.setAmountIn(oData.nChips);
         player?.iUserId == this.iUserId && this.setMyPlayerData(oData);
@@ -2780,8 +2794,9 @@ setButtons() {
         const myPlayer = this.players.get(this.iUserId);
         const nChips = Number(myPlayerData?.nChips);
         const nCardScore = Number(myPlayerData?.nCardScore);
+        const bLocalConsoleLocked = Boolean(this.oLocalConsoleHandLock?.active || this.bLocalConsoleStandLocked);
 
-        if (myPlayerData?.aCardHand || Number.isFinite(nCardScore)) {
+        if (!bLocalConsoleLocked && (myPlayerData?.aCardHand || Number.isFinite(nCardScore))) {
             this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
                 type: CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_HAND_SCORE,
                 payload: {
@@ -2797,7 +2812,7 @@ setButtons() {
             this.setAmountIn(nChips);
         }
 
-        this.syncPlayerScoreDisplay(myPlayer, nCardScore, myPlayerData?.aCardHand);
+        if (!bLocalConsoleLocked) this.syncPlayerScoreDisplay(myPlayer, nCardScore, myPlayerData?.aCardHand);
         this.emitConsoleCards();
     }
     applyParticipantAdjustment(participantData) {
