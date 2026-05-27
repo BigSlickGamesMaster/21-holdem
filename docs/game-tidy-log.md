@@ -665,3 +665,23 @@ This file records each stabilization/refactor step so future work can see what c
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
   - `git diff --check -- src/scenes/Level.js src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 43: Remove Overlay Card Renderer And Rehome Console Controls
+
+- Goal: remove the duplicate React card renderer/animation path, move side bets into the bottom console, move rewards/shop to the top utility strip, and stop post-stand participant payloads from overwriting the local hand.
+- Scope: React game overlay, game SCSS, and local participant assignment in `Level`.
+- Non-goal: do not redesign the table cards, Phaser card prefab, side-bet rules, economy APIs, or sound/exit controls.
+- Expected benefit: only the Phaser card system renders gameplay cards; the bottom console uses its center area for side bets; reward/shop live with the speaker controls; stood players keep their frozen hand/score until the hand clears.
+- Implemented:
+  - Removed `ConsoleCard`, `ConsoleCards`, floating console cards, card-motion state, card asset imports, and all related SCSS selectors/keyframes.
+  - Removed the emoji picker from the bottom console.
+  - Moved Reward and Shop buttons into the top game utility control row beside sound/exit.
+  - Moved `SideBetsModule` into the center column of the bottom console with its info, payout, timer/amount, and clear controls.
+  - Added a local-hand-preserving participant assignment helper so local `aCardHand`/`nCardScore` are not overwritten while stand lock is active.
+  - Guarded `setCardHand` so late local hand snapshots cannot repaint cards after stand.
+- Checks:
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `npm run lint:game` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
+  - `git diff --check -- src/scenes/Level.js src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.

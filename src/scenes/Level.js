@@ -2217,6 +2217,20 @@ setButtons() {
             detail: consoleCards,
         }));
     }
+    isLocalConsoleHandLocked() {
+        return Boolean(this.oLocalConsoleHandLock?.active || this.bLocalConsoleStandLocked);
+    }
+    assignParticipantData(player, participantData = {}) {
+        if (!player || !participantData) return;
+        if (player.iUserId === this.iUserId && this.isLocalConsoleHandLocked()) {
+            const safeParticipantData = { ...participantData };
+            delete safeParticipantData.aCardHand;
+            delete safeParticipantData.nCardScore;
+            Object.assign(player, safeParticipantData);
+            return;
+        }
+        Object.assign(player, participantData);
+    }
     markLocalConsoleStandLock() {
         this.bLocalConsoleStandLocked = true;
         this.lockLocalConsoleHand();
@@ -2353,6 +2367,11 @@ setButtons() {
     setCardHand({ aCardHand, nCardScore }) {
         this.oTable.container_private_table.setVisible(false);
         const myPlayer = this.players.get(this.iUserId);
+        if (this.isLocalConsoleHandLocked()) {
+            this.emitConsoleCards();
+            this.clearProfileSeatCards();
+            return;
+        }
         const aIncomingHand = Array.isArray(aCardHand) ? aCardHand : [];
 
         if (myPlayer) myPlayer.aCardHand = aIncomingHand;
@@ -2735,10 +2754,12 @@ setButtons() {
             if (!participant || !this.players.has(participant.iUserId)) return;
 
             const player = this.players.get(participant.iUserId);
-            Object.assign(player, participant);
+            this.assignParticipantData(player, participant);
             player?.playerProfile?.setAmountIn(participant.nChips);
 
-            this.syncPlayerScoreDisplay(player, participant.nCardScore, participant.aCardHand);
+            if (!(participant.iUserId === this.iUserId && this.isLocalConsoleHandLocked())) {
+                this.syncPlayerScoreDisplay(player, participant.nCardScore, participant.aCardHand);
+            }
 
             if (participant.iUserId === this.iUserId) {
                 this.setMyPlayerData(participant);
@@ -2824,7 +2845,7 @@ setButtons() {
             payload: participantData,
         });
         const player = this.players.get(iUserId);
-        Object.assign(player, participantData);
+        this.assignParticipantData(player, participantData);
         player?.playerProfile?.setAmountIn(participantData?.nChips);
 
         if (iUserId === this.iUserId) {
@@ -2838,7 +2859,7 @@ setButtons() {
             if (type === 'create') {
                 await this.mapPlayerData(iUserId, participant);
             } else {
-                Object.assign(existingPlayer, participant);
+                this.assignParticipantData(existingPlayer, participant);
                 await this.setProfiles(iUserId);
             }
         }
