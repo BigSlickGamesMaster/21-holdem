@@ -775,3 +775,15 @@ This file records each stabilization/refactor step so future work can see what c
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
   - `git diff --check -- src/views/game/GameActionOverlay.jsx src/scripts/gameActionOverlayBridge.js src/scenes/Level.js src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 50: Raise Action Buttons 20px
+
+- Goal: move the action buttons up 20px and leave the rest of the UI unchanged.
+- Scope: game SCSS layout variable only.
+- Non-goal: do not change button size, hole cards, banner, console, gameplay state, or card rendering.
+- Expected benefit: action buttons sit 20px higher than the previous position.
+- Implemented:
+  - Changed `--game-action-buttons-shift-y` from `20px` to `0px`, which raises the action button row by 20px because the bottom offset no longer subtracts that shift.
+- Checks:
+  - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.
