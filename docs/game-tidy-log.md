@@ -700,3 +700,15 @@ This file records each stabilization/refactor step so future work can see what c
   - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
   - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 45: Double Playfield Downward Offset
+
+- Goal: move the game playfield down again by doubling the existing top-banner offset while leaving the bottom console anchored.
+- Scope: game SCSS layout variable only.
+- Non-goal: do not change controls, card rendering, gameplay state, side bets, or the bottom console.
+- Expected benefit: the playfield sits lower under the top banner, creating more room around the utility icons.
+- Implemented:
+  - Changed `--game-playfield-offset-y` from `0.46` to `0.92` of the top banner height.
+- Checks:
+  - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.

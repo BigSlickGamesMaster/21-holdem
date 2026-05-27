@@ -51,7 +51,7 @@ body,
     overflow-y: hidden;
     --game-frame-width: min(100vw, calc(var(--game-visible-height) * 0.5625));
     --game-top-banner-height: 54px;
-    --game-playfield-offset-y: calc(var(--game-top-banner-height) * 0.46);
+    --game-playfield-offset-y: calc(var(--game-top-banner-height) * 0.92);
 }
 
 #game-stage {
