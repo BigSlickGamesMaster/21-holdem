@@ -2165,25 +2165,60 @@ setButtons() {
         this.events.once('shutdown', this.cleanupGameBindings, this);
         this.events.once('destroy', this.cleanupGameBindings, this);
     }
-    emitConsoleCards() {
-        if (typeof window === 'undefined') return;
+    getLocalConsoleCardPayload({ ignoreLock = false } = {}) {
         const myPlayer = this.players?.get?.(this.iUserId);
+        if (!myPlayer) {
+            return {
+                hand: [],
+                community: [],
+                sideBetCommunity: [],
+                sideBetLive: true,
+                score: 0,
+            };
+        }
+
+        if (!ignoreLock && this.oLocalConsoleHandLock?.active) {
+            return {
+                hand: this.oLocalConsoleHandLock.hand,
+                community: this.oLocalConsoleHandLock.community,
+                sideBetCommunity: this.oLocalConsoleHandLock.sideBetCommunity,
+                sideBetLive: false,
+                score: this.oLocalConsoleHandLock.score,
+            };
+        }
+
         const aCommunityCards = Array.isArray(this.oGameManager?.aCommunityCards) ? this.oGameManager.aCommunityCards : [];
         const bSideBetLive = myPlayer?.eState === 'playing' && !myPlayer?.isDoubleDownLock;
         const nStandAtRound = Math.max(1, Number(myPlayer?.nStandAtRound) || 1);
         const nEligibleCommunityCards = bSideBetLive ? aCommunityCards.length : Math.max(0, nStandAtRound - 1);
         const aVisibleCommunityCards = bSideBetLive ? aCommunityCards : aCommunityCards.slice(0, nEligibleCommunityCards);
+        return {
+            hand: Array.isArray(myPlayer?.aCardHand) ? myPlayer.aCardHand : [],
+            community: aVisibleCommunityCards,
+            sideBetCommunity: aCommunityCards.slice(0, nEligibleCommunityCards),
+            sideBetLive: bSideBetLive,
+            score: Number(myPlayer?.nCardScore) || 0,
+        };
+    }
+    emitConsoleCards() {
+        if (typeof window === 'undefined') return;
+        const consoleCards = this.getLocalConsoleCardPayload();
         window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.CONSOLE_CARDS, {
-            detail: {
-                hand: Array.isArray(myPlayer?.aCardHand) ? myPlayer.aCardHand : [],
-                community: aVisibleCommunityCards,
-                sideBetCommunity: aCommunityCards.slice(0, nEligibleCommunityCards),
-                sideBetLive: bSideBetLive,
-                score: Number(myPlayer?.nCardScore) || 0,
-            },
+            detail: consoleCards,
         }));
     }
+    lockLocalConsoleHand() {
+        const consoleCards = this.getLocalConsoleCardPayload({ ignoreLock: true });
+        this.oLocalConsoleHandLock = {
+            active: true,
+            hand: [...consoleCards.hand],
+            community: [...consoleCards.community],
+            sideBetCommunity: [...consoleCards.sideBetCommunity],
+            score: consoleCards.score,
+        };
+    }
     clearLocalConsoleHand() {
+        this.oLocalConsoleHandLock = null;
         const myPlayer = this.players?.get?.(this.iUserId);
         if (myPlayer) {
             myPlayer.aCardHand = [];
@@ -2531,6 +2566,7 @@ setButtons() {
         const aParticipantAdjustments = Array.isArray(oData.aParticipantAdjustments) ? oData.aParticipantAdjustments : [];
 
         if (sEventName === SOCKET_RESPONSE_EVENTS.STAND) {
+            if (player.iUserId === this.iUserId) this.lockLocalConsoleHand();
             player.isDoubleDownLock = true;
             player.bPendingAllInStandChoice = false;
             player.nStandAtRound = Number(oData.nStandAtRound) || this.nTableRound || 1;

@@ -549,3 +549,18 @@ This file records each stabilization/refactor step so future work can see what c
   - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
   - `node --check public/fx-overlay/chipBurst.js; node --check public/fx-overlay/fxOverlay.js; node --check public/fx-overlay/audioLayer.js` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js --watchAll=false` passed.
+
+### Step 36: Freeze Local Console Cards After Stand
+
+- Goal: stop the local console from receiving or animating extra cards after the player has stood.
+- Scope: the local console card payload and stand socket handling in `Level`.
+- Non-goal: do not stop table/community cards, bankroll updates, pot updates, or final result state from updating.
+- Expected benefit: standing freezes the exact local hand display that was visible at the moment of stand, while the rest of the table can continue resolving normally.
+- Implemented:
+  - Added a local console hand lock snapshot used by `emitConsoleCards()`.
+  - Captured that snapshot before marking the player as stand/double-down locked.
+  - Cleared the lock through the existing local hand reset path between hands.
+- Checks:
+  - `npm run lint:game` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
+  - `git diff --check -- src/scenes/Level.js docs/game-tidy-log.md` passed.
