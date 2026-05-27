@@ -516,3 +516,16 @@ This file records each stabilization/refactor step so future work can see what c
   - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
   - `node --check public/fx-overlay/chipBurst.js; node --check public/fx-overlay/fxOverlay.js; node --check public/fx-overlay/audioLayer.js` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js --watchAll=false` passed.
+
+### Step 34: Player Bankroll Tablets
+
+- Goal: make player bankroll amounts match the side-bet amount tablet style.
+- Scope: replace loose profile bankroll text positioning with a dark rounded chip-value tablet in `PlayerProfile`.
+- Non-goal: do not change chip balances or server state.
+- Expected benefit: player bankrolls visually match the side-bet bet amount badges and resize cleanly for short and abbreviated amounts.
+- Implemented:
+  - Added a rounded dark/gold bankroll tablet behind each player bankroll.
+  - Repositioned the chip icon and amount text inside the tablet.
+  - Redraws the tablet width when the formatted bankroll amount changes.
+- Checks:
+  - `npm run lint:game` passed.

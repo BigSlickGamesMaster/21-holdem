@@ -266,23 +266,28 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       .setVisible(false);
     this.container_identity.add(this.txt_waiting);
 
+    this.bankrollY = bankrollY;
+    this.bankroll_tablet = scene.add.graphics().setVisible(true);
+    this.container_identity.add(this.bankroll_tablet);
+
     this.chip_icon = scene.add
-      .image(-70, bankrollY, assets.chip_icon)
-      .setScale(0.82)
+      .image(-31, bankrollY, assets.chip_icon)
+      .setScale(0.52)
       .setVisible(true);
     this.container_identity.add(this.chip_icon);
 
     this.txt_price = scene.add
-      .text(-42, bankrollY, "0", {
+      .text(8, bankrollY, "0", {
         ...style,
-        fontSize: "32px",
+        fontSize: "22px",
         fontStyle: "bold",
         fontFamily: config.playerFontBold,
-        color: "#ffffff",
+        color: "#f4dc9f",
       })
-      .setOrigin(0, 0.5)
+      .setOrigin(0.5)
       .setVisible(true);
     this.container_identity.add(this.txt_price);
+    this.drawBankrollTablet();
 
     this.self_bankroll_base = this.identity_panel;
     this.self_chip_icon = this.chip_icon;
@@ -511,6 +516,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
 
   setWaiting() {
     this.txt_name.setVisible(false);
+    this.bankroll_tablet.setVisible(false);
     this.chip_icon.setVisible(false);
     this.txt_price.setVisible(false);
     this.card_icon.setVisible(false);
@@ -518,19 +524,46 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
   }
   hideWaiting() {
     this.txt_name.setVisible(false);
+    this.bankroll_tablet.setVisible(true);
     this.chip_icon.setVisible(true);
     this.txt_price.setVisible(true);
     this.card_icon.setVisible(false);
     this.txt_waiting.setVisible(false);
   }
+  drawBankrollTablet() {
+    if (!this.bankroll_tablet || !this.txt_price || !this.chip_icon) return;
+
+    const textWidth = Math.max(24, this.txt_price.displayWidth || 0);
+    const width = Math.max(82, Math.min(152, textWidth + 52));
+    const height = 30;
+    const x = -width / 2;
+    const y = this.bankrollY - (height / 2);
+    const radius = 15;
+
+    this.bankroll_tablet.clear();
+    this.bankroll_tablet.fillStyle(0x000000, 0.24);
+    this.bankroll_tablet.fillRoundedRect(x + 1, y + 4, width, height, radius);
+    this.bankroll_tablet.fillStyle(0x0e2234, 0.96);
+    this.bankroll_tablet.fillRoundedRect(x, y, width, height, radius);
+    this.bankroll_tablet.fillStyle(0x04101c, 0.32);
+    this.bankroll_tablet.fillRoundedRect(x, y + (height / 2), width, height / 2, { tl: 0, tr: 0, bl: radius, br: radius });
+    this.bankroll_tablet.lineStyle(1.5, 0xffd874, 0.62);
+    this.bankroll_tablet.strokeRoundedRect(x, y, width, height, radius);
+    this.bankroll_tablet.lineStyle(1, 0xffffff, 0.12);
+    this.bankroll_tablet.strokeRoundedRect(x + 2, y + 2, width - 4, height - 4, Math.max(4, radius - 2));
+
+    const contentWidth = 18 + 5 + textWidth;
+    const startX = -contentWidth / 2;
+    this.chip_icon.setPosition(startX + 9, this.bankrollY);
+    this.txt_price.setPosition(startX + 18 + 5 + (textWidth / 2), this.bankrollY + 1);
+  }
   setAmountIn(nAmountIn) {
-    this.chip_icon.setX(-70);
-    this.txt_price.setX(-42);
     this.txt_price.setText(
       nAmountIn < 9999
         ? _.formatCurrencyWithComa(nAmountIn)
         : _.formatCurrency(nAmountIn)
     );
+    this.drawBankrollTablet();
   }
   createCard() {
     return null;
