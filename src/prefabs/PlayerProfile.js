@@ -173,6 +173,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
       // (eyebrow removed)
     };
     this._drawIdentityPanel();
+    this.identity_panel.setVisible(false);
 
     this.profileBorder = scene.add.graphics().setVisible(false);
     this.container_profile.addAt(this.profileBorder, 0);
@@ -734,6 +735,7 @@ export default class PlayerProfile extends Phaser.GameObjects.Container {
     };
     this._identityPanelState = states[state] || states.normal;
     this._drawIdentityPanel();
+    this.identity_panel?.setVisible(false);
   }
 
   setFolded() {

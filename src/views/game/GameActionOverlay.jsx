@@ -196,7 +196,11 @@ SideBetsModule.defaultProps = {
     unitAmount: SIDE_BET_STEP,
 };
 
-function ConsoleCard({ card, muted = false }) {
+function getCardRenderKey(card, prefix) {
+    return card?._id || `${prefix}-${card?.eSuit}-${card?.nLabel}`;
+}
+
+function ConsoleCard({ card, muted = false, isNew = false }) {
     if (!card) return null;
     const sSuit = String(card.eSuit || '').toLowerCase();
     const sSuitKey = sSuit?.[0];
@@ -220,7 +224,7 @@ function ConsoleCard({ card, muted = false }) {
     const bRed = sSuitKey === 'h' || sSuitKey === 'd';
 
     return (
-        <span className={`game-action-overlay__console-card${bRed ? ' is-red' : ''}${muted ? ' is-muted' : ''}`}>
+        <span className={`game-action-overlay__console-card${bRed ? ' is-red' : ''}${muted ? ' is-muted' : ''}${isNew ? ' is-new' : ''}`}>
             <img className='game-action-overlay__console-card-face' src={cardFrontImage} alt='' draggable='false' />
             <img className='game-action-overlay__console-card-corner-suit' src={sSuitImage} alt={sSuitSymbol} draggable='false' />
             <strong className='game-action-overlay__console-card-rank-center'>{sLabel}</strong>
@@ -234,20 +238,25 @@ ConsoleCard.propTypes = {
         nLabel: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
     }),
     muted: PropTypes.bool,
+    isNew: PropTypes.bool,
 };
 
 ConsoleCard.defaultProps = {
     card: null,
     muted: false,
+    isNew: false,
 };
 
-function ConsoleCards({ handCards, communityCards, score }) {
+function ConsoleCards({ handCards, communityCards, score, newCardKeys }) {
     const bHasCards = handCards.length || communityCards.length;
 
     return (
         <div className={`game-action-overlay__console-cards${bHasCards ? ' has-cards' : ''}`} aria-label='Your cards'>
             <div className='game-action-overlay__console-card-group'>
-                {handCards.length ? handCards.map((card) => <ConsoleCard key={card._id || `hand-${card.eSuit}-${card.nLabel}`} card={card} />) : (
+                {handCards.length ? handCards.map((card) => {
+                    const key = getCardRenderKey(card, 'hand');
+                    return <ConsoleCard key={key} card={card} isNew={newCardKeys.includes(key)} />;
+                }) : (
                     <span className='game-action-overlay__console-card-empty'>Your cards</span>
                 )}
             </div>
@@ -255,9 +264,10 @@ function ConsoleCards({ handCards, communityCards, score }) {
                 <>
                     <span className='game-action-overlay__console-card-plus'>+</span>
                     <div className='game-action-overlay__console-card-group'>
-                        {communityCards.map((card) => (
-                            <ConsoleCard key={card._id || `community-${card.eSuit}-${card.nLabel}`} card={card} muted />
-                        ))}
+                        {communityCards.map((card) => {
+                            const key = getCardRenderKey(card, 'community');
+                            return <ConsoleCard key={key} card={card} muted isNew={newCardKeys.includes(key)} />;
+                        })}
                     </div>
                 </>
             ) : null}
@@ -273,7 +283,12 @@ function ConsoleCards({ handCards, communityCards, score }) {
 ConsoleCards.propTypes = {
     handCards: PropTypes.arrayOf(PropTypes.object).isRequired,
     communityCards: PropTypes.arrayOf(PropTypes.object).isRequired,
+    newCardKeys: PropTypes.arrayOf(PropTypes.string),
     score: PropTypes.number.isRequired,
+};
+
+ConsoleCards.defaultProps = {
+    newCardKeys: [],
 };
 
 function hasCardRun(cards = [], nMinimumLength = 3) {
@@ -396,6 +411,8 @@ function GameActionOverlay({ isPaused = false }) {
     const [consoleBust, setConsoleBust] = useState({ active: false, token: 0 });
     const [cardMotion, setCardMotion] = useState({ mode: '', token: 0 });
     const [displayedConsoleCards, setDisplayedConsoleCards] = useState(consoleCards);
+    const [newConsoleCardKeys, setNewConsoleCardKeys] = useState([]);
+    const [bankrollOverride, setBankrollOverride] = useState(null);
     const previousCardSignatureRef = useRef('');
     const { data: profileData } = useQuery('profileData', getProfile, {
         select: (data) => data?.data?.data,
@@ -471,6 +488,10 @@ function GameActionOverlay({ isPaused = false }) {
                 ...createInitialSideBets(),
                 ...nextBets,
             });
+            if (Number.isFinite(Number(event?.detail?.nChips))) {
+                setBankrollOverride(Number(event.detail.nChips));
+                queryClient.invalidateQueries('profileData');
+            }
             const payout = normalizeSideBetPayouts(event?.detail);
             if (payout.total > 0) setSideBetPayout(payout);
         };
@@ -490,7 +511,7 @@ function GameActionOverlay({ isPaused = false }) {
             window.removeEventListener(GAME_BROWSER_EVENTS.SIDE_BETS_SERVER_STATE, handleServerSideBets);
             window.removeEventListener(GAME_BROWSER_EVENTS.CONSOLE_CARDS, handleConsoleCards);
         };
-    }, []);
+    }, [queryClient]);
 
     useEffect(() => {
         const handleSideBetPayout = (event) => {
@@ -641,7 +662,8 @@ function GameActionOverlay({ isPaused = false }) {
         return rowButtons.length > 0;
     }), [rows]);
     const hasMessage = Boolean(overlayState.message);
-    const bankrollAmount = typeof profileData?.nChips === 'number' ? _.formatCurrency(profileData.nChips) : '--';
+    const nConsoleBankroll = Number.isFinite(Number(bankrollOverride)) ? bankrollOverride : profileData?.nChips;
+    const bankrollAmount = Number.isFinite(Number(nConsoleBankroll)) ? _.formatCurrency(Number(nConsoleBankroll)) : '--';
     const tableBankrollAmount = Number.isFinite(Number(overlayState.tableBankroll))
         ? _.formatCurrency(Number(overlayState.tableBankroll))
         : '--';
@@ -651,9 +673,9 @@ function GameActionOverlay({ isPaused = false }) {
     const hasLiveConsoleCards = Boolean(consoleCards.hand.length || consoleCards.community.length);
     const hasDisplayedConsoleCards = Boolean(displayedConsoleCards.hand.length || displayedConsoleCards.community.length);
     const sCardSignature = [
-        ...consoleCards.hand.map((card) => card?._id || `${card?.eSuit}-${card?.nLabel}`),
+        ...consoleCards.hand.map((card) => getCardRenderKey(card, 'hand')),
         '|',
-        ...consoleCards.community.map((card) => card?._id || `${card?.eSuit}-${card?.nLabel}`),
+        ...consoleCards.community.map((card) => getCardRenderKey(card, 'community')),
     ].join(',');
     const sCardMotionClass = cardMotion.mode ? ` is-${cardMotion.mode}` : '';
 
@@ -663,12 +685,16 @@ function GameActionOverlay({ isPaused = false }) {
 
         const hadCards = Boolean(previousSignature && previousSignature !== '|');
         const hasCards = Boolean(sCardSignature && sCardSignature !== '|');
+        const previousKeys = previousSignature.split(',').filter((key) => key && key !== '|');
+        const nextKeys = sCardSignature.split(',').filter((key) => key && key !== '|');
         previousCardSignatureRef.current = sCardSignature;
 
         if (hasCards) {
             setDisplayedConsoleCards(consoleCards);
+            setNewConsoleCardKeys(nextKeys.filter((key) => !previousKeys.includes(key)));
             setCardMotion({ mode: 'dealing', token: Date.now() });
         } else if (hadCards) {
+            setNewConsoleCardKeys([]);
             setCardMotion({ mode: 'clearing', token: Date.now() });
         }
     }, [consoleCards, sCardSignature]);
@@ -681,6 +707,7 @@ function GameActionOverlay({ isPaused = false }) {
             if (cardMotion.mode === 'clearing') {
                 setDisplayedConsoleCards(consoleCards);
             }
+            if (cardMotion.mode === 'dealing') setNewConsoleCardKeys([]);
         }, cardMotion.mode === 'clearing' ? 520 : 680);
         return () => window.clearTimeout(timeout);
     }, [cardMotion.mode, cardMotion.token, consoleCards]);
@@ -761,6 +788,7 @@ function GameActionOverlay({ isPaused = false }) {
                             handCards={displayedConsoleCards.hand}
                             communityCards={displayedConsoleCards.community}
                             score={displayedConsoleCards.score}
+                            newCardKeys={newConsoleCardKeys}
                         />
                     </div>
                 ) : null}

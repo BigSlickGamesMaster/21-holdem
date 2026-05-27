@@ -529,3 +529,23 @@ This file records each stabilization/refactor step so future work can see what c
   - Redraws the tablet width when the formatted bankroll amount changes.
 - Checks:
   - `npm run lint:game` passed.
+
+### Step 35: Hand Reset, Stand Lock, And Side-Bet Bankroll Feedback
+
+- Goal: fix the current console/profile display issues at their state sources instead of layering another visual patch over them.
+- Scope: player bankroll backing, local console hand lifecycle, post-stand card visibility, new-card-only motion, local chip-transfer anchor, and side-bet bankroll/payout event data.
+- Non-goal: do not reintroduce the removed profile-card renderer or the old Phaser chip animation module.
+- Expected benefit: bankroll tablets no longer sit on a square backing, the local hand clears after result cleanup, standing stops new community cards from appearing in the console hand, only newly received cards animate, chip FX has a stable source for the suppressed local profile, and side-bet debits/credits are reflected in the console bankroll.
+- Implemented:
+  - Hid the old `PlayerProfile` identity panel behind the new bankroll tablet while leaving the tablet renderer active.
+  - Added a local console hand clear path that clears player hand state and the reducer hand score together.
+  - Limited console community cards after stand/double-down lock to the cards that were eligible when the player stood.
+  - Tracked console card render keys so deal motion applies only to cards that were not already on screen.
+  - Moved the console cards up by 20px and enlarged the score total number.
+  - Added an FX overlay anchor for the local console so chip transfers still animate when the local seat profile is visually suppressed.
+  - Normalized side-bet result payout payloads and passed `nChips` through to the React overlay so the visible bankroll changes on side-bet debit/credit.
+- Checks:
+  - `npm run lint:game` passed.
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `node --check public/fx-overlay/chipBurst.js; node --check public/fx-overlay/fxOverlay.js; node --check public/fx-overlay/audioLayer.js` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js --watchAll=false` passed.

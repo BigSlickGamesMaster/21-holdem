@@ -342,6 +342,18 @@ registerFXOverlayPotAnchor() {
             const myPlayer = this.findPlayerByUserId(this.iUserId);
             return this.getFXOverlayProfileImageAnchor(myPlayer && myPlayer.playerProfile);
         });
+        overlay.setAnchor('myConsole', () => {
+            const canvas = this.game?.canvas;
+            if (!canvas) return null;
+            const rect = canvas.getBoundingClientRect();
+            if (!rect.width || !rect.height) return null;
+            return {
+                x: rect.left + (rect.width * 0.20),
+                y: rect.top + rect.height - 76,
+                width: rect.width * 0.34,
+                height: 76,
+            };
+        });
         overlay.setAnchor('potPile', () => this.getFXOverlayScreenAnchor(this.oPotAmount, {
             width: Math.max(126, potBounds.width * 0.6),
             height: Math.max(84, potBounds.height * 0.7),
@@ -353,6 +365,16 @@ registerFXOverlayPotAnchor() {
     } catch (_error) {
         return false;
     }
+}
+
+getChipTransferSourceAnchor(playerProfile) {
+    if (playerProfile?.bSuppressProfileDisplay) {
+        const overlay = this.getFXOverlay();
+        const consoleAnchor = overlay?.getAnchor?.('myConsole');
+        if (consoleAnchor) return consoleAnchor;
+    }
+
+    return this.getFXOverlayProfileImageAnchor(playerProfile) || this.getFXOverlayPlayerAnchor(playerProfile);
 }
 
 getFXOverlayScreenAnchor(gameObject, options = {}) {
@@ -927,7 +949,7 @@ commitPotAmount(nTableChips) {
 
 queuePotUpdate({ amount = 0, targetAmount = 0, playerProfile = null } = {}) {
     this.callFXOverlay('transferChips', {
-        sourceAnchor: this.getFXOverlayProfileImageAnchor(playerProfile) || this.getFXOverlayPlayerAnchor(playerProfile),
+        sourceAnchor: this.getChipTransferSourceAnchor(playerProfile),
         targetAnchor: this.getFXOverlayScreenAnchor(this.oPotAmount, {
             width: 96,
             height: 64,
@@ -2150,15 +2172,34 @@ setButtons() {
         const bSideBetLive = myPlayer?.eState === 'playing' && !myPlayer?.isDoubleDownLock;
         const nStandAtRound = Math.max(1, Number(myPlayer?.nStandAtRound) || 1);
         const nEligibleCommunityCards = bSideBetLive ? aCommunityCards.length : Math.max(0, nStandAtRound - 1);
+        const aVisibleCommunityCards = bSideBetLive ? aCommunityCards : aCommunityCards.slice(0, nEligibleCommunityCards);
         window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.CONSOLE_CARDS, {
             detail: {
                 hand: Array.isArray(myPlayer?.aCardHand) ? myPlayer.aCardHand : [],
-                community: aCommunityCards,
+                community: aVisibleCommunityCards,
                 sideBetCommunity: aCommunityCards.slice(0, nEligibleCommunityCards),
                 sideBetLive: bSideBetLive,
                 score: Number(myPlayer?.nCardScore) || 0,
             },
         }));
+    }
+    clearLocalConsoleHand() {
+        const myPlayer = this.players?.get?.(this.iUserId);
+        if (myPlayer) {
+            myPlayer.aCardHand = [];
+            myPlayer.nCardScore = 0;
+            myPlayer.isDoubleDownLock = false;
+            myPlayer.nStandAtRound = 1;
+        }
+        this.oClientGameState = clientGameStateReducer(this.oClientGameState, {
+            type: CLIENT_GAME_STATE_ACTIONS.SET_PARTICIPANT_HAND_SCORE,
+            payload: {
+                iUserId: this.iUserId,
+                aCardHand: [],
+                nCardScore: 0,
+            },
+        });
+        this.emitConsoleCards();
     }
     handleSideBetsChange(detail = {}) {
         if (!this.oSocketManager || !this.iUserId) return;
@@ -2170,8 +2211,21 @@ setButtons() {
         this.oSocketManager.emit(SOCKET_REQUEST_EVENTS.SIDE_BETS, { bets });
     }
     handleSideBetsState(oData = {}) {
-        const payouts = oData?.payouts || oData?.winnings || oData?.sideBetPayouts || oData?.results || {};
-        const nWinningAmount = Number(oData?.nWinningAmount ?? oData?.nSideBetWinningAmount ?? oData?.sideBetWinningAmount);
+        const oResult = oData?.results && !Array.isArray(oData.results) ? oData.results : null;
+        const aResultRows = Array.isArray(oData?.results)
+            ? oData.results
+            : (Array.isArray(oResult?.results) ? oResult.results : []);
+        const payouts = oData?.payouts || oData?.winnings || oData?.sideBetPayouts || aResultRows.reduce((accumulator, result) => {
+            const nCredit = Number(result?.creditAmount ?? result?.winAmount);
+            if (result?.type && Number.isFinite(nCredit) && nCredit > 0) accumulator[result.type] = nCredit;
+            return accumulator;
+        }, {});
+        const nWinningAmount = Number(
+            oData?.nWinningAmount
+            ?? oData?.nSideBetWinningAmount
+            ?? oData?.sideBetWinningAmount
+            ?? oResult?.creditAmount
+        );
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.SIDE_BETS_SERVER_STATE, {
                 detail: {
@@ -2180,6 +2234,7 @@ setButtons() {
                     results: oData?.results || null,
                     payouts,
                     nWinningAmount: Number.isFinite(nWinningAmount) ? nWinningAmount : 0,
+                    nChips: Number.isFinite(Number(oData?.nChips)) ? Number(oData.nChips) : null,
                     message: oData?.message || oData?.sMessage || '',
                 },
             }));
@@ -2188,6 +2243,7 @@ setButtons() {
                     detail: {
                         payouts,
                         nWinningAmount: Number.isFinite(nWinningAmount) ? nWinningAmount : 0,
+                        nChips: Number.isFinite(Number(oData?.nChips)) ? Number(oData.nChips) : null,
                         message: oData?.message || oData?.sMessage || '',
                     },
                 }));
@@ -2290,7 +2346,7 @@ setButtons() {
             player.container_cards.removeAll(true).setVisible(false);
             player.clearScore?.();
         });
-        this.emitConsoleCards();
+        this.clearLocalConsoleHand();
     }
     startGame() {
         this.cancelHandResultCleanup();
@@ -3131,6 +3187,7 @@ setDeclareResult({ nRoundStartsIn, aParticipant, bAllPlayerBust, bAllPlayersBust
       player.hideBettingLabel();
       player.unlockScoreDisplay?.({ clear: true });
     });
+    this.clearLocalConsoleHand();
     this.prompt.hide();
     const nSideBetSeconds = getHandResultSideBetSeconds(nRoundStartsIn);
     if (nSideBetSeconds > 0) this.emitSideBetWindow(true, nSideBetSeconds);
