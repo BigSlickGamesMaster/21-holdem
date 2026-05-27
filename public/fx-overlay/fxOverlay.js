@@ -459,6 +459,20 @@
     );
   };
 
+  FXOverlay.turnAlert = function () {
+    if (!isEnabled()) return false;
+
+    dispatchAudioAction('turnAlert');
+    pulsePot({
+      duration: 260,
+      blur: 18,
+      color: 'rgba(80, 255, 150, 0.82)',
+      brightness: 1.08,
+      target: 'mySeat',
+    });
+    return true;
+  };
+
   FXOverlay.blackjack = function () {
     if (!isEnabled()) return false;
 

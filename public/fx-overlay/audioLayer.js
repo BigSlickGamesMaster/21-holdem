@@ -37,6 +37,7 @@
     smallBet: { sound: 'smallBet', volume: 0.2, playbackRate: 1.02 },
     stand: { sound: 'stand', volume: 0.18, playbackRate: 1.0 },
     timer: { sound: 'timer', volume: 0.16, playbackRate: 1.0 },
+    turnAlert: { sound: 'timer', volume: 0.28, playbackRate: 1.36 },
     winPot: { sound: 'winPot', volume: 0.36, playbackRate: 1.0 },
   };
   var state = {

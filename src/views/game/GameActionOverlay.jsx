@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
@@ -393,6 +393,10 @@ function GameActionOverlay({ isPaused = false }) {
     const [bShowSideBetInfo, setShowSideBetInfo] = useState(false);
     const [clockNow, setClockNow] = useState(() => Date.now());
     const [consoleWin, setConsoleWin] = useState({ visible: false, amount: 0, token: 0 });
+    const [consoleBust, setConsoleBust] = useState({ active: false, token: 0 });
+    const [cardMotion, setCardMotion] = useState({ mode: '', token: 0 });
+    const [displayedConsoleCards, setDisplayedConsoleCards] = useState(consoleCards);
+    const previousCardSignatureRef = useRef('');
     const { data: profileData } = useQuery('profileData', getProfile, {
         select: (data) => data?.data?.data,
         refetchOnWindowFocus: false,
@@ -591,6 +595,19 @@ function GameActionOverlay({ isPaused = false }) {
     }, []);
 
     useEffect(() => {
+        const handleConsoleBust = () => {
+            const nToken = Date.now();
+            setConsoleBust({ active: true, token: nToken });
+            window.setTimeout(() => {
+                setConsoleBust((current) => (current.token === nToken ? { active: false, token: 0 } : current));
+            }, 1300);
+        };
+
+        window.addEventListener(GAME_BROWSER_EVENTS.CONSOLE_BUST, handleConsoleBust);
+        return () => window.removeEventListener(GAME_BROWSER_EVENTS.CONSOLE_BUST, handleConsoleBust);
+    }, []);
+
+    useEffect(() => {
         const handleStateUpdate = (event) => {
             setOverlayState({
                 ...createHiddenGameActionOverlayState(),
@@ -631,7 +648,42 @@ function GameActionOverlay({ isPaused = false }) {
     const sConsoleName = profileData?.sUserName || 'Player';
     const sConsoleAvatar = getAvatarImageSrc(profileData?.sAvatar, sConsoleName);
     const isVisible = Boolean(overlayState.visible);
-    const hasConsoleCards = Boolean(consoleCards.hand.length || consoleCards.community.length);
+    const hasLiveConsoleCards = Boolean(consoleCards.hand.length || consoleCards.community.length);
+    const hasDisplayedConsoleCards = Boolean(displayedConsoleCards.hand.length || displayedConsoleCards.community.length);
+    const sCardSignature = [
+        ...consoleCards.hand.map((card) => card?._id || `${card?.eSuit}-${card?.nLabel}`),
+        '|',
+        ...consoleCards.community.map((card) => card?._id || `${card?.eSuit}-${card?.nLabel}`),
+    ].join(',');
+    const sCardMotionClass = cardMotion.mode ? ` is-${cardMotion.mode}` : '';
+
+    useEffect(() => {
+        const previousSignature = previousCardSignatureRef.current;
+        if (previousSignature === sCardSignature) return;
+
+        const hadCards = Boolean(previousSignature && previousSignature !== '|');
+        const hasCards = Boolean(sCardSignature && sCardSignature !== '|');
+        previousCardSignatureRef.current = sCardSignature;
+
+        if (hasCards) {
+            setDisplayedConsoleCards(consoleCards);
+            setCardMotion({ mode: 'dealing', token: Date.now() });
+        } else if (hadCards) {
+            setCardMotion({ mode: 'clearing', token: Date.now() });
+        }
+    }, [consoleCards, sCardSignature]);
+
+    useEffect(() => {
+        if (!cardMotion.mode) return undefined;
+        const nToken = cardMotion.token;
+        const timeout = window.setTimeout(() => {
+            setCardMotion((current) => (current.token === nToken ? { mode: '', token: 0 } : current));
+            if (cardMotion.mode === 'clearing') {
+                setDisplayedConsoleCards(consoleCards);
+            }
+        }, cardMotion.mode === 'clearing' ? 520 : 680);
+        return () => window.clearTimeout(timeout);
+    }, [cardMotion.mode, cardMotion.token, consoleCards]);
 
     return (
         <>
@@ -639,7 +691,7 @@ function GameActionOverlay({ isPaused = false }) {
                 <SoundToggle />
                 <ExitUtilityButton />
             </div>
-            <div className={`game-action-overlay ${(isVisible || hasConsoleCards) ? 'is-visible' : ''}`.trim()}>
+            <div className={`game-action-overlay ${(isVisible || hasLiveConsoleCards || hasDisplayedConsoleCards) ? 'is-visible' : ''}`.trim()}>
             <div className='game-action-overlay__shell'>
                 {hasMessage ? (
                     <div className='game-action-overlay__message'>
@@ -703,12 +755,12 @@ function GameActionOverlay({ isPaused = false }) {
                         </button>
                     </div>
                 </div>
-                {hasConsoleCards ? (
-                    <div className='game-action-overlay__floating-console-cards'>
+                {hasDisplayedConsoleCards ? (
+                    <div className={`game-action-overlay__floating-console-cards${sCardMotionClass}`}>
                         <ConsoleCards
-                            handCards={consoleCards.hand}
-                            communityCards={consoleCards.community}
-                            score={consoleCards.score}
+                            handCards={displayedConsoleCards.hand}
+                            communityCards={displayedConsoleCards.community}
+                            score={displayedConsoleCards.score}
                         />
                     </div>
                 ) : null}
@@ -749,7 +801,7 @@ function GameActionOverlay({ isPaused = false }) {
                         </div>
                     ) : null}
                     <div
-                        className={`game-action-overlay__console-shell${DEBUG_CONSOLE_LAYOUT ? ' is-debug-layout' : ''}${consoleWin.visible ? ' is-winning' : ''}`}
+                        className={`game-action-overlay__console-shell${DEBUG_CONSOLE_LAYOUT ? ' is-debug-layout' : ''}${consoleWin.visible ? ' is-winning' : ''}${turnTimer.active ? ' is-my-turn' : ''}${consoleBust.active ? ' is-bust' : ''}`}
                         style={CONSOLE_LAYOUT_STYLE}
                     >
                         {consoleWin.visible ? (

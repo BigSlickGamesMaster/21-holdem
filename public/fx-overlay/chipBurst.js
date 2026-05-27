@@ -445,50 +445,83 @@
     var duration = clamp(Number(options && options.duration) || 940, 520, 1600);
     var hold = clamp(Number(options && options.hold) || 190, 80, 420);
     var direction = options && options.direction === 'toPlayer' ? 'toPlayer' : 'toPot';
-    var spread = direction === 'toPlayer' ? 24 : 18;
+    var spread = direction === 'toPlayer' ? 32 : 24;
 
     for (var index = 0; index < count; index += 1) {
       var size = clamp(Number(options && options.size) || random(22, 30), 18, 38);
       var node = createChipNode(size);
       var angle = (Math.PI * 2 / count) * index;
-      var popX = Math.cos(angle) * (spread + random(-4, 8));
-      var popY = Math.sin(angle) * (spread * 0.7 + random(-3, 7));
-      var curveX = random(-46, 46);
-      var lift = direction === 'toPlayer' ? random(86, 136) : random(68, 118);
+      var popX = Math.cos(angle) * (spread + random(-5, 10));
+      var popY = Math.sin(angle) * (spread * 0.7 + random(-4, 8));
+      var curveX = random(-54, 54);
+      var lift = direction === 'toPlayer' ? random(112, 174) : random(82, 132);
       var finalX = target.x + random(-14, 14);
       var finalY = target.y + random(-9, 9);
       var delay = index * 46;
       var spin = direction === 'toPlayer' ? random(360, 620) : random(-460, -240);
+      var cameraX = source.x + ((target.x - source.x) * 0.38) + random(-44, 44);
+      var cameraY = Math.min(source.y, target.y) - random(118, 178);
 
       layer.appendChild(node);
       node.style.opacity = '1';
-      var animation = node.animate([
-        {
-          offset: 0,
-          opacity: 0,
-          transform: 'translate3d(' + (source.x - size / 2) + 'px,' + (source.y - size / 2) + 'px,0) scale(0.46) rotate(0deg)',
-        },
-        {
-          offset: 0.16,
-          opacity: 1,
-          transform: 'translate3d(' + (source.x + popX - size / 2) + 'px,' + (source.y + popY - size / 2) + 'px,0) scale(1.08) rotate(' + (spin * 0.12) + 'deg)',
-        },
-        {
-          offset: Math.min(0.42, 0.16 + (hold / duration)),
-          opacity: 1,
-          transform: 'translate3d(' + (source.x + popX - size / 2) + 'px,' + (source.y + popY - size / 2) + 'px,0) scale(0.96) rotate(' + (spin * 0.18) + 'deg)',
-        },
-        {
-          offset: 0.76,
-          opacity: 1,
-          transform: 'translate3d(' + (((source.x + popX + finalX) / 2) + curveX - size / 2) + 'px,' + (((source.y + popY + finalY) / 2) - lift - size / 2) + 'px,0) scale(0.9) rotate(' + (spin * 0.72) + 'deg)',
-        },
-        {
-          offset: 1,
-          opacity: direction === 'toPot' ? 0.92 : 0,
-          transform: 'translate3d(' + (finalX - size / 2) + 'px,' + (finalY - size / 2) + 'px,0) scale(' + (direction === 'toPot' ? 0.72 : 0.58) + ') rotate(' + spin + 'deg)',
-        },
-      ], {
+
+      var keyframes = direction === 'toPlayer'
+        ? [
+          {
+            offset: 0,
+            opacity: 0,
+            transform: 'translate3d(' + (source.x - size / 2) + 'px,' + (source.y - size / 2) + 'px,0) scale(0.52) rotate(0deg)',
+          },
+          {
+            offset: 0.18,
+            opacity: 1,
+            transform: 'translate3d(' + (source.x + popX - size / 2) + 'px,' + (source.y + popY - size / 2) + 'px,0) scale(1.08) rotate(' + (spin * 0.14) + 'deg)',
+          },
+          {
+            offset: 0.46,
+            opacity: 1,
+            transform: 'translate3d(' + (cameraX - size / 2) + 'px,' + (cameraY - size / 2) + 'px,0) scale(1.82) rotate(' + (spin * 0.46) + 'deg)',
+          },
+          {
+            offset: 0.62,
+            opacity: 1,
+            transform: 'translate3d(' + (cameraX + curveX - size / 2) + 'px,' + (cameraY + random(-10, 18) - size / 2) + 'px,0) scale(1.54) rotate(' + (spin * 0.58) + 'deg)',
+          },
+          {
+            offset: 1,
+            opacity: 0,
+            transform: 'translate3d(' + (finalX - size / 2) + 'px,' + (finalY - size / 2) + 'px,0) scale(0.58) rotate(' + spin + 'deg)',
+          },
+        ]
+        : [
+          {
+            offset: 0,
+            opacity: 0,
+            transform: 'translate3d(' + (source.x - size / 2) + 'px,' + (source.y - size / 2) + 'px,0) scale(0.42) rotate(0deg)',
+          },
+          {
+            offset: 0.16,
+            opacity: 1,
+            transform: 'translate3d(' + (source.x + popX - size / 2) + 'px,' + (source.y + popY - size / 2) + 'px,0) scale(1.14) rotate(' + (spin * 0.12) + 'deg)',
+          },
+          {
+            offset: Math.min(0.44, 0.18 + (hold / duration)),
+            opacity: 1,
+            transform: 'translate3d(' + (source.x + popX - size / 2) + 'px,' + (source.y + popY - size / 2) + 'px,0) scale(0.98) rotate(' + (spin * 0.18) + 'deg)',
+          },
+          {
+            offset: 0.78,
+            opacity: 1,
+            transform: 'translate3d(' + (((source.x + popX + finalX) / 2) + curveX - size / 2) + 'px,' + (((source.y + popY + finalY) / 2) - lift - size / 2) + 'px,0) scale(0.94) rotate(' + (spin * 0.72) + 'deg)',
+          },
+          {
+            offset: 1,
+            opacity: 0.92,
+            transform: 'translate3d(' + (finalX - size / 2) + 'px,' + (finalY - size / 2) + 'px,0) scale(0.72) rotate(' + spin + 'deg)',
+          },
+        ];
+
+      var animation = node.animate(keyframes, {
         duration: duration + delay,
         delay: delay,
         easing: 'cubic-bezier(0.2, 0.8, 0.16, 1)',

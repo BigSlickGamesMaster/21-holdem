@@ -153,6 +153,27 @@ body,
     }
 }
 
+.game-action-overlay__console-shell.is-my-turn {
+    border-top-color: rgba(104, 255, 165, 0.76);
+    box-shadow:
+        inset 0 1px 0 rgba(195, 255, 219, 0.28),
+        0 -16px 34px rgba(0, 0, 0, 0.34),
+        0 0 26px rgba(76, 255, 143, 0.34);
+    animation: consoleTurnPulse 1.05s ease-in-out infinite;
+}
+
+.game-action-overlay__console-shell.is-bust {
+    border-top-color: rgba(255, 88, 88, 0.9);
+    background:
+        linear-gradient(180deg, rgba(255, 90, 90, 0.24) 0%, rgba(255, 255, 255, 0) 32%),
+        linear-gradient(180deg, rgba(72, 10, 18, 0.9) 0%, rgba(20, 4, 8, 0.92) 100%);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 155, 155, 0.42),
+        0 -16px 34px rgba(0, 0, 0, 0.38),
+        0 0 34px rgba(255, 45, 45, 0.5);
+    animation: consoleBustBlast 0.72s cubic-bezier(0.12, 0.86, 0.18, 1) both;
+}
+
 .game-action-overlay__console-win {
     position: absolute;
     left: 50%;
@@ -229,6 +250,32 @@ body,
     28% { transform: translateY(0) scale(1); }
     78% { opacity: 1; transform: translateY(-3px) scale(1); }
     100% { opacity: 0; transform: translateY(-16px) scale(0.9); }
+}
+
+@keyframes consoleTurnPulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.24) saturate(1.2); }
+}
+
+@keyframes consoleBustBlast {
+    0% { filter: brightness(1); transform: translateX(0); }
+    12% { filter: brightness(1.8) saturate(1.45); transform: translateX(-4px); }
+    22% { transform: translateX(5px); }
+    34% { transform: translateX(-3px); }
+    48% { transform: translateX(2px); }
+    72% { filter: brightness(1.18) saturate(1.12); transform: translateX(0); }
+    100% { filter: brightness(1); transform: translateX(0); }
+}
+
+@keyframes consoleCardDeal {
+    0% { opacity: 0; transform: translate3d(-42px, -62px, 0) rotate(-10deg) scale(0.72); }
+    64% { opacity: 1; transform: translate3d(4px, 4px, 0) rotate(2deg) scale(1.04); }
+    100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+}
+
+@keyframes consoleCardClear {
+    0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+    100% { opacity: 0; transform: translate3d(44px, -58px, 0) rotate(12deg) scale(0.62); }
 }
 
 .game-action-overlay__console-col {
@@ -551,7 +598,7 @@ body,
     width: min(320px, 76%);
     transform: translate(-50%, -50%) scale(0.74);
     transform-origin: center;
-    opacity: 0.5;
+    opacity: 0.78;
     pointer-events: auto;
     transition: transform 0.22s ease, opacity 0.18s ease;
 
@@ -745,6 +792,22 @@ body,
         padding: 0 10px;
         font-size: 19px;
     }
+}
+
+.game-action-overlay__floating-console-cards.is-dealing .game-action-overlay__console-card {
+    animation: consoleCardDeal 0.58s cubic-bezier(0.16, 0.85, 0.2, 1.05) both;
+}
+
+.game-action-overlay__floating-console-cards.is-dealing .game-action-overlay__console-card:nth-child(2) {
+    animation-delay: 0.07s;
+}
+
+.game-action-overlay__floating-console-cards.is-dealing .game-action-overlay__console-card:nth-child(3) {
+    animation-delay: 0.13s;
+}
+
+.game-action-overlay__floating-console-cards.is-clearing .game-action-overlay__console-card {
+    animation: consoleCardClear 0.42s cubic-bezier(0.45, 0, 0.2, 1) both;
 }
 
 .game-action-overlay__action-cards {
@@ -1075,7 +1138,7 @@ body,
 
 .game-action-overlay__side-bet.is-unqualified {
     filter: grayscale(1);
-    opacity: 0.48;
+    opacity: 0.66;
 
     .game-action-overlay__side-bet-icon {
         border-color: rgba(150, 166, 178, 0.42);
@@ -1097,8 +1160,8 @@ body,
 }
 
 .game-action-overlay__side-bet.is-empty:not(.is-unqualified) {
-    filter: grayscale(0.72);
-    opacity: 0.62;
+    filter: none;
+    opacity: 0.82;
 }
 
 .game-action-overlay__side-bet-paid {

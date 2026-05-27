@@ -2227,6 +2227,14 @@ setButtons() {
             },
         }));
     }
+    emitConsoleBust() {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.CONSOLE_BUST, {
+            detail: {
+                token: Date.now(),
+            },
+        }));
+    }
     emitConsoleWin(amount = 0) {
         if (typeof window === 'undefined') return;
         window.dispatchEvent(new CustomEvent(GAME_BROWSER_EVENTS.CONSOLE_WIN, {
@@ -2584,6 +2592,10 @@ setButtons() {
             player?.playerProfile?.container_cards?.removeAll(true).setVisible(false);
             player?.playerProfile.showBustPrompt();
             player?.playerProfile.setVisible(true);
+            if (iUserId === this.iUserId) {
+                this.emitConsoleBust();
+                this.playBustFX(player?.playerProfile, { isSelf: true, text: 'Bust' });
+            }
             iUserId !== this.iUserId && player?.playerProfile.setBettingLabel('Bust');
         }
     }
@@ -2918,6 +2930,7 @@ setCollectBootAmount({ nTableChips, aParticipant }) {
             player.playerProfile.startTurnTimer(ttl, total);
             if (player.iUserId === this.iUserId) {
                 this.emitConsoleTurnTimer(true, ttl, total);
+                this.callFXOverlay('turnAlert');
             }
         }
         if (player?.iUserId === this.iUserId) {

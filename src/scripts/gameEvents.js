@@ -1,6 +1,7 @@
 export const GAME_BROWSER_EVENTS = Object.freeze({
     CONSOLE_CARDS: 'bsg:console-cards',
     CONSOLE_TURN_TIMER: 'bsg:console-turn-timer',
+    CONSOLE_BUST: 'bsg:console-bust',
     CONSOLE_WIN: 'bsg:console-win',
     EMOJI_SENT: 'bsg:emoji-sent',
     GUEST_TUTORIAL_UPDATE: 'guest-tutorial:update',

@@ -497,3 +497,22 @@ This file records each stabilization/refactor step so future work can see what c
   - `npm run lint:game` passed.
   - `npx eslint src/views/game/GameActionOverlay.jsx src/views/auth/login/index.jsx src/layouts/main-layout/index.jsx --max-warnings=0` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js --watchAll=false` passed.
+
+### Step 33: Turn/Bust Feedback And New Motion Pass
+
+- Goal: make turn, bust, card, side-bet, and chip feedback more readable without bringing back the old Phaser chip animation module.
+- Scope: React console feedback, FX overlay audio/chip motion, side-bet opacity, and card deal/clear motion.
+- Non-goal: do not reintroduce `ChipAnimationController` or change server-side payout/action rules.
+- Expected benefit: the player gets a clear green console flash and audible tone on their turn, a red console bust blast plus screen shake on bust, clearer side-bet affordances, and new chip/card motion built in the current overlay systems.
+- Implemented:
+  - Added `CONSOLE_BUST` browser event and self-bust console red blast handling.
+  - Added FX overlay `turnAlert()` using the existing audio layer and a green pulse.
+  - Triggered turn alert when the local player receives turn control.
+  - Made side-bet inactive/empty states less unevenly opaque.
+  - Added React console card deal and clear animations with delayed removal for clear-out.
+  - Reworked FX overlay chip transfer so bets pop/hold/lob into the pot, and payouts rise toward camera scale before swooshing to the player.
+- Checks:
+  - `npm run lint:game` passed.
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `node --check public/fx-overlay/chipBurst.js; node --check public/fx-overlay/fxOverlay.js; node --check public/fx-overlay/audioLayer.js` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js --watchAll=false` passed.
