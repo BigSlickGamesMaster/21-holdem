@@ -1,11 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from 'react-query';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
 import { getProfile } from '../../query/profile.query';
+import { buyChips, getChips } from '../../query/shop.query';
 import _ from '../../scripts/helper';
+import DailyRewardsPanel from '../../shared/components/DailyRewardsPanel';
 import chipIcon from '../../assets/images/gameplay/chip_icon.png';
+import rewardsIcon from '../../assets/images/icons/working/rewards.png';
+import shopIcon from '../../assets/images/icons/working/shop.png';
+import { chips1, chips2, chips3, chips4, chips5 } from '../../assets/images/shop/shop';
 import twentyOneIcon from '../../assets/images/icons/new21.png';
 import flushIcon from '../../assets/images/icons/newflush.png';
 import straightIcon from '../../assets/images/icons/newstraight.png';
@@ -21,6 +27,7 @@ import {
 } from '../../scripts/gameActionOverlayBridge';
 import { GAME_BROWSER_EVENTS } from '../../scripts/gameEvents';
 import { getAvatarImageSrc } from '../../shared/constants/builtInAvatars';
+import { ReactToastify } from '../../shared/utils';
 import EmojiPicker from './EmojiPicker';
 
 const DEBUG_CONSOLE_LAYOUT = false;
@@ -29,6 +36,38 @@ const CONSOLE_LAYOUT_STYLE = {
     '--console-center-width': '0%',
     '--console-right-width': '42%',
 };
+
+const stripePromise = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
+    ? loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY)
+    : Promise.resolve(null);
+
+function getArrayPayload(value) {
+    return Array.isArray(value) ? value : [];
+}
+
+function getShopChipImage(nChips) {
+    if (Number(nChips) <= 100) return chips1;
+    if (Number(nChips) <= 500) return chips2;
+    if (Number(nChips) <= 1000) return chips3;
+    if (Number(nChips) <= 2500) return chips4;
+    return chips5;
+}
+
+function formatStorePrice(nPrice, sCurrency = 'USD') {
+    const nNumericPrice = Number(nPrice);
+    if (!Number.isFinite(nNumericPrice)) return `${nPrice ?? '-'}`;
+
+    try {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: sCurrency || 'USD',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(nNumericPrice);
+    } catch (_error) {
+        return `$${nNumericPrice.toFixed(2)}`;
+    }
+}
 
 function SoundToggle() {
     const [muted, setMuted] = useState(false);
@@ -378,6 +417,74 @@ SideBetInfoDialog.propTypes = {
     onClose: PropTypes.func.isRequired,
 };
 
+function GameUtilityModal({ type, visible, onClose, shopItems, isShopLoading, isBuyingShopItem, onBuyShopItem }) {
+    if (!visible) return null;
+
+    const bRewards = type === 'rewards';
+
+    return (
+        <div className='game-action-overlay__utility-modal' role='dialog' aria-modal='true' aria-label={bRewards ? 'Daily rewards' : 'Shop'}>
+            <div className='game-action-overlay__utility-modal-backdrop' onClick={onClose} />
+            <section className={`game-action-overlay__utility-panel game-action-overlay__utility-panel--${type}`}>
+                <header className='game-action-overlay__utility-header'>
+                    <strong>{bRewards ? 'Daily Rewards' : 'Chip Shop'}</strong>
+                    <button type='button' onClick={onClose} aria-label='Close panel'>x</button>
+                </header>
+
+                {bRewards ? (
+                    <DailyRewardsPanel embedded />
+                ) : (
+                    <div className='game-action-overlay__shop-grid'>
+                        {isShopLoading ? (
+                            <div className='game-action-overlay__utility-empty'>Loading store...</div>
+                        ) : null}
+                        {!isShopLoading && !shopItems.length ? (
+                            <div className='game-action-overlay__utility-empty'>No chip packs available.</div>
+                        ) : null}
+                        {shopItems.map((item, index) => {
+                            const sItemKey = `${item?.sTitle || 'chip-pack'}-${item?._id || item?.nPrice || index}`;
+                            const nChips = Number(item?.nChips) || 0;
+                            return (
+                                <article className='game-action-overlay__shop-item' key={sItemKey}>
+                                    <img src={getShopChipImage(nChips)} alt='' />
+                                    <div>
+                                        <strong>{item?.sTitle || 'Chip Package'}</strong>
+                                        <span>{nChips ? `${_.formatCurrencyWithComa(nChips)} chips` : 'Chip pack'}</span>
+                                    </div>
+                                    <button
+                                        type='button'
+                                        onClick={() => onBuyShopItem(item)}
+                                        disabled={isBuyingShopItem}
+                                    >
+                                        {isBuyingShopItem ? 'Processing' : formatStorePrice(item?.nPrice, item?.sCurrency)}
+                                    </button>
+                                </article>
+                            );
+                        })}
+                    </div>
+                )}
+            </section>
+        </div>
+    );
+}
+
+GameUtilityModal.propTypes = {
+    type: PropTypes.oneOf(['rewards', 'shop']),
+    visible: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    shopItems: PropTypes.arrayOf(PropTypes.object),
+    isShopLoading: PropTypes.bool,
+    isBuyingShopItem: PropTypes.bool,
+    onBuyShopItem: PropTypes.func.isRequired,
+};
+
+GameUtilityModal.defaultProps = {
+    type: 'rewards',
+    shopItems: [],
+    isShopLoading: false,
+    isBuyingShopItem: false,
+};
+
 const BUTTON_CLASS_BY_VARIANT = {
     primary: 'guest-entry-btn',
     secondary: 'about-entry-btn',
@@ -403,9 +510,55 @@ function GameActionOverlay({ isPaused = false }) {
     const [consoleWin, setConsoleWin] = useState({ visible: false, amount: 0, token: 0 });
     const [consoleBust, setConsoleBust] = useState({ active: false, token: 0 });
     const [bankrollOverride, setBankrollOverride] = useState(null);
+    const [utilityModal, setUtilityModal] = useState('');
+    const [displayedConsoleCards, setDisplayedConsoleCards] = useState(consoleCards);
+    const [cardMotionPhase, setCardMotionPhase] = useState('');
+    const previousCardSignatureRef = useRef('|');
     const { data: profileData } = useQuery('profileData', getProfile, {
         select: (data) => data?.data?.data,
         refetchOnWindowFocus: false,
+    });
+    const { data: shopItems = [], isLoading: isShopLoading } = useQuery('getChips', getChips, {
+        select: (data) => getArrayPayload(data?.data?.data),
+        enabled: utilityModal === 'shop',
+        onError: (error) => {
+            ReactToastify(error?.response?.data?.message || 'Unable to load store items', 'error');
+        },
+    });
+    const { mutate: mutateBuyChips, isLoading: isBuyingShopItem } = useMutation(buyChips, {
+        onSuccess: async (response) => {
+            const payload = response?.data;
+            if (response?.status === 200 && payload?.data?.sessionId) {
+                const stripe = await stripePromise;
+                if (!stripe) {
+                    if (payload?.data?.checkoutUrl) {
+                        window.location.assign(payload.data.checkoutUrl);
+                        return;
+                    }
+                    ReactToastify('Stripe publishable key is not configured and checkout URL was not returned', 'error');
+                    return;
+                }
+                const { error } = await stripe.redirectToCheckout({ sessionId: payload.data.sessionId });
+                if (error && payload?.data?.checkoutUrl) {
+                    window.location.assign(payload.data.checkoutUrl);
+                    return;
+                }
+                if (error) ReactToastify(error.message || 'Stripe redirect failed', 'error');
+                return;
+            }
+
+            if (payload?.status === 200 || response?.status === 200) {
+                ReactToastify(payload?.message || 'Purchase successful', 'success');
+                queryClient.invalidateQueries('profileData');
+                queryClient.invalidateQueries('layout-profile');
+                return;
+            }
+
+            ReactToastify(payload?.message || 'Unable to complete purchase', 'error');
+        },
+        onError: (error) => {
+            ReactToastify(error?.response?.data?.message || 'Unable to complete purchase', 'error');
+        },
     });
     const totalSideBets = Object.values(sideBets).reduce((sum, amount) => sum + (Number(amount) || 0), 0);
     const sideBetStatuses = useMemo(
@@ -457,6 +610,11 @@ function GameActionOverlay({ isPaused = false }) {
     const clearAllSideBets = () => {
         if (isPaused || !bSideBetWindowOpen) return;
         setSideBets(createInitialSideBets());
+    };
+
+    const handleBuyShopItem = (item) => {
+        if (!item || isBuyingShopItem) return;
+        mutateBuyChips({ nPrice: item.nPrice });
     };
 
     useEffect(() => {
@@ -591,6 +749,40 @@ function GameActionOverlay({ isPaused = false }) {
     }, [clockNow, turnTimer.active, turnTimer.endsAt]);
 
     useEffect(() => {
+        const nextSignature = [
+            ...consoleCards.hand.map((card) => getCardRenderKey(card, 'hand')),
+            '|',
+            ...consoleCards.community.map((card) => getCardRenderKey(card, 'community')),
+        ].join(',');
+        const previousSignature = previousCardSignatureRef.current;
+        if (previousSignature === nextSignature) return undefined;
+
+        const hadCards = Boolean(previousSignature && previousSignature !== '|');
+        const hasCards = Boolean(nextSignature && nextSignature !== '|');
+        previousCardSignatureRef.current = nextSignature;
+
+        if (hasCards) {
+            setDisplayedConsoleCards(consoleCards);
+            setCardMotionPhase('arriving');
+            const timeout = window.setTimeout(() => setCardMotionPhase(''), 420);
+            return () => window.clearTimeout(timeout);
+        }
+
+        if (hadCards) {
+            setCardMotionPhase('leaving');
+            const timeout = window.setTimeout(() => {
+                setDisplayedConsoleCards(consoleCards);
+                setCardMotionPhase('');
+            }, 320);
+            return () => window.clearTimeout(timeout);
+        }
+
+        setDisplayedConsoleCards(consoleCards);
+        setCardMotionPhase('');
+        return undefined;
+    }, [consoleCards]);
+
+    useEffect(() => {
         const handleConsoleWin = (event) => {
             const nAmount = Math.max(0, Number(event?.detail?.amount) || 0);
             const nToken = Date.now();
@@ -651,15 +843,24 @@ function GameActionOverlay({ isPaused = false }) {
         return rowButtons.length > 0;
     }), [rows]);
     const hasMessage = Boolean(overlayState.message);
-    const nConsoleBankroll = Number.isFinite(Number(bankrollOverride)) ? bankrollOverride : profileData?.nChips;
-    const bankrollAmount = Number.isFinite(Number(nConsoleBankroll)) ? _.formatCurrency(Number(nConsoleBankroll)) : '--';
     const tableBankrollAmount = Number.isFinite(Number(overlayState.tableBankroll))
         ? _.formatCurrency(Number(overlayState.tableBankroll))
         : '--';
+    const nLiveTableBankroll = Number(overlayState.tableBankroll);
+    const nProfileBankroll = Number(profileData?.nChips);
+    const nOverrideBankroll = Number(bankrollOverride);
+    const nConsoleBankroll = Number.isFinite(nOverrideBankroll)
+        ? nOverrideBankroll
+        : (Number.isFinite(nProfileBankroll) && nProfileBankroll > 0)
+            ? nProfileBankroll
+            : nLiveTableBankroll;
+    const bankrollAmount = Number.isFinite(Number(nConsoleBankroll)) ? _.formatCurrency(Number(nConsoleBankroll)) : '--';
     const sConsoleName = profileData?.sUserName || 'Player';
     const sConsoleAvatar = getAvatarImageSrc(profileData?.sAvatar, sConsoleName);
     const isVisible = Boolean(overlayState.visible);
     const hasLiveConsoleCards = Boolean(consoleCards.hand.length || consoleCards.community.length);
+    const hasDisplayedConsoleCards = Boolean(displayedConsoleCards.hand.length || displayedConsoleCards.community.length);
+    const sCardMotionClass = cardMotionPhase ? ` is-${cardMotionPhase}` : '';
 
     return (
         <>
@@ -667,7 +868,24 @@ function GameActionOverlay({ isPaused = false }) {
                 <SoundToggle />
                 <ExitUtilityButton />
             </div>
-            <div className={`game-action-overlay ${(isVisible || hasLiveConsoleCards) ? 'is-visible' : ''}`.trim()}>
+            <div className='game-action-overlay__bottom-shortcuts' aria-label='Game shortcuts'>
+                <button type='button' onClick={() => setUtilityModal('rewards')} aria-label='Open daily rewards'>
+                    <img src={rewardsIcon} alt='' />
+                </button>
+                <button type='button' onClick={() => setUtilityModal('shop')} aria-label='Open chip shop'>
+                    <img src={shopIcon} alt='' />
+                </button>
+            </div>
+            <GameUtilityModal
+                type={utilityModal || 'rewards'}
+                visible={Boolean(utilityModal)}
+                onClose={() => setUtilityModal('')}
+                shopItems={shopItems}
+                isShopLoading={isShopLoading}
+                isBuyingShopItem={isBuyingShopItem}
+                onBuyShopItem={handleBuyShopItem}
+            />
+            <div className={`game-action-overlay ${(isVisible || hasLiveConsoleCards || hasDisplayedConsoleCards) ? 'is-visible' : ''}`.trim()}>
             <div className='game-action-overlay__shell'>
                 {hasMessage ? (
                     <div className='game-action-overlay__message'>
@@ -731,12 +949,12 @@ function GameActionOverlay({ isPaused = false }) {
                         </button>
                     </div>
                 </div>
-                {hasLiveConsoleCards ? (
-                    <div className='game-action-overlay__floating-console-cards'>
+                {hasDisplayedConsoleCards ? (
+                    <div className={`game-action-overlay__floating-console-cards${sCardMotionClass}`}>
                         <ConsoleCards
-                            handCards={consoleCards.hand}
-                            communityCards={consoleCards.community}
-                            score={consoleCards.score}
+                            handCards={displayedConsoleCards.hand}
+                            communityCards={displayedConsoleCards.community}
+                            score={displayedConsoleCards.score}
                         />
                     </div>
                 ) : null}

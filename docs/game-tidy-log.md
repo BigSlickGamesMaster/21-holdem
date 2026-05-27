@@ -627,3 +627,22 @@ This file records each stabilization/refactor step so future work can see what c
   - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
   - `npm run lint:game` passed.
   - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+
+### Step 41: In-Game Rewards Shop And Fresh Card Motion
+
+- Goal: add in-game reward/shop access, correct stale zero bankroll display, align card number sizing, and add a new card motion path after the previous animation code was removed.
+- Scope: React game overlay, game SCSS, existing daily reward/shop APIs, and console card presentation.
+- Non-goal: do not change server economy rules, table actions, side-bet rules, or chip animations.
+- Expected benefit: players can claim rewards or buy chips without leaving the game screen, the console bankroll prefers live table data when profile data is stale, hand/community card ranks match visually, and cards enter/leave with a fresh animation when the hand appears/clears.
+- Implemented:
+  - Added bottom-left Rewards and Shop icon buttons.
+  - Added modal panels using the existing `DailyRewardsPanel`, `getChips`, and `buyChips` flows.
+  - Changed console bankroll fallback to prefer live override/profile/table bankroll data instead of showing stale zero.
+  - Matched floating console card rank sizing to the existing hand-card rank size.
+  - Added new card arrive/leave keyframes and state classes with different names and timing from the removed animation path.
+- Checks:
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `npm run lint:game` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
+  - `git diff --check -- src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.
