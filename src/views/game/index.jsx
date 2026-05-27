@@ -42,6 +42,28 @@ function Game({ isPausedExternally = false }) {
     const layoutMode = 'mobile';
 
     useEffect(() => {
+        if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
+
+        const setVisibleViewportHeight = () => {
+            const viewportHeight = window.visualViewport?.height || window.innerHeight;
+            document.documentElement.style.setProperty('--vh', `${viewportHeight * 0.01}px`);
+        };
+
+        setVisibleViewportHeight();
+        window.addEventListener('resize', setVisibleViewportHeight);
+        window.addEventListener('orientationchange', setVisibleViewportHeight);
+        window.visualViewport?.addEventListener('resize', setVisibleViewportHeight);
+        window.visualViewport?.addEventListener('scroll', setVisibleViewportHeight);
+
+        return () => {
+            window.removeEventListener('resize', setVisibleViewportHeight);
+            window.removeEventListener('orientationchange', setVisibleViewportHeight);
+            window.visualViewport?.removeEventListener('resize', setVisibleViewportHeight);
+            window.visualViewport?.removeEventListener('scroll', setVisibleViewportHeight);
+        };
+    }, []);
+
+    useEffect(() => {
         if (typeof document === 'undefined') return;
 
         window.FXOverlayUI?.closeBugPanel?.();

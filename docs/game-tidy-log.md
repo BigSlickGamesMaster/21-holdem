@@ -564,3 +564,19 @@ This file records each stabilization/refactor step so future work can see what c
   - `npm run lint:game` passed.
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
   - `git diff --check -- src/scenes/Level.js docs/game-tidy-log.md` passed.
+
+### Step 37: Mobile Portrait Visible Viewport Fit
+
+- Goal: make mobile portrait gameplay fill the actual visible phone viewport without leaving a large dark strip below the bottom console.
+- Scope: viewport height measurement, mobile game-stage sizing, and bottom-console vertical offset math.
+- Non-goal: do not redesign controls, cards, table art, or console styling.
+- Expected benefit: the game stage and React overlay use the live visual viewport height, and the mobile bottom console sits against the visible bottom safe area instead of a hard-coded gap.
+- Implemented:
+  - Set the `--vh` CSS variable from `visualViewport.height`/`innerHeight` while the game view is mounted.
+  - Changed the mobile game stage from strict 9:16 aspect-height sizing to the actual visible viewport height.
+  - Replaced the hard-coded `38px` console bottom offset with a CSS variable and set it to the device safe-area bottom on mobile.
+- Checks:
+  - `npx eslint src/views/game/index.jsx --max-warnings=0` passed.
+  - `npm run lint:game` passed.
+  - `git diff --check -- src/views/game/index.jsx src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.
