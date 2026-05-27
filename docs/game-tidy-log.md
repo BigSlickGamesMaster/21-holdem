@@ -712,3 +712,15 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 46: Add One More Playfield Offset Step
+
+- Goal: move the game playfield down by one more original offset step while leaving the bottom console anchored.
+- Scope: game SCSS layout variable only.
+- Non-goal: do not change controls, card rendering, gameplay state, side bets, or the bottom console.
+- Expected benefit: the playfield sits lower again beneath the top banner.
+- Implemented:
+  - Changed `--game-playfield-offset-y` from `0.92` to `1.38` of the top banner height.
+- Checks:
+  - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.
