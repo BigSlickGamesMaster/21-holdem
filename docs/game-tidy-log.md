@@ -685,3 +685,18 @@ This file records each stabilization/refactor step so future work can see what c
   - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js --watchAll=false` passed.
   - `git diff --check -- src/scenes/Level.js src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 44: Add Top Utility Banner Space
+
+- Goal: move the game playfield down while keeping the bottom console anchored, making room at the top for a banner that houses the utility icons.
+- Scope: game SCSS layout only.
+- Non-goal: do not change game logic, cards, side bets, action buttons, or bottom console positioning.
+- Expected benefit: the table/canvas content shifts down under a dedicated top banner, while the bottom console stays fixed to the bottom of the visible game screen.
+- Implemented:
+  - Added `--game-top-banner-height` and `--game-playfield-offset-y` layout variables.
+  - Offset the Phaser canvas vertically using the playfield offset variable.
+  - Restyled the top utility control row as a full-width banner aligned to the top safe area.
+- Checks:
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.
