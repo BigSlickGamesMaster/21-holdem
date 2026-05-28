@@ -172,10 +172,10 @@ export default class Level extends Phaser.Scene {
 
         base.playerProfiles.forEach(({ playerProfile, x, y, scaleX, scaleY }) => {
             if (!playerProfile) return;
-            playerProfile.setPosition(x, y + layout.playerProfilesOffsetY);
+            playerProfile.setPosition(x, y);
             playerProfile.setScale(
-                scaleX * layout.playerProfilesScale,
-                scaleY * layout.playerProfilesScale
+                scaleX,
+                scaleY
             );
         });
 

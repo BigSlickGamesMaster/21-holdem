@@ -800,3 +800,21 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 52: Adjust Player Console Block And Timer Check
+
+- Goal: move the local profile circle/name/bankroll up 5px, remove the word `Current`, and verify the turn timer path is still wired.
+- Scope: React game overlay text and game SCSS layout.
+- Non-goal: do not change timer logic, bankroll calculation, console sizing, cards, buttons, or gameplay events.
+- Expected benefit: the local player block sits slightly higher and shows only name plus bankroll.
+- Implemented:
+  - Removed the `Current` label from the local bankroll display.
+  - Shifted `.game-action-overlay__console-col--left` up by 5px.
+  - Verified the timer path remains `Level.emitConsoleTurnTimer()` -> `GAME_BROWSER_EVENTS.CONSOLE_TURN_TIMER` -> `turnTimer` state -> avatar `--turn-progress` ring and `is-timing` class.
+  - Locked table player profiles to their base seat coordinates so saved layout offsets/scales cannot make other players float away from the table.
+- Checks:
+  - `npx eslint src/views/game/GameActionOverlay.jsx --max-warnings=0` passed.
+  - `npm run lint:game` passed.
+  - `$env:CI='true'; npx react-scripts test src/scripts/gameActionState.test.js src/scripts/clientGameState.test.js src/scripts/socketReceiveRouter.test.js src/scripts/socketStateReducer.test.js src/scripts/gameUiLayout.test.js --watchAll=false` passed.
+  - `git diff --check -- src/views/game/GameActionOverlay.jsx src/assets/scss/views/game/_game.scss src/scenes/Level.js docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.

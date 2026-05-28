@@ -908,7 +908,6 @@ function GameActionOverlay({ isPaused = false }) {
                             </div>
                             <div className='game-action-overlay__console-bankroll'>
                                 <span className='game-action-overlay__console-name'>{_.appendSuffix(sConsoleName, 14)}</span>
-                                <span>Current</span>
                                 <strong>{bankrollAmount}</strong>
                             </div>
                         </div>
