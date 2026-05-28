@@ -787,3 +787,16 @@ This file records each stabilization/refactor step so future work can see what c
 - Checks:
   - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
   - `npm run build` passed with existing project-wide warnings.
+
+### Step 51: Lower Hole Cards 20px
+
+- Goal: move the local hole-card display down 20px while leaving action buttons and the bottom console unchanged.
+- Scope: game SCSS layout variables only.
+- Non-goal: do not change card rendering, card size, action button position, modal layering, gameplay state, or console layout.
+- Expected benefit: the hole cards sit 20px closer to the action buttons.
+- Implemented:
+  - Reduced the default hole-card offset from `126px` to `106px` above the action buttons.
+  - Reduced the mobile hole-card offset from `151px` to `131px` above the action buttons.
+- Checks:
+  - `git diff --check -- src/assets/scss/views/game/_game.scss docs/game-tidy-log.md` passed.
+  - `npm run build` passed with existing project-wide warnings.

@@ -63,7 +63,7 @@ body,
     --game-console-bottom-offset: 38px;
     --game-action-buttons-shift-y: 0px;
     --game-action-buttons-bottom: calc(75px + 38px + env(safe-area-inset-bottom, 0px) + 8px - var(--game-action-buttons-shift-y));
-    --game-hole-cards-bottom: calc(var(--game-action-buttons-bottom) + 126px);
+    --game-hole-cards-bottom: calc(var(--game-action-buttons-bottom) + 106px);
     position: absolute;
     inset: 0;
     z-index: 35;
@@ -2980,7 +2980,7 @@ body,
     .game-action-overlay {
         --game-mobile-console-height: 90px;
         --game-action-buttons-bottom: calc(var(--game-mobile-console-height) + env(safe-area-inset-bottom, 0px) + 8px - var(--game-action-buttons-shift-y));
-        --game-hole-cards-bottom: calc(var(--game-action-buttons-bottom) + 151px);
+        --game-hole-cards-bottom: calc(var(--game-action-buttons-bottom) + 131px);
     }
 
     .game-action-overlay__tray,
